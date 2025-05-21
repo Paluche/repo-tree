@@ -11,15 +11,14 @@
 //! + Add remotes list
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
-use git2::{Repository, Remote};
-use std::{env, io, process::exit};
+use git2::Repository;
+use std::{env, io, path::Path, process::exit};
+
+use repo_prompt::url_parsing::parse_repo_url;
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Path to within the git repository to work with.
-    #[arg(short, long)]
-    repository: Option<String>,
     /// Action to perform
     #[command(subcommand)]
     action: Action,
@@ -27,9 +26,24 @@ struct Args {
 
 #[derive(Subcommand, Debug, PartialEq)]
 enum Action {
-    Prompt,
-    Status,
-    Completion { shell: Shell },
+    Prompt {
+        /// Path to within the git repository to work with.
+        #[arg(short, long)]
+        repository: Option<String>,
+    },
+    Status {
+        /// Path to within the git repository to work with.
+        #[arg(short, long)]
+        repository: Option<String>,
+    },
+    Resolve {
+        /// Path to within the git repository to work with.
+        #[arg(short, long)]
+        repository: Option<String>,
+    },
+    Completion {
+        shell: Shell,
+    },
 }
 
 fn main() {
@@ -39,38 +53,35 @@ fn main() {
         Action::Completion { shell } => {
             generate_completion(&mut Args::command(), shell);
         }
-        Action::Prompt => prompt(args.repository),
-        Action::Status => panic!("Not Implemented yet"),
+        Action::Prompt { repository } => prompt(repository),
+        Action::Status { .. } => panic!("Not Implemented yet"),
+        Action::Resolve { .. } => panic!("Not Implemented yet"),
     }
 }
 
 fn prompt(repo_path: Option<String>) {
     let repo = load_repository(repo_path);
+    let (forge, repo_path) = parse_repo_url(&repo).unwrap();
 
-    load_repo_name(&repo);
-}
+    let work_dir = env::var("WORK_DIR").unwrap();
+    let mut expected_path = Path::new(&work_dir).to_path_buf();
+    expected_path.push(forge);
+    expected_path.push(&repo_path);
+    let expected_path = expected_path.as_path();
+    let current_repo_path = repo.workdir().unwrap();
 
-fn load_default_remote(repo: &Repository) -> Option<Remote> {
-    let remotes = repo.remotes().unwrap();
-
-    if remotes.is_empty() {
-        None
-    } else {
-        Some(
-            match repo.find_remote("origin") {
-                Ok(remote) => remote,
-                Err(_) => repo.find_remote( remotes.get(0)?).unwrap()
-            }
-        )
+    if current_repo_path == expected_path {
+        eprintln!(
+            "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
+            should be in \"{}\".",
+            repo_path,
+            current_repo_path.display(),
+            expected_path.display(),
+        );
     }
-}
 
-fn load_repo_name(repo: &Repository) -> Option<String> {
-    let default_remote = load_default_remote(repo)?;
-    let url = default_remote.url().unwrap();
-    println!("{} {}", default_remote.name().unwrap(), url);
-
-    Some(url.to_string())
+    // prompt is |type|repo_path|branch/bookmark[|ongoing git operation]|status|[submodule_status]
+    // type is git / jj / svn (emojis?)
 }
 
 fn generate_completion<G: Generator + std::fmt::Debug>(
