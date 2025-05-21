@@ -404,6 +404,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "git2",
+ "url",
 ]
 
 [[package]]
