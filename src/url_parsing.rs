@@ -14,7 +14,7 @@ fn get_host_work_dir(host: &str) -> Option<&str> {
     .get(host)
     .copied()
     .or_else(|| {
-        println!("Unknown host {}", host);
+        println!("Unknown host {host}");
         None
     })
 }
@@ -45,7 +45,8 @@ pub fn parse_repo_url(repo: &Repository) -> Option<(String, String)> {
     let host = url.host_str();
     let host_work_dir = host
         .and_then(get_host_work_dir)
-        .or(get_host_work_dir(url.scheme()))?.to_owned();
+        .or(get_host_work_dir(url.scheme()))?
+        .to_owned();
     let mut path = url.path().to_owned();
 
     if path.ends_with(".git") {

@@ -12,9 +12,9 @@
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
 use git2::Repository;
+use repo_prompt::git_status_porcelain;
+use repo_prompt::parse_repo_url;
 use std::{env, io, path::Path, process::exit};
-
-use repo_prompt::url_parsing::parse_repo_url;
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -70,7 +70,7 @@ fn prompt(repo_path: Option<String>) {
     let expected_path = expected_path.as_path();
     let current_repo_path = repo.workdir().unwrap();
 
-    if current_repo_path == expected_path {
+    if current_repo_path != expected_path {
         eprintln!(
             "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
             should be in \"{}\".",
@@ -82,6 +82,8 @@ fn prompt(repo_path: Option<String>) {
 
     // prompt is |type|repo_path|branch/bookmark[|ongoing git operation]|status|[submodule_status]
     // type is git / jj / svn (emojis?)
+    let git_status = git_status_porcelain(current_repo_path.to_str().unwrap());
+    println!("{git_status:?}");
 }
 
 fn generate_completion<G: Generator + std::fmt::Debug>(
