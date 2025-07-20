@@ -1,4 +1,5 @@
 //! Module for retrieving git information.
+use chrono::{DateTime, Utc};
 use std::{
     collections::HashMap, error::Error, fs::metadata, path::Path,
     process::Command, str::Chars, time::SystemTime,
@@ -135,7 +136,6 @@ pub struct ItemStatus {
     pub orig_path: Option<String>,
     pub path: String,
 }
-}
 
 enum ParseOutput {
     BranchInfo(String, String),
@@ -257,7 +257,6 @@ pub struct UpstreamInfo {
     pub ahead: u32,
     pub behind: u32,
 }
-}
 
 #[derive(Debug)]
 pub struct BranchInfo {
@@ -329,4 +328,40 @@ pub fn git_status_porcelain(
         branch: BranchInfo::from_raw(branch_raw),
         status,
     })
+}
+
+pub fn get_git_dir(repo_path: &str) -> Option<String> {
+    let mut ret = String::from_utf8(
+        Command::new("git")
+            .arg("-C")
+            .arg(repo_path)
+            .arg("rev-parse")
+            .arg("--git-dir")
+            .output()
+            .ok()?
+            .stdout,
+    )
+    .ok()?;
+
+    // Pop new line character.
+    ret.pop();
+
+    Some(ret)
+}
+
+pub fn get_last_fetched(git_dir: &String) -> Option<DateTime<Utc>> {
+    let mut fetch_head = Path::new(git_dir).to_path_buf();
+    fetch_head.push("FETCH_HEAD");
+
+    DateTime::from_timestamp_millis(
+        metadata(fetch_head.as_path())
+            .ok()?
+            .modified()
+            .ok()?
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .ok()?
+            .as_millis()
+            .try_into()
+            .unwrap(),
+    )
 }

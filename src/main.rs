@@ -12,8 +12,9 @@
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
 use git2::Repository;
-use repo_prompt::git_status_porcelain;
-use repo_prompt::parse_repo_url;
+use repo_prompt::{
+    get_git_dir, get_last_fetched, git_status_porcelain, parse_repo_url,
+};
 use std::{env, io, path::Path, process::exit};
 
 #[derive(Parser, Debug, PartialEq)]
@@ -80,10 +81,16 @@ fn prompt(repo_path: Option<String>) {
         );
     }
 
+    let current_repo_path = current_repo_path.to_str().unwrap();
+
     // prompt is |type|repo_path|branch/bookmark[|ongoing git operation]|status|[submodule_status]
     // type is git / jj / svn (emojis?)
-    let git_status = git_status_porcelain(current_repo_path.to_str().unwrap());
+    let git_status = git_status_porcelain(current_repo_path);
     println!("{git_status:?}");
+    let git_dir = get_git_dir(current_repo_path).unwrap();
+    if let Some(last_fetched) = get_last_fetched(&git_dir) {
+        println!("Last fetched {}", last_fetched.format("%c"));
+    }
 }
 
 fn generate_completion<G: Generator + std::fmt::Debug>(
