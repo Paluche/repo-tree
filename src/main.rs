@@ -11,6 +11,7 @@
 //! + Add remotes list
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
+use colored::Colorize;
 use git2::Repository;
 use repo_prompt::{
     get_git_dir, get_last_fetched, git_status_porcelain, parse_repo_url,
@@ -55,12 +56,23 @@ fn main() {
             generate_completion(&mut Args::command(), shell);
         }
         Action::Prompt { repository } => prompt(repository),
-        Action::Status { .. } => panic!("Not Implemented yet"),
+        Action::Status { repository } => status(repository),
         Action::Resolve { .. } => panic!("Not Implemented yet"),
     }
 }
 
 fn prompt(repo_path: Option<String>) {
+    let git_status = git_status_porcelain(
+        load_repository(repo_path)
+            .workdir()
+            .unwrap()
+            .to_str()
+            .unwrap(),
+    );
+    println!("{git_status:?}");
+}
+
+fn status(repo_path: Option<String>) {
     let repo = load_repository(repo_path);
     let (forge, repo_path) = parse_repo_url(&repo).unwrap();
 
@@ -82,14 +94,25 @@ fn prompt(repo_path: Option<String>) {
     }
 
     let current_repo_path = current_repo_path.to_str().unwrap();
-
-    // prompt is |type|repo_path|branch/bookmark[|ongoing git operation]|status|[submodule_status]
-    // type is git / jj / svn (emojis?)
-    let git_status = git_status_porcelain(current_repo_path);
-    println!("{git_status:?}");
     let git_dir = get_git_dir(current_repo_path).unwrap();
     if let Some(last_fetched) = get_last_fetched(&git_dir) {
-        println!("Last fetched {}", last_fetched.format("%c"));
+        println!(
+            "{} {}",
+            "Last Fetched".green(),
+            last_fetched.format("%c").to_string().green()
+        );
+    }
+    let git_status = git_status_porcelain(current_repo_path).unwrap();
+    let branch_info = &git_status.branch;
+    print!("{} -> {}", branch_info.oid.yellow(), branch_info.head.red());
+    if let Some(upstream_info) = &branch_info.upstream {
+        println!(" {upstream_info}")
+    } else {
+        println!()
+    }
+
+    for item in git_status.status {
+        println!("{item}");
     }
 }
 

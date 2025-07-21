@@ -1,7 +1,8 @@
 //! Module for retrieving git information.
 use chrono::{DateTime, Utc};
+use colored::{ColoredString, Colorize};
 use std::{
-    collections::HashMap, error::Error, fs::metadata, path::Path,
+    collections::HashMap, error::Error, fmt::Display, fs::metadata, path::Path,
     process::Command, str::Chars, time::SystemTime,
 };
 
@@ -48,6 +49,31 @@ impl Status {
 
     pub fn is_untracked(&self) -> bool {
         matches!(self, Self::Untracked)
+    }
+
+    fn to_colored_string(&self, staged: bool) -> ColoredString {
+        let ret = match self {
+            Self::Unmodified => " ",
+            Self::Modified => "M",
+            Self::FileTypeChanged => "T",
+            Self::Added => "A",
+            Self::Deleted => "D",
+            Self::Renamed => "R",
+            Self::Copied => "C",
+            Self::Updated => "U",
+            Self::Untracked => "?",
+            Self::Ignored => "!",
+        };
+
+        if matches!(self, Self::Unmodified | Self::Untracked | Self::Ignored) {
+            ret.white()
+        } else if matches!(self, Self::Updated) {
+            ret.red()
+        } else if staged {
+            ret.green()
+        } else {
+            ret.red()
+        }
     }
 }
 
@@ -124,6 +150,25 @@ impl SubmoduleStatus {
             false
         }
     }
+
+    fn to_colored_string(&self) -> ColoredString {
+        match self {
+            Self::NotASubmodule => "    ".blue(),
+            Self::Untracked => "????".blue(),
+            Self::Ignored => "!!!!".blue(),
+            &Self::Submodule {
+                commit_changed,
+                tracked_changed,
+                has_untracked,
+            } => format!(
+                "S{}{}{}",
+                if commit_changed { "C" } else { " " },
+                if tracked_changed { "M" } else { " " },
+                if has_untracked { "?" } else { " " },
+            )
+            .blue(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -135,6 +180,22 @@ pub struct ItemStatus {
     // contain the path the file was before (respectively originally).
     pub orig_path: Option<String>,
     pub path: String,
+}
+
+impl Display for ItemStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{} {} ",
+            self.staged.to_colored_string(true),
+            self.unstaged.to_colored_string(false),
+            self.submodule_status.to_colored_string(),
+        )?;
+        if let Some(orig_path) = &self.orig_path {
+            write!(f, "{orig_path} -> ")?;
+        }
+        write!(f, "{}", self.path)
+    }
 }
 
 enum ParseOutput {
@@ -256,6 +317,20 @@ pub struct UpstreamInfo {
     pub name: String,
     pub ahead: u32,
     pub behind: u32,
+}
+
+impl Display for UpstreamInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}{}  {}{}  {}",
+            self.ahead.to_string().green(),
+            "".green(),
+            self.behind.to_string().red(),
+            "".red(),
+            self.name.cyan()
+        )
+    }
 }
 
 #[derive(Debug)]
