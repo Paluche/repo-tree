@@ -73,6 +73,79 @@ fn prompt(repo_path: Option<String>) {
     println!("{git_status:?}");
 }
 
+fn repo_status(repo_path: &str, level: usize) -> String {
+    let mut info = Vec::<String>::new();
+    let mut items = Vec::<String>::new();
+    let git_dir = get_git_dir(repo_path).unwrap();
+
+    if let Some(last_fetched) = get_last_fetched(&git_dir) {
+        info.push(format!(
+            "{} {}",
+            "Last Fetched".green(),
+            last_fetched.format("%c").to_string().green()
+        ));
+    }
+
+    let stashed = get_stashed(&git_dir);
+
+    if stashed != 0 {
+        info.push(format!(
+            "{} {}",
+            stashed.to_string().bright_yellow(),
+            (if stashed == 1 {
+                "stash pending"
+            } else {
+                "stashes pending"
+            })
+            .bright_yellow()
+        ));
+    }
+    let git_status = git_status_porcelain(repo_path).unwrap();
+    let branch_info = &git_status.branch;
+    let mut branch_info_line =
+        format!("{} -> {}", branch_info.oid.yellow(), branch_info.head.red());
+    if let Some(upstream_info) = &branch_info.upstream {
+        branch_info_line.push_str(&format!(" {upstream_info}"));
+    }
+
+    for item in git_status.status {
+        items.push(format!("{item}"));
+    }
+
+    fn get_prefix(level: usize, prefix: &str) -> String {
+        let mut ret = String::new();
+        for _ in 1..level {
+            ret.push_str("        ");
+        }
+        if level != 0 {
+            ret.push_str(&format!("{prefix:2} "));
+        }
+        ret
+    }
+
+    let mut ret: String = info
+        .iter()
+        .map(|element| format!("{}{}\n", get_prefix(level, "│"), element))
+        .collect();
+
+    if !items.is_empty() {
+        let last = items.pop().unwrap();
+
+        ret.push_str(
+            items
+                .iter()
+                .map(|element| {
+                    format!("{}{}\n", get_prefix(level, "├─"), element)
+                })
+                .collect::<String>()
+                .as_str(),
+        );
+        ret.push_str(&format!("{}{}", get_prefix(level, "└─"), last));
+    }
+
+    ret
+}
+
 fn status(repo_path: Option<String>) {
     let repo = load_repository(repo_path);
     let (forge, repo_path) = parse_repo_url(&repo).unwrap();
@@ -95,30 +168,7 @@ fn status(repo_path: Option<String>) {
     }
 
     let current_repo_path = current_repo_path.to_str().unwrap();
-    let git_dir = get_git_dir(current_repo_path).unwrap();
-    if let Some(last_fetched) = get_last_fetched(&git_dir) {
-        println!(
-            "{} {}",
-            "Last Fetched".green(),
-            last_fetched.format("%c").to_string().green()
-        );
-    }
-    let stashed = get_stashed(&git_dir);
-    let git_status = git_status_porcelain(current_repo_path).unwrap();
-    let branch_info = &git_status.branch;
-    print!("{} -> {}", branch_info.oid.yellow(), branch_info.head.red());
-    if let Some(upstream_info) = &branch_info.upstream {
-        println!(" {upstream_info}")
-    } else {
-        println!()
-    }
-    if stashed != 0 {
-        println!("{}", "{stashed} stash pending".bright_yellow());
-    }
-
-    for item in git_status.status {
-        println!("{item}");
-    }
+    println!("{}", repo_status(current_repo_path, 0));
 }
 
 fn generate_completion<G: Generator + std::fmt::Debug>(
