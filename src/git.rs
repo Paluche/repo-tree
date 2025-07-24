@@ -2,8 +2,15 @@
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
 use std::{
-    collections::HashMap, error::Error, fmt::Display, fs::metadata, path::Path,
-    process::Command, str::Chars, time::SystemTime,
+    collections::HashMap,
+    error::Error,
+    fmt::Display,
+    fs::{metadata, File},
+    io::Read,
+    path::Path,
+    process::Command,
+    str::Chars,
+    time::SystemTime,
 };
 
 #[derive(Debug)]
@@ -439,4 +446,20 @@ pub fn get_last_fetched(git_dir: &String) -> Option<DateTime<Utc>> {
             .try_into()
             .unwrap(),
     )
+}
+
+pub fn get_stashed(git_dir: &String) -> usize {
+    let mut stash_file_path = Path::new(git_dir).to_path_buf();
+    stash_file_path.push("logs");
+    stash_file_path.push("refs");
+    stash_file_path.push("stash");
+
+    if let Ok(mut file) = File::open(&stash_file_path) {
+        let mut buf = String::new();
+        if file.read_to_string(&mut buf).is_ok() {
+            return buf.lines().count();
+        }
+    }
+
+    0
 }
