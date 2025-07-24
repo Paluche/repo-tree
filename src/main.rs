@@ -15,9 +15,13 @@ use colored::Colorize;
 use git2::Repository;
 use repo_prompt::{
     get_git_dir, get_last_fetched, get_stashed, git_status_porcelain,
-    parse_repo_url,
+    parse_repo_url, SubmoduleStatus,
 };
-use std::{env, io, path::Path, process::exit};
+use std::{
+    env, io,
+    path::{Path, PathBuf},
+    process::exit,
+};
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -73,24 +77,34 @@ fn prompt(repo_path: Option<String>) {
     println!("{git_status:?}");
 }
 
-fn repo_status(repo_path: &str, level: usize) -> String {
-    let mut info = Vec::<String>::new();
-    let mut items = Vec::<String>::new();
+fn repo_status(
+    main_repo_path: &str,
+    rel_path: Option<&str>,
+    level: usize,
+) -> String {
+    let mut repo_path = PathBuf::from(main_repo_path);
+    if let Some(rel_path) = rel_path {
+        repo_path.push(rel_path);
+    }
+    let repo_path = repo_path.to_str().unwrap();
+    let mut ret = String::new();
     let git_dir = get_git_dir(repo_path).unwrap();
+    let prefix = (0..level).map(|_| "        ┊ ").collect::<String>();
 
     if let Some(last_fetched) = get_last_fetched(&git_dir) {
-        info.push(format!(
-            "{} {}",
+        ret.push_str(&format!(
+            "{}{} {}\n",
+            prefix,
             "Last Fetched".green(),
             last_fetched.format("%c").to_string().green()
         ));
     }
 
     let stashed = get_stashed(&git_dir);
-
     if stashed != 0 {
-        info.push(format!(
-            "{} {}",
+        ret.push_str(&format!(
+            "{}{} {}\n",
+            prefix,
             stashed.to_string().bright_yellow(),
             (if stashed == 1 {
                 "stash pending"
@@ -109,38 +123,14 @@ fn repo_status(repo_path: &str, level: usize) -> String {
     }
 
     for item in git_status.status {
-        items.push(format!("{item}"));
-    }
-
-    fn get_prefix(level: usize, prefix: &str) -> String {
-        let mut ret = String::new();
-        for _ in 1..level {
-            ret.push_str("        ");
+        ret.push_str(&format!("{}{}\n", prefix, item.display(rel_path)));
+        if matches!(item.submodule_status, SubmoduleStatus::Submodule { .. }) {
+            ret.push_str(&repo_status(
+                main_repo_path,
+                Some(&item.path),
+                level + 1,
+            ));
         }
-        if level != 0 {
-            ret.push_str(&format!("{prefix:2} "));
-        }
-        ret
-    }
-
-    let mut ret: String = info
-        .iter()
-        .map(|element| format!("{}{}\n", get_prefix(level, "│"), element))
-        .collect();
-
-    if !items.is_empty() {
-        let last = items.pop().unwrap();
-
-        ret.push_str(
-            items
-                .iter()
-                .map(|element| {
-                    format!("{}{}\n", get_prefix(level, "├─"), element)
-                })
-                .collect::<String>()
-                .as_str(),
-        );
-        ret.push_str(&format!("{}{}", get_prefix(level, "└─"), last));
     }
 
     ret
@@ -168,7 +158,7 @@ fn status(repo_path: Option<String>) {
     }
 
     let current_repo_path = current_repo_path.to_str().unwrap();
-    println!("{}", repo_status(current_repo_path, 0));
+    println!("{}", repo_status(current_repo_path, None, 0));
 }
 
 fn generate_completion<G: Generator + std::fmt::Debug>(

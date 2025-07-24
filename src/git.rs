@@ -189,19 +189,29 @@ pub struct ItemStatus {
     pub path: String,
 }
 
-impl Display for ItemStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
+impl ItemStatus {
+    pub fn display(&self, rel_path: Option<&str>) -> String {
+        let mut ret = format!(
             "{}{} {} ",
             self.staged.to_colored_string(true),
             self.unstaged.to_colored_string(false),
             self.submodule_status.to_colored_string(),
-        )?;
-        if let Some(orig_path) = &self.orig_path {
-            write!(f, "{orig_path} -> ")?;
+        );
+
+        fn format_path(rel_path: Option<&str>, path: &String) -> String {
+            if let Some(rel_path) = rel_path {
+                format!("{rel_path}/{path}")
+            } else {
+                path.to_string()
+            }
         }
-        write!(f, "{}", self.path)
+
+        if let Some(orig_path) = &self.orig_path {
+            ret.push_str(&format_path(rel_path, orig_path));
+            ret.push_str(" -> ");
+        }
+        ret.push_str(&format_path(rel_path, &self.path));
+        ret
     }
 }
 
@@ -284,9 +294,9 @@ fn parse_line(line: &str) -> ParseOutput {
         let mut chars = chars.skip_while(|c| {
             if c == &' ' {
                 i += 1;
-                i <= skip
-            } else {
                 true
+            } else {
+                i <= skip
             }
         });
         let (path, orig_path) = match entry_type {
