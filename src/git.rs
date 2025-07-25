@@ -6,7 +6,7 @@ use std::{
     error::Error,
     fmt::Display,
     fs::metadata,
-    path::Path,
+    path::{Path, PathBuf},
     process::Command,
     str::Chars,
     time::SystemTime,
@@ -391,16 +391,149 @@ impl BranchInfo {
     }
 }
 
+fn get_git_dir(repo_path: &str) -> Result<String, Box<dyn Error>> {
+    let mut ret = String::from_utf8(
+        Command::new("git")
+            .arg("-C")
+            .arg(repo_path)
+            .arg("rev-parse")
+            .arg("--absolute-git-dir")
+            .output()?
+            .stdout,
+    )?;
+
+    // Pop new line character.
+    ret.pop();
+
+    Ok(ret)
+}
+
+fn get_last_fetched(git_dir: &String) -> Option<DateTime<Utc>> {
+    let mut fetch_head = Path::new(git_dir).to_path_buf();
+    fetch_head.push("FETCH_HEAD");
+
+    DateTime::from_timestamp_millis(
+        metadata(fetch_head.as_path())
+            .ok()?
+            .modified()
+            .ok()?
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .ok()?
+            .as_millis()
+            .try_into()
+            .unwrap(),
+    )
+}
+
+#[derive(Debug, PartialEq)]
+pub enum GitOperation {
+    Rebase,
+    AM,
+    CherryPick,
+    Bisect,
+    Merge,
+    Revert,
+}
+
+impl Display for GitOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Rebase => "rebase",
+                Self::AM => "am",
+                Self::CherryPick => "cherry-pick",
+                Self::Bisect => "bisect",
+                Self::Merge => "merge",
+                Self::Revert => "revert",
+            }
+        )
+    }
+}
+
+fn get_ongoing_operations(git_dir: &String) -> Vec<GitOperation> {
+    let mut ret = Vec::new();
+    let git_dir = PathBuf::from(&git_dir);
+
+    {
+        let mut path = git_dir.clone();
+        path.push("rebase-apply");
+        if path.exists() {
+            path.push("rebasing");
+            ret.push(if path.exists() {
+                println!("REBASE");
+                GitOperation::Rebase
+            } else {
+                println!("AM");
+                GitOperation::AM
+            })
+        }
+    }
+
+    {
+        let mut path = git_dir.clone();
+        path.push("rebase-merge");
+        println!("Checking {}", path.display());
+        if path.exists() {
+            println!("REBASE MERGE");
+            ret.push(GitOperation::Rebase);
+        }
+    }
+
+    {
+        let mut path = git_dir.clone();
+        path.push("sequencer");
+        if path.exists() {
+            ret.push(GitOperation::CherryPick);
+        }
+    }
+
+    if !ret.contains(&GitOperation::CherryPick) {
+        let mut path = git_dir.clone();
+        path.push("CHERRY_PICK_HEAD");
+        if path.exists() {
+            ret.push(GitOperation::CherryPick);
+        }
+    }
+
+    {
+        let mut path = git_dir.clone();
+        path.push("BISECT_START");
+        if path.exists() {
+            ret.push(GitOperation::Bisect);
+        }
+    }
+
+    {
+        let mut path = git_dir.clone();
+        path.push("MERGE_HEAD");
+        if path.exists() {
+            ret.push(GitOperation::Merge);
+        }
+    }
+
+    {
+        let mut path = git_dir.clone();
+        path.push("REVERT_HEAD");
+        if path.exists() {
+            ret.push(GitOperation::Revert);
+        }
+    }
+
+    ret
+}
+
 #[derive(Debug)]
 pub struct GitStatus {
     pub branch: BranchInfo,
     pub nb_stash: u32,
     pub status: Vec<ItemStatus>,
+    pub last_fetched: Option<DateTime<Utc>>,
+    pub ongoing_operations: Vec<GitOperation>,
 }
 
-pub fn git_status_porcelain(
-    repo_path: &str,
-) -> Result<GitStatus, Box<dyn Error>> {
+pub fn git_status(repo_path: &str) -> Result<GitStatus, Box<dyn Error>> {
     let output = Command::new("git")
         .arg("-C")
         .arg(repo_path)
@@ -429,46 +562,15 @@ pub fn git_status_porcelain(
             }
         }
     }
+    let git_dir = get_git_dir(repo_path)?;
+    let last_fetched = get_last_fetched(&git_dir);
+    let ongoing_operations = get_ongoing_operations(&git_dir);
 
     Ok(GitStatus {
         branch: BranchInfo::from_raw(branch_raw),
         nb_stash,
         status,
+        last_fetched,
+        ongoing_operations,
     })
-}
-
-pub fn get_git_dir(repo_path: &str) -> Option<String> {
-    let mut ret = String::from_utf8(
-        Command::new("git")
-            .arg("-C")
-            .arg(repo_path)
-            .arg("rev-parse")
-            .arg("--git-dir")
-            .output()
-            .ok()?
-            .stdout,
-    )
-    .ok()?;
-
-    // Pop new line character.
-    ret.pop();
-
-    Some(ret)
-}
-
-pub fn get_last_fetched(git_dir: &String) -> Option<DateTime<Utc>> {
-    let mut fetch_head = Path::new(git_dir).to_path_buf();
-    fetch_head.push("FETCH_HEAD");
-
-    DateTime::from_timestamp_millis(
-        metadata(fetch_head.as_path())
-            .ok()?
-            .modified()
-            .ok()?
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .ok()?
-            .as_millis()
-            .try_into()
-            .unwrap(),
-    )
 }

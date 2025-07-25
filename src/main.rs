@@ -13,10 +13,7 @@ use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
 use colored::Colorize;
 use git2::Repository;
-use repo_prompt::{
-    get_git_dir, get_last_fetched, git_status_porcelain, parse_repo_url,
-    SubmoduleStatus,
-};
+use repo_prompt::{git_status, parse_repo_url, SubmoduleStatus};
 use std::{
     env, io,
     path::{Path, PathBuf},
@@ -67,7 +64,7 @@ fn main() {
 }
 
 fn prompt(repo_path: Option<String>) {
-    let git_status = git_status_porcelain(
+    let git_status = git_status(
         load_repository(repo_path)
             .workdir()
             .unwrap()
@@ -88,22 +85,30 @@ fn repo_status(
     }
     let repo_path = repo_path.to_str().unwrap();
     let mut ret = String::new();
-    let git_dir = get_git_dir(repo_path).unwrap();
     let prefix = (0..level).map(|_| "        ┊ ").collect::<String>();
 
-    if let Some(last_fetched) = get_last_fetched(&git_dir) {
+    let git_status = git_status(repo_path).unwrap();
+
+    if let Some(last_fetched) = git_status.last_fetched {
         ret.push_str(&format!(
-            "{}{} {}\n",
+            "┊ {}{} {}\n",
             prefix,
             "Last Fetched".green(),
             last_fetched.format("%c").to_string().green()
         ));
     }
 
-    let git_status = git_status_porcelain(repo_path).unwrap();
+    let branch_info = &git_status.branch;
+    let mut branch_info_line =
+        format!("{} -> {}", branch_info.oid.yellow(), branch_info.head.red());
+    if let Some(upstream_info) = &branch_info.upstream {
+        branch_info_line.push_str(&format!(" {upstream_info}"));
+    }
+    ret.push_str(&format!("┊ {prefix}{branch_info_line}\n"));
+
     if git_status.nb_stash != 0 {
         ret.push_str(&format!(
-            "{}{} {}\n",
+            "┊ {}{} {}\n",
             prefix,
             git_status.nb_stash.to_string().bright_yellow(),
             (if git_status.nb_stash == 1 {
@@ -114,15 +119,31 @@ fn repo_status(
             .bright_yellow()
         ));
     }
-    let branch_info = &git_status.branch;
-    let mut branch_info_line =
-        format!("{} -> {}", branch_info.oid.yellow(), branch_info.head.red());
-    if let Some(upstream_info) = &branch_info.upstream {
-        branch_info_line.push_str(&format!(" {upstream_info}"));
-    }
+
+    if !git_status.ongoing_operations.is_empty() {
+        ret.push_str(&format!(
+            "┊ {}{} {}\n",
+            prefix,
+            git_status
+                .ongoing_operations
+                .iter()
+                .enumerate()
+                .map(|(i, value)| {
+                    let mut ret = String::new();
+                    if i != 0 {
+                        ret.push_str(", ");
+                    }
+                    ret.push_str(&format!("{value}"));
+                    ret
+                })
+                .collect::<String>()
+                .red(),
+            "ongoing".red()
+        ));
+    };
 
     for item in git_status.status {
-        ret.push_str(&format!("{}{}\n", prefix, item.display(rel_path)));
+        ret.push_str(&format!("┊ {}{}\n", prefix, item.display(rel_path)));
         if matches!(item.submodule_status, SubmoduleStatus::Submodule { .. }) {
             ret.push_str(&repo_status(
                 main_repo_path,
