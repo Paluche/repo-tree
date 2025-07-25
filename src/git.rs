@@ -5,8 +5,7 @@ use std::{
     collections::HashMap,
     error::Error,
     fmt::Display,
-    fs::{metadata, File},
-    io::Read,
+    fs::metadata,
     path::Path,
     process::Command,
     str::Chars,
@@ -217,6 +216,7 @@ impl ItemStatus {
 
 enum ParseOutput {
     BranchInfo(String, String),
+    StashInfo(u32),
     ItemStatus(ItemStatus),
 }
 
@@ -230,7 +230,14 @@ fn parse_line(line: &str) -> ParseOutput {
     if entry_type == '#' {
         let key = chars.by_ref().take_while(|c| c != &' ').collect::<String>();
         let value = chars.collect::<String>();
-        ParseOutput::BranchInfo(key, value)
+
+        if key.starts_with("branch") {
+            ParseOutput::BranchInfo(key, value)
+        } else if key == "stash" {
+            ParseOutput::StashInfo(value.parse().unwrap())
+        } else {
+            panic!("")
+        }
     } else if entry_type == '?' {
         ParseOutput::ItemStatus(ItemStatus {
             staged: Status::Untracked,
@@ -387,6 +394,7 @@ impl BranchInfo {
 #[derive(Debug)]
 pub struct GitStatus {
     pub branch: BranchInfo,
+    pub nb_stash: u32,
     pub status: Vec<ItemStatus>,
 }
 
@@ -397,18 +405,24 @@ pub fn git_status_porcelain(
         .arg("-C")
         .arg(repo_path)
         .arg("status")
+        .arg("--show-stash")
         .arg("--porcelain=v2")
         .arg("--branch")
         .output()?;
 
     let output = String::from_utf8(output.stdout)?;
     let mut branch_raw = HashMap::<String, String>::new();
+    let mut nb_stash = 0;
     let mut status = Vec::<ItemStatus>::new();
 
     for line in output.lines() {
         match parse_line(line) {
             ParseOutput::BranchInfo(key, value) => {
                 branch_raw.insert(key, value);
+            }
+            ParseOutput::StashInfo(n) => {
+                assert_eq!(nb_stash, 0, "Unexpected several stash info");
+                nb_stash = n
             }
             ParseOutput::ItemStatus(item_status) => {
                 status.push(item_status);
@@ -418,6 +432,7 @@ pub fn git_status_porcelain(
 
     Ok(GitStatus {
         branch: BranchInfo::from_raw(branch_raw),
+        nb_stash,
         status,
     })
 }
@@ -456,20 +471,4 @@ pub fn get_last_fetched(git_dir: &String) -> Option<DateTime<Utc>> {
             .try_into()
             .unwrap(),
     )
-}
-
-pub fn get_stashed(git_dir: &String) -> usize {
-    let mut stash_file_path = Path::new(git_dir).to_path_buf();
-    stash_file_path.push("logs");
-    stash_file_path.push("refs");
-    stash_file_path.push("stash");
-
-    if let Ok(mut file) = File::open(&stash_file_path) {
-        let mut buf = String::new();
-        if file.read_to_string(&mut buf).is_ok() {
-            return buf.lines().count();
-        }
-    }
-
-    0
 }

@@ -14,8 +14,8 @@ use clap_complete::{generate, Generator, Shell};
 use colored::Colorize;
 use git2::Repository;
 use repo_prompt::{
-    get_git_dir, get_last_fetched, get_stashed, git_status_porcelain,
-    parse_repo_url, SubmoduleStatus,
+    get_git_dir, get_last_fetched, git_status_porcelain, parse_repo_url,
+    SubmoduleStatus,
 };
 use std::{
     env, io,
@@ -100,13 +100,13 @@ fn repo_status(
         ));
     }
 
-    let stashed = get_stashed(&git_dir);
-    if stashed != 0 {
+    let git_status = git_status_porcelain(repo_path).unwrap();
+    if git_status.nb_stash != 0 {
         ret.push_str(&format!(
             "{}{} {}\n",
             prefix,
-            stashed.to_string().bright_yellow(),
-            (if stashed == 1 {
+            git_status.nb_stash.to_string().bright_yellow(),
+            (if git_status.nb_stash == 1 {
                 "stash pending"
             } else {
                 "stashes pending"
@@ -114,7 +114,6 @@ fn repo_status(
             .bright_yellow()
         ));
     }
-    let git_status = git_status_porcelain(repo_path).unwrap();
     let branch_info = &git_status.branch;
     let mut branch_info_line =
         format!("{} -> {}", branch_info.oid.yellow(), branch_info.head.red());
