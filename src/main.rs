@@ -12,13 +12,8 @@
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
 use colored::Colorize;
-use git2::Repository;
-use repo_prompt::{git_status, parse_repo_url, SubmoduleStatus};
-use std::{
-    env, io,
-    path::{Path, PathBuf},
-    process::exit,
-};
+use repo_prompt::{get_repo_info, git_status, GitStatus, SubmoduleStatus};
+use std::{io, path::Path, process::exit};
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -64,32 +59,26 @@ fn main() {
 }
 
 fn prompt(repo_path: Option<String>) {
-    let git_status = git_status(
-        load_repository(repo_path)
-            .workdir()
-            .unwrap()
-            .to_str()
-            .unwrap(),
-    );
+    let repo_info = get_repo_info(repo_path)
+        .inspect_err(|e| {
+            eprintln!("{e}");
+            exit(1);
+        })
+        .unwrap();
+    let git_status = repo_info.status();
     println!("{git_status:?}");
 }
 
-fn repo_status(
-    main_repo_path: &str,
+fn format_repo_status(
+    main_repo_path: &Path,
     rel_path: Option<&str>,
+    status: GitStatus,
     level: usize,
 ) -> String {
-    let mut repo_path = PathBuf::from(main_repo_path);
-    if let Some(rel_path) = rel_path {
-        repo_path.push(rel_path);
-    }
-    let repo_path = repo_path.to_str().unwrap();
     let mut ret = String::new();
     let prefix = (0..level).map(|_| "        ┊ ").collect::<String>();
 
-    let git_status = git_status(repo_path).unwrap();
-
-    if let Some(last_fetched) = git_status.last_fetched {
+    if let Some(last_fetched) = status.last_fetched {
         ret.push_str(&format!(
             "┊ {}{} {}\n",
             prefix,
@@ -98,7 +87,7 @@ fn repo_status(
         ));
     }
 
-    let branch_info = &git_status.branch;
+    let branch_info = &status.branch;
     let mut branch_info_line =
         format!("{} -> {}", branch_info.oid.yellow(), branch_info.head.red());
     if let Some(upstream_info) = &branch_info.upstream {
@@ -106,12 +95,12 @@ fn repo_status(
     }
     ret.push_str(&format!("┊ {prefix}{branch_info_line}\n"));
 
-    if git_status.nb_stash != 0 {
+    if status.nb_stash != 0 {
         ret.push_str(&format!(
             "┊ {}{} {}\n",
             prefix,
-            git_status.nb_stash.to_string().bright_yellow(),
-            (if git_status.nb_stash == 1 {
+            status.nb_stash.to_string().bright_yellow(),
+            (if status.nb_stash == 1 {
                 "stash pending"
             } else {
                 "stashes pending"
@@ -120,11 +109,11 @@ fn repo_status(
         ));
     }
 
-    if !git_status.ongoing_operations.is_empty() {
+    if !status.ongoing_operations.is_empty() {
         ret.push_str(&format!(
             "┊ {}{} {}\n",
             prefix,
-            git_status
+            status
                 .ongoing_operations
                 .iter()
                 .enumerate()
@@ -142,12 +131,20 @@ fn repo_status(
         ));
     };
 
-    for item in git_status.status {
+    for item in status.status {
         ret.push_str(&format!("┊ {}{}\n", prefix, item.display(rel_path)));
         if matches!(item.submodule_status, SubmoduleStatus::Submodule { .. }) {
-            ret.push_str(&repo_status(
+            let mut repo_path = main_repo_path.to_path_buf();
+            if let Some(rel_path) = rel_path {
+                repo_path.push(rel_path);
+            }
+            let repo_path = repo_path.to_str().unwrap();
+            let status = git_status(repo_path).unwrap();
+
+            ret.push_str(&format_repo_status(
                 main_repo_path,
                 Some(&item.path),
+                status,
                 level + 1,
             ));
         }
@@ -157,28 +154,38 @@ fn repo_status(
 }
 
 fn status(repo_path: Option<String>) {
-    let repo = load_repository(repo_path);
-    let (forge, repo_path) = parse_repo_url(&repo).unwrap();
+    let repo_info = get_repo_info(repo_path)
+        .inspect_err(|e| {
+            eprintln!("{e}");
+            exit(1);
+        })
+        .unwrap();
+    let top_level = repo_info.top_level();
 
-    let work_dir = env::var("WORK_DIR").unwrap();
-    let mut expected_path = Path::new(&work_dir).to_path_buf();
-    expected_path.push(forge);
-    expected_path.push(&repo_path);
-    let expected_path = expected_path.as_path();
-    let current_repo_path = repo.workdir().unwrap();
-
-    if current_repo_path != expected_path {
-        eprintln!(
-            "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
-            should be in \"{}\".",
-            repo_path,
-            current_repo_path.display(),
-            expected_path.display(),
-        );
+    if top_level.is_none() {
+        eprintln!("Bare git repository");
+        exit(1);
     }
 
-    let current_repo_path = current_repo_path.to_str().unwrap();
-    println!("{}", repo_status(current_repo_path, None, 0));
+    let top_level = top_level.unwrap();
+    let expected_top_level = repo_info.expected_top_level();
+
+    if let Some(expected_top_level) = expected_top_level {
+        if top_level != expected_top_level {
+            eprintln!(
+                "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
+                should be in \"{}\".",
+                repo_info.name,
+                top_level.display(),
+                expected_top_level.display(),
+            );
+        }
+    }
+
+    println!(
+        "{}",
+        format_repo_status(top_level, None, repo_info.status().unwrap(), 0)
+    );
 }
 
 fn generate_completion<G: Generator + std::fmt::Debug>(
@@ -192,15 +199,4 @@ fn generate_completion<G: Generator + std::fmt::Debug>(
         command.get_name().to_string(),
         &mut io::stdout(),
     );
-}
-
-fn load_repository(repo_path: Option<String>) -> Repository {
-    let repo_path = repo_path
-        .unwrap_or(String::from(env::current_dir().unwrap().to_str().unwrap()));
-    Repository::discover(repo_path)
-        .inspect_err(|e| {
-            println!("{}", e.message());
-            exit(1);
-        })
-        .unwrap()
 }

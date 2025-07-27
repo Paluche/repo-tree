@@ -1,9 +1,13 @@
 //! Module for retrieving git information.
+use crate::parse_repo_url;
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
+use git2::Repository;
 use std::{
     collections::HashMap,
+    env,
     error::Error,
+    ffi::OsStr,
     fmt::Display,
     fs::metadata,
     path::{Path, PathBuf},
@@ -391,29 +395,9 @@ impl BranchInfo {
     }
 }
 
-fn get_git_dir(repo_path: &str) -> Result<String, Box<dyn Error>> {
-    let mut ret = String::from_utf8(
-        Command::new("git")
-            .arg("-C")
-            .arg(repo_path)
-            .arg("rev-parse")
-            .arg("--absolute-git-dir")
-            .output()?
-            .stdout,
-    )?;
-
-    // Pop new line character.
-    ret.pop();
-
-    Ok(ret)
-}
-
-fn get_last_fetched(git_dir: &String) -> Option<DateTime<Utc>> {
-    let mut fetch_head = Path::new(git_dir).to_path_buf();
-    fetch_head.push("FETCH_HEAD");
-
+fn get_last_fetched(git_dir: &Path) -> Option<DateTime<Utc>> {
     DateTime::from_timestamp_millis(
-        metadata(fetch_head.as_path())
+        metadata(git_dir.join("FETCH_HEAD"))
             .ok()?
             .modified()
             .ok()?
@@ -452,73 +436,44 @@ impl Display for GitOperation {
     }
 }
 
-fn get_ongoing_operations(git_dir: &String) -> Vec<GitOperation> {
+fn get_ongoing_operations(git_dir: &Path) -> Vec<GitOperation> {
     let mut ret = Vec::new();
-    let git_dir = PathBuf::from(&git_dir);
-
     {
-        let mut path = git_dir.clone();
-        path.push("rebase-apply");
-        if path.exists() {
+        let mut path = git_dir.join("rebase-apply");
+        if path.is_dir() {
             path.push("rebasing");
-            ret.push(if path.exists() {
-                println!("REBASE");
+            ret.push(if path.is_file() {
                 GitOperation::Rebase
             } else {
-                println!("AM");
                 GitOperation::AM
             })
         }
     }
 
-    {
-        let mut path = git_dir.clone();
-        path.push("rebase-merge");
-        println!("Checking {}", path.display());
-        if path.exists() {
-            println!("REBASE MERGE");
-            ret.push(GitOperation::Rebase);
-        }
+    if git_dir.join("rebase-merge").is_dir() {
+        ret.push(GitOperation::Rebase);
     }
 
-    {
-        let mut path = git_dir.clone();
-        path.push("sequencer");
-        if path.exists() {
-            ret.push(GitOperation::CherryPick);
-        }
+    if git_dir.join("sequencer").is_dir() {
+        ret.push(GitOperation::CherryPick);
     }
 
-    if !ret.contains(&GitOperation::CherryPick) {
-        let mut path = git_dir.clone();
-        path.push("CHERRY_PICK_HEAD");
-        if path.exists() {
-            ret.push(GitOperation::CherryPick);
-        }
+    if !ret.contains(&GitOperation::CherryPick)
+        && git_dir.join("CHERRY_PICK_HEAD").is_file()
+    {
+        ret.push(GitOperation::CherryPick);
     }
 
-    {
-        let mut path = git_dir.clone();
-        path.push("BISECT_START");
-        if path.exists() {
-            ret.push(GitOperation::Bisect);
-        }
+    if git_dir.join("BISECT_START").is_file() {
+        ret.push(GitOperation::Bisect);
     }
 
-    {
-        let mut path = git_dir.clone();
-        path.push("MERGE_HEAD");
-        if path.exists() {
-            ret.push(GitOperation::Merge);
-        }
+    if git_dir.join("MERGE_HEAD").is_file() {
+        ret.push(GitOperation::Merge);
     }
 
-    {
-        let mut path = git_dir.clone();
-        path.push("REVERT_HEAD");
-        if path.exists() {
-            ret.push(GitOperation::Revert);
-        }
+    if git_dir.join("REVERT_HEAD").is_file() {
+        ret.push(GitOperation::Revert);
     }
 
     ret
@@ -533,7 +488,13 @@ pub struct GitStatus {
     pub ongoing_operations: Vec<GitOperation>,
 }
 
-pub fn git_status(repo_path: &str) -> Result<GitStatus, Box<dyn Error>> {
+fn git_status_internal<S>(
+    repo_path: S,
+    git_dir: &Path,
+) -> Result<GitStatus, Box<dyn Error>>
+where
+    S: AsRef<OsStr>,
+{
     let output = Command::new("git")
         .arg("-C")
         .arg(repo_path)
@@ -562,9 +523,8 @@ pub fn git_status(repo_path: &str) -> Result<GitStatus, Box<dyn Error>> {
             }
         }
     }
-    let git_dir = get_git_dir(repo_path)?;
-    let last_fetched = get_last_fetched(&git_dir);
-    let ongoing_operations = get_ongoing_operations(&git_dir);
+    let last_fetched = get_last_fetched(git_dir);
+    let ongoing_operations = get_ongoing_operations(git_dir);
 
     Ok(GitStatus {
         branch: BranchInfo::from_raw(branch_raw),
@@ -572,5 +532,94 @@ pub fn git_status(repo_path: &str) -> Result<GitStatus, Box<dyn Error>> {
         status,
         last_fetched,
         ongoing_operations,
+    })
+}
+
+pub fn git_status<S>(repo_path: S) -> Result<GitStatus, Box<dyn Error>>
+where
+    S: AsRef<OsStr> + Copy,
+{
+    let git_dir = {
+        let mut ret = String::from_utf8(
+            Command::new("git")
+                .arg("-C")
+                .arg(repo_path)
+                .arg("rev-parse")
+                .arg("--absolute-git-dir")
+                .output()?
+                .stdout,
+        )?;
+
+        // Pop new line character.
+        ret.pop();
+        PathBuf::from(ret)
+    };
+
+    git_status_internal(repo_path, &git_dir)
+}
+
+pub struct RepoInfo {
+    pub forge: String,
+    pub name: String,
+    pub in_work_dir: bool,
+    pub is_submodule: bool,
+    /// None is the repository is a submodule.
+    pub repo: Repository,
+}
+
+impl RepoInfo {
+    pub fn top_level(&self) -> Option<&Path> {
+        self.repo.workdir()
+    }
+
+    pub fn expected_top_level(&self) -> Option<PathBuf> {
+        if self.is_submodule {
+            None
+        } else {
+            let mut path = PathBuf::from(&env::var("WORK_DIR").unwrap());
+            path.push(&self.forge);
+            path.push(&self.name);
+            Some(path)
+        }
+    }
+
+    pub fn status(&self) -> Result<GitStatus, Box<dyn Error>> {
+        git_status_internal(
+            self.top_level().expect("Bare git repository"),
+            self.repo.path(),
+        )
+    }
+}
+
+fn get_work_dir() -> PathBuf {
+    PathBuf::from(
+        &env::var("WORK_DIR").expect("Missing WORK_DIR environment variable."),
+    )
+}
+
+pub fn get_repo_info(
+    repo_path: Option<String>,
+) -> Result<RepoInfo, Box<dyn Error>> {
+    let repo_path = repo_path
+        .unwrap_or(String::from(env::current_dir().unwrap().to_str().unwrap()));
+    let repo = Repository::discover(repo_path)?;
+    let (forge, name) = parse_repo_url(&repo).unwrap();
+    let top_level = repo.workdir();
+
+    let is_submodule = top_level.is_some_and(|value| {
+        let mut git_dir = value.to_path_buf();
+        git_dir.push(".git");
+        git_dir.is_file()
+    });
+
+    let in_work_dir = !is_submodule
+        && top_level.is_some_and(|v| v.starts_with(get_work_dir()));
+
+    Ok(RepoInfo {
+        forge,
+        name,
+        in_work_dir,
+        is_submodule,
+        repo,
     })
 }
