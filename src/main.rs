@@ -11,9 +11,14 @@
 //! + Add remotes list
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
-use colored::Colorize;
+use colored::{ColoredString, Colorize};
 use repo_prompt::{get_repo_info, git_status, GitStatus, SubmoduleStatus};
-use std::{io, path::Path, process::exit};
+use std::{
+    fmt::Debug,
+    io,
+    path::Path,
+    process::exit,
+};
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -58,6 +63,16 @@ fn main() {
     }
 }
 
+fn join_vec_str(sep: &str, list: &[String]) -> String {
+    list.iter().fold(String::new(), |mut acc, element| {
+        if !acc.is_empty() {
+            acc.push_str(sep);
+        }
+        acc.push_str(element);
+        acc
+    })
+}
+
 fn prompt(repo_path: Option<String>) {
     let repo_info = get_repo_info(repo_path)
         .inspect_err(|e| {
@@ -65,8 +80,36 @@ fn prompt(repo_path: Option<String>) {
             exit(1);
         })
         .unwrap();
-    let git_status = repo_info.status();
-    println!("{git_status:?}");
+    let git_status = repo_info
+        .status()
+        .inspect_err(|e| {
+            eprintln!("{e}");
+            exit(1);
+        })
+        .unwrap();
+    let sep = "|".cyan();
+    let name = repo_info.name.green();
+    let mut info = Vec::<ColoredString>::new();
+    if !git_status.ongoing_operations.is_empty() {
+        info.push(
+            join_vec_str(
+                " ",
+                &git_status
+                    .ongoing_operations
+                    .iter()
+                    .map(|e| format!("{e}"))
+                    .collect::<Vec<String>>(),
+            )
+            .red(),
+        );
+    }
+    let branch_info = git_status.branch.head.blue(); // TODO
+    println!(
+        "{name}{}",
+        info.iter().map(|s| format!("{sep}{s}")).collect::<String>()
+    );
+    println!("branch info: {branch_info}");
+
 }
 
 fn format_repo_status(
@@ -138,12 +181,14 @@ fn format_repo_status(
             if let Some(rel_path) = rel_path {
                 repo_path.push(rel_path);
             }
+            let rel_path = item.path;
+            repo_path.push(&rel_path);
             let repo_path = repo_path.to_str().unwrap();
             let status = git_status(repo_path).unwrap();
 
             ret.push_str(&format_repo_status(
                 main_repo_path,
-                Some(&item.path),
+                Some(&rel_path),
                 status,
                 level + 1,
             ));

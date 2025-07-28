@@ -559,7 +559,7 @@ where
 }
 
 pub struct RepoInfo {
-    pub forge: String,
+    pub forge: Option<String>,
     pub name: String,
     pub in_work_dir: bool,
     pub is_submodule: bool,
@@ -573,11 +573,11 @@ impl RepoInfo {
     }
 
     pub fn expected_top_level(&self) -> Option<PathBuf> {
-        if self.is_submodule {
+        if self.is_submodule || self.forge.is_none() {
             None
         } else {
             let mut path = PathBuf::from(&env::var("WORK_DIR").unwrap());
-            path.push(&self.forge);
+            path.push(self.forge.clone().unwrap());
             path.push(&self.name);
             Some(path)
         }
@@ -603,7 +603,7 @@ pub fn get_repo_info(
     let repo_path = repo_path
         .unwrap_or(String::from(env::current_dir().unwrap().to_str().unwrap()));
     let repo = Repository::discover(repo_path)?;
-    let (forge, name) = parse_repo_url(&repo).unwrap();
+    let (forge, name) = parse_repo_url(&repo);
     let top_level = repo.workdir();
 
     let is_submodule = top_level.is_some_and(|value| {
