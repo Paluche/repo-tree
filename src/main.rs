@@ -13,12 +13,7 @@ use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, Generator, Shell};
 use colored::{ColoredString, Colorize};
 use repo_prompt::{get_repo_info, git_status, GitStatus, SubmoduleStatus};
-use std::{
-    fmt::Debug,
-    io,
-    path::Path,
-    process::exit,
-};
+use std::{fmt::Debug, io, path::Path, process::exit};
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -87,6 +82,7 @@ fn prompt(repo_path: Option<String>) {
             exit(1);
         })
         .unwrap();
+    // forge/repo|(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|⛏operation|◀🠟🠝|◀||
     let sep = "|".cyan();
     let name = repo_info.name.green();
     let mut info = Vec::<ColoredString>::new();
@@ -103,13 +99,53 @@ fn prompt(repo_path: Option<String>) {
             .red(),
         );
     }
-    let branch_info = git_status.branch.head.blue(); // TODO
+    let mut branch_info = git_status.head.branch;
+
+    for (i, branch) in git_status.head.branches.iter().enumerate() {
+        if i == 0 {
+            branch_info.push_str(" ");
+        } else {
+            branch_info.push('🞍');
+        }
+        branch_info.push_str(branch)
+    }
+
+    for (i, branch) in git_status.head.tags.iter().enumerate() {
+        if i == 0 {
+            branch_info.push_str(" ");
+        } else {
+            branch_info.push('🞍');
+        }
+        branch_info.push_str(branch)
+    }
+
+    branch_info = if branch_info.len() >= 50 {
+        branch_info[..50].to_string()
+    } else {
+        branch_info
+    };
+
+    info.push(branch_info.yellow());
+
+    info.push(
+        if let Some(upstream_info) = git_status.head.upstream {
+            if upstream_info.ahead == 0 && upstream_info.behind == 0 {
+                ""
+            } else if upstream_info.ahead != 0 {
+                ""
+            } else {
+                ""
+            }
+        } else {
+            ""
+        }
+        .bright_yellow(),
+    );
+
     println!(
         "{name}{}",
         info.iter().map(|s| format!("{sep}{s}")).collect::<String>()
     );
-    println!("branch info: {branch_info}");
-
 }
 
 fn format_repo_status(
@@ -130,10 +166,10 @@ fn format_repo_status(
         ));
     }
 
-    let branch_info = &status.branch;
+    let head_info = &status.head;
     let mut branch_info_line =
-        format!("{} -> {}", branch_info.oid.yellow(), branch_info.head.red());
-    if let Some(upstream_info) = &branch_info.upstream {
+        format!("{} -> {}", head_info.oid.yellow(), head_info.branch.red());
+    if let Some(upstream_info) = &head_info.upstream {
         branch_info_line.push_str(&format!(" {upstream_info}"));
     }
     ret.push_str(&format!("┊ {prefix}{branch_info_line}\n"));
@@ -184,7 +220,7 @@ fn format_repo_status(
             let rel_path = item.path;
             repo_path.push(&rel_path);
             let repo_path = repo_path.to_str().unwrap();
-            let status = git_status(repo_path).unwrap();
+            let status = git_status(&repo_path).unwrap();
 
             ret.push_str(&format_repo_status(
                 main_repo_path,

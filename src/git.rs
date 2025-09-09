@@ -361,37 +361,108 @@ impl Display for UpstreamInfo {
     }
 }
 
-#[derive(Debug)]
-pub struct BranchInfo {
-    pub oid: String,
-    pub head: String,
-    pub upstream: Option<UpstreamInfo>,
+fn get_branches_pointing_at<S>(
+    repo_path: &S,
+    pointing_at: &str,
+) -> Result<Vec<String>, Box<dyn Error>>
+where
+    S: AsRef<OsStr>,
+{
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .arg("branch")
+        .arg(format!("--points-at={pointing_at}"))
+        .arg("--color=never")
+        .output()?;
+
+    let output = String::from_utf8(output.stdout)?;
+    let mut ret = Vec::new();
+
+    for line in output.lines() {
+        ret.push(line[2..].to_string())
+    }
+
+    Ok(ret)
 }
 
-impl BranchInfo {
-    fn from_raw(raw: HashMap<String, String>) -> Self {
-        let oid = raw.get("branch.oid").expect("Missing oid key").clone();
-        let head = raw.get("branch.head").expect("Missing head key").clone();
-        let upstream = if let Some(name) = raw.get("branch.upstream").cloned() {
-            let (ahead, behind) = raw
-                .get("branch.ab")
-                .expect("Missing ab key")
-                .split_once(" -")
-                .expect("Invalid ab value");
-            Some(UpstreamInfo {
-                name,
-                ahead: ahead.parse().unwrap(),
-                behind: behind.parse().unwrap(),
-            })
-        } else {
-            None
-        };
+fn get_tags_pointing_at<S>(
+    repo_path: &S,
+    pointing_at: &str,
+) -> Result<Vec<String>, Box<dyn Error>>
+where
+    S: AsRef<OsStr>,
+{
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo_path)
+        .arg("tag")
+        .arg(format!("--points-at={pointing_at}"))
+        .output()?;
 
-        Self {
+    let output = String::from_utf8(output.stdout)?;
+
+    Ok(output.lines().map(|s| s.to_string()).collect())
+}
+
+#[derive(Debug)]
+pub struct HeadInfo {
+    /// Object Identifier of the commit the HEAD is at.
+    pub oid: String,
+    /// Name of the branch the head is following.
+    pub branch: String,
+    /// Name of the associated upstream branch.
+    pub upstream: Option<UpstreamInfo>,
+    /// Name of the branches pointing at that head which is not already
+    /// specified in the branch attribute.
+    pub branches: Vec<String>,
+    /// Name of the tags located at that head.
+    pub tags: Vec<String>,
+}
+
+impl HeadInfo {
+    fn new<S>(
+        branch_info: HashMap<String, String>,
+        repo_path: &S,
+    ) -> Result<Self, Box<dyn Error>>
+    where
+        S: AsRef<OsStr>,
+    {
+        let oid = branch_info
+            .get("branch.oid")
+            .expect("Missing oid key")
+            .clone();
+        let branch = branch_info
+            .get("branch.head")
+            .expect("Missing head key")
+            .clone();
+        let upstream =
+            if let Some(name) = branch_info.get("branch.upstream").cloned() {
+                let (ahead, behind) = branch_info
+                    .get("branch.ab")
+                    .expect("Missing ab key")
+                    .split_once(" -")
+                    .expect("Invalid ab value");
+                Some(UpstreamInfo {
+                    name,
+                    ahead: ahead.parse().unwrap(),
+                    behind: behind.parse().unwrap(),
+                })
+            } else {
+                None
+            };
+
+        let mut branches = get_branches_pointing_at(repo_path, "HEAD")?;
+        branches.retain(|b| !(b == &branch || b == "(no branch)"));
+        let tags = get_tags_pointing_at(repo_path, &oid)?;
+
+        Ok(Self {
             oid,
-            head,
+            branch,
             upstream,
-        }
+            branches,
+            tags,
+        })
     }
 }
 
@@ -481,7 +552,7 @@ fn get_ongoing_operations(git_dir: &Path) -> Vec<GitOperation> {
 
 #[derive(Debug)]
 pub struct GitStatus {
-    pub branch: BranchInfo,
+    pub head: HeadInfo,
     pub nb_stash: u32,
     pub status: Vec<ItemStatus>,
     pub last_fetched: Option<DateTime<Utc>>,
@@ -489,11 +560,11 @@ pub struct GitStatus {
 }
 
 fn git_status_internal<S>(
-    repo_path: S,
+    repo_path: &S,
     git_dir: &Path,
 ) -> Result<GitStatus, Box<dyn Error>>
 where
-    S: AsRef<OsStr>,
+    S: AsRef<OsStr> + Sized,
 {
     let output = Command::new("git")
         .arg("-C")
@@ -527,7 +598,7 @@ where
     let ongoing_operations = get_ongoing_operations(git_dir);
 
     Ok(GitStatus {
-        branch: BranchInfo::from_raw(branch_raw),
+        head: HeadInfo::new(branch_raw, repo_path)?,
         nb_stash,
         status,
         last_fetched,
@@ -535,9 +606,9 @@ where
     })
 }
 
-pub fn git_status<S>(repo_path: S) -> Result<GitStatus, Box<dyn Error>>
+pub fn git_status<S>(repo_path: &S) -> Result<GitStatus, Box<dyn Error>>
 where
-    S: AsRef<OsStr> + Copy,
+    S: AsRef<OsStr> + Sized,
 {
     let git_dir = {
         let mut ret = String::from_utf8(
@@ -585,7 +656,7 @@ impl RepoInfo {
 
     pub fn status(&self) -> Result<GitStatus, Box<dyn Error>> {
         git_status_internal(
-            self.top_level().expect("Bare git repository"),
+            &self.top_level().expect("Bare git repository"),
             self.repo.path(),
         )
     }

@@ -51,7 +51,7 @@ pub fn parse_repo_url(repo: &Repository) -> (Option<String>, String) {
     }
 
     if default_remote.is_none() {
-        return default(repo)
+        return default(repo);
     }
 
     let url = String::from(default_remote.unwrap().url().unwrap());
@@ -71,7 +71,8 @@ pub fn parse_repo_url(repo: &Repository) -> (Option<String>, String) {
     let host = url.host_str();
     let host_work_dir = host
         .and_then(get_host_work_dir)
-        .or(get_host_work_dir(url.scheme())).map(|s| String::from(s));
+        .or(get_host_work_dir(url.scheme()))
+        .map(String::from);
     let mut path = url.path().to_owned();
 
     if path.ends_with(".git") {
