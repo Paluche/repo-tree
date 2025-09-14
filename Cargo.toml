@@ -7,7 +7,8 @@ edition = "2021"
 chrono = "0.4.41"
 clap = { version = "4.5.38", features = ["derive"] }
 clap_complete = "4.5.50"
-colored = "3.0.0"
+colored = { git="https://github.com/colored-rs/colored.git", commit="a21367d1040ed8e488e2caffce7b430dbfd309c9" }
 git2 = { version = "0.20.2", default-features=false }
+strum = { version = "0.27.2", features = ["derive"] }
 url = "2.5.4"
 yaml-rust2 = "0.10.2"

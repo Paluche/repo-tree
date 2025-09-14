@@ -20,7 +20,7 @@ fn get_host_work_dir(host: &str) -> Option<&str> {
     })
 }
 
-fn load_default_remote(repo: &Repository) -> Option<Remote> {
+fn load_default_remote(repo: &Repository) -> Option<Remote<'_>> {
     let remotes = repo.remotes().unwrap();
 
     if remotes.is_empty() {

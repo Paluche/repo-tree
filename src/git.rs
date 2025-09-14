@@ -3,6 +3,8 @@ use crate::parse_repo_url;
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
 use git2::Repository;
+use strum::{EnumIter, IntoEnumIterator};
+
 use std::{
     collections::HashMap,
     env,
@@ -16,8 +18,8 @@ use std::{
     time::SystemTime,
 };
 
-#[derive(Debug)]
-pub enum Status {
+#[derive(Debug, Hash, PartialEq, Eq, EnumIter)]
+pub enum EntryStatus {
     Unmodified,
     Modified,
     FileTypeChanged,
@@ -30,7 +32,7 @@ pub enum Status {
     Ignored,
 }
 
-impl Status {
+impl EntryStatus {
     fn from_chars(chars: &mut Chars) -> Self {
         match chars.next().unwrap() {
             '.' => Self::Unmodified,
@@ -160,7 +162,6 @@ impl SubmoduleStatus {
             false
         }
     }
-
     fn to_colored_string(&self) -> ColoredString {
         match self {
             Self::NotASubmodule => "    ".blue(),
@@ -181,10 +182,61 @@ impl SubmoduleStatus {
     }
 }
 
+#[derive(Default)]
+pub struct SummarizeSubmoduleStatus {
+    commit_changed: usize,
+    tracked_changed: usize,
+    has_untracked: usize,
+}
+
+impl SummarizeSubmoduleStatus {
+    fn new() -> Self {
+        Self {
+            commit_changed: 0,
+            tracked_changed: 0,
+            has_untracked: 0,
+        }
+    }
+
+    fn increment(&mut self, submodule_status: &SubmoduleStatus) {
+        if let &SubmoduleStatus::Submodule {
+            commit_changed,
+            tracked_changed,
+            has_untracked,
+        } = submodule_status
+        {
+            if commit_changed {
+                self.commit_changed += 1;
+            }
+            if tracked_changed {
+                self.tracked_changed += 1;
+            }
+            if has_untracked {
+                self.has_untracked += 1;
+            }
+        }
+    }
+
+    pub fn as_string(&self) -> String {
+        let mut ret = String::new();
+        if self.commit_changed != 0 {
+            ret.push('');
+        }
+        if self.tracked_changed != 0 {
+            ret.push('');
+        }
+        if self.has_untracked != 0 {
+            ret.push('')
+        }
+
+        ret
+    }
+}
+
 #[derive(Debug)]
 pub struct ItemStatus {
-    pub staged: Status,
-    pub unstaged: Status,
+    pub staged: EntryStatus,
+    pub unstaged: EntryStatus,
     pub submodule_status: SubmoduleStatus,
     // In case the file is renamed or copied, the orig_path variable will
     // contain the path the file was before (respectively originally).
@@ -244,23 +296,23 @@ fn parse_line(line: &str) -> ParseOutput {
         }
     } else if entry_type == '?' {
         ParseOutput::ItemStatus(ItemStatus {
-            staged: Status::Untracked,
-            unstaged: Status::Untracked,
+            staged: EntryStatus::Untracked,
+            unstaged: EntryStatus::Untracked,
             submodule_status: SubmoduleStatus::Untracked,
             path: chars.collect::<String>(),
             orig_path: None,
         })
     } else if entry_type == '!' {
         ParseOutput::ItemStatus(ItemStatus {
-            staged: Status::Ignored,
-            unstaged: Status::Ignored,
+            staged: EntryStatus::Ignored,
+            unstaged: EntryStatus::Ignored,
             submodule_status: SubmoduleStatus::Ignored,
             path: chars.collect::<String>(),
             orig_path: None,
         })
     } else {
-        let staged = Status::from_chars(&mut chars);
-        let unstaged = Status::from_chars(&mut chars);
+        let staged = EntryStatus::from_chars(&mut chars);
+        let unstaged = EntryStatus::from_chars(&mut chars);
         assert!(matches!(chars.next(), Some(' ')));
         let submodule_status = SubmoduleStatus::from_chars(&mut chars);
         // <mH>        The octal file mode in HEAD.
@@ -337,6 +389,57 @@ fn parse_line(line: &str) -> ParseOutput {
             path,
             orig_path,
         })
+    }
+}
+
+pub struct SummarizeStatus {
+    map: HashMap<EntryStatus, usize>,
+}
+
+impl SummarizeStatus {
+    fn new() -> Self {
+        let mut map = HashMap::new();
+        EntryStatus::iter().for_each(|status| {
+            map.insert(status, 0);
+        });
+        Self { map }
+    }
+
+    fn increment(&mut self, entry_status: &EntryStatus) {
+        *self.map.get_mut(entry_status).unwrap() += 1;
+    }
+
+    pub fn as_string(&self) -> String {
+        let mut ret = String::new();
+        if *self.map.get(&EntryStatus::Added).unwrap() != 0 {
+            ret.push('');
+        }
+
+        if *self.map.get(&EntryStatus::Modified).unwrap() != 0 {
+            ret.push('');
+        }
+
+        if *self.map.get(&EntryStatus::FileTypeChanged).unwrap() != 0 {
+            ret.push('');
+        }
+
+        if *self.map.get(&EntryStatus::Copied).unwrap() != 0 {
+            ret.push('')
+        }
+
+        if *self.map.get(&EntryStatus::Renamed).unwrap() != 0 {
+            ret.push('')
+        }
+
+        if *self.map.get(&EntryStatus::Deleted).unwrap() != 0 {
+            ret.push('')
+        }
+
+        if *self.map.get(&EntryStatus::Untracked).unwrap() != 0 {
+            ret.push('')
+        }
+
+        ret
     }
 }
 
@@ -570,6 +673,24 @@ pub struct GitStatus {
     pub ongoing_operations: Vec<GitOperation>,
 }
 
+impl GitStatus {
+    pub fn short_status(
+        &self,
+    ) -> (SummarizeStatus, SummarizeStatus, SummarizeSubmoduleStatus) {
+        let mut staged = SummarizeStatus::new();
+        let mut unstaged = SummarizeStatus::new();
+        let mut submodules = SummarizeSubmoduleStatus::new();
+
+        for item in self.status.iter() {
+            staged.increment(&item.staged);
+            unstaged.increment(&item.unstaged);
+            submodules.increment(&item.submodule_status);
+        }
+
+        (staged, unstaged, submodules)
+    }
+}
+
 fn git_status_internal<S>(
     repo_path: &S,
     git_dir: &Path,
@@ -589,7 +710,7 @@ where
     let output = String::from_utf8(output.stdout)?;
     let mut branch_raw = HashMap::<String, String>::new();
     let mut nb_stash = 0;
-    let mut status = Vec::<ItemStatus>::new();
+    let mut status = Vec::new();
 
     for line in output.lines() {
         match parse_line(line) {
