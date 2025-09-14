@@ -342,9 +342,14 @@ fn parse_line(line: &str) -> ParseOutput {
 
 #[derive(Debug)]
 pub struct UpstreamInfo {
+    /// Name of the upstream branch.
     pub name: String,
+    /// Number of commits the local branch is ahead of the upstream one.
     pub ahead: u32,
+    /// Number of commits the local branch is behind of the upstream one.
     pub behind: u32,
+    /// True if the upstream branch is gone (deleted).
+    pub gone: bool,
 }
 
 impl Display for UpstreamInfo {
@@ -438,15 +443,21 @@ impl HeadInfo {
             .clone();
         let upstream =
             if let Some(name) = branch_info.get("branch.upstream").cloned() {
-                let (ahead, behind) = branch_info
-                    .get("branch.ab")
-                    .expect("Missing ab key")
-                    .split_once(" -")
-                    .expect("Invalid ab value");
+                let (ahead, behind, gone) = if let Some((ahead, behind)) =
+                    branch_info
+                        .get("branch.ab")
+                        .map(|s| s.split_once(" -").expect("Invalid ab value"))
+                {
+                    (ahead.parse().unwrap(), behind.parse().unwrap(), false)
+                } else {
+                    (0, 0, true)
+                };
+
                 Some(UpstreamInfo {
                     name,
-                    ahead: ahead.parse().unwrap(),
-                    behind: behind.parse().unwrap(),
+                    ahead,
+                    behind,
+                    gone,
                 })
             } else {
                 None
