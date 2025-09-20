@@ -779,7 +779,7 @@ impl RepoInfo {
         if self.is_submodule || self.forge.is_none() {
             None
         } else {
-            let mut path = PathBuf::from(&env::var("WORK_DIR").unwrap());
+            let mut path = get_work_dir();
             path.push(self.forge.clone().unwrap());
             path.push(&self.name);
             Some(path)
