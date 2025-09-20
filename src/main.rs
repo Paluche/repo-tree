@@ -41,9 +41,10 @@ enum Action {
         repository: Option<String>,
     },
     Resolve {
-        /// Path to within the git repository to work with.
+        /// Repository identifier to resolve into the actual path within the
+        /// workspace.
         #[arg(short, long)]
-        repository: Option<String>,
+        repo_id: String,
     },
     Completion {
         shell: Shell,
@@ -59,7 +60,7 @@ fn main() {
         }
         Action::Prompt { repository } => prompt(repository),
         Action::Status { repository } => status(repository),
-        Action::Resolve { .. } => panic!("Not Implemented yet"),
+        Action::Resolve { repo_id } => resolve(repo_id),
     }
 }
 
@@ -329,6 +330,12 @@ fn status(repo_path: Option<String>) {
         format_repo_status(top_level, None, repo_info.status().unwrap(), 0)
     );
 }
+
+
+fn resolve(repo_id: &String) {
+
+}
+
 
 fn generate_completion<G: Generator + std::fmt::Debug>(
     command: &mut Command,
