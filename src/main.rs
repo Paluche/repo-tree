@@ -1,7 +1,7 @@
 //! repositories, prompt, custom git status,
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{Generator, Shell, generate};
-use std::io;
+use std::{env, io};
 use workspace::{prompt, resolve, status};
 
 #[derive(Parser, Debug, PartialEq)]
@@ -35,6 +35,11 @@ enum Action {
     },
 }
 
+fn get_repo_path(repository: Option<String>) -> String {
+    repository
+        .unwrap_or(String::from(env::current_dir().unwrap().to_str().unwrap()))
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -42,8 +47,8 @@ fn main() {
         Action::Completion { shell } => {
             generate_completion(&mut Args::command(), shell);
         }
-        Action::Prompt { repository } => prompt(repository),
-        Action::Status { repository } => status(repository),
+        Action::Prompt { repository } => prompt(get_repo_path(repository)),
+        Action::Status { repository } => status(get_repo_path(repository)),
         Action::Resolve { repo_id } => resolve(repo_id),
     }
 }

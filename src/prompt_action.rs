@@ -46,7 +46,7 @@ fn join_vec_str(sep: &str, list: &[String]) -> String {
     })
 }
 
-pub fn prompt(repo_path: Option<String>) {
+pub fn prompt(repo_path: String) {
     let repo_info = get_repo_info(repo_path)
         .inspect_err(|e| {
             eprintln!("{e}");

@@ -800,11 +800,9 @@ fn get_work_dir() -> PathBuf {
     )
 }
 
-pub fn get_repo_info(
-    repo_path: Option<String>,
+pub fn get_repo_info<P: AsRef<Path>>(
+    repo_path: P,
 ) -> Result<RepoInfo, Box<dyn Error>> {
-    let repo_path = repo_path
-        .unwrap_or(String::from(env::current_dir().unwrap().to_str().unwrap()));
     let repo = Repository::discover(repo_path)?;
     let (forge, name) = parse_repo_url(&repo);
     let top_level = repo.workdir();
