@@ -488,6 +488,9 @@ where
     let mut ret = Vec::new();
 
     for line in output.lines() {
+        if line[2..].starts_with("(HEAD detached ") {
+            continue;
+        }
         ret.push(line[2..].to_string())
     }
 
