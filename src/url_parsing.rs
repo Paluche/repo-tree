@@ -1,6 +1,5 @@
 //! Tools around parsing of repositories URL.
-use git2::{Remote, Repository};
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 use url::Url;
 
 fn get_host_work_dir(host: &str) -> Option<&str> {
@@ -15,69 +14,56 @@ fn get_host_work_dir(host: &str) -> Option<&str> {
     .get(host)
     .copied()
     .or_else(|| {
-        println!("Unknown host {host}");
+        eprintln!("Missing configuration for host {host}");
         None
     })
 }
 
-fn load_default_remote(repo: &Repository) -> Option<Remote<'_>> {
-    let remotes = repo.remotes().unwrap();
-
-    if remotes.is_empty() {
-        None
-    } else {
-        Some(match repo.find_remote("origin") {
-            Ok(remote) => remote,
-            Err(_) => repo.find_remote(remotes.get(0)?).unwrap(),
-        })
-    }
-}
-
-pub fn parse_repo_url(repo: &Repository) -> (Option<String>, String) {
-    let default_remote = load_default_remote(repo);
-
-    fn default(repo: &Repository) -> (Option<String>, String) {
-        (
-            None,
-            String::from(
-                repo.workdir()
-                    .unwrap()
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap(),
-            ),
-        )
+fn _parse_repo_url(
+    remote_url: Option<&String>,
+) -> Option<(Option<String>, String)> {
+    if remote_url.is_none() {
+        return None;
     }
 
-    if default_remote.is_none() {
-        return default(repo);
-    }
-
-    let url = String::from(default_remote.unwrap().url().unwrap());
+    let url = remote_url.unwrap();
     let (_user, url) = if let Some(parse) = url.split_once("@") {
         (Some(parse.0), parse.1)
     } else {
         (None, url.as_str())
     };
 
-    let url = Url::parse(url);
-    if url.is_err() {
-        return default(repo);
-    }
-
-    let url = url.unwrap();
+    let url = Url::parse(url).ok()?;
 
     let host = url.host_str();
     let host_work_dir = host
         .and_then(get_host_work_dir)
         .or(get_host_work_dir(url.scheme()))
         .map(String::from);
-    let mut path = url.path().to_owned();
+    let path = url.path().to_owned();
 
     if path.ends_with(".git") {
-        path = path.strip_suffix(".git").unwrap().to_string();
+        Some((
+            host_work_dir,
+            path.strip_suffix(".git").unwrap().to_string(),
+        ))
+    } else {
+        Some((host_work_dir, path))
     }
+}
 
-    (host_work_dir, path)
+pub fn parse_repo_url<P: AsRef<Path>>(
+    remote_url: Option<&String>,
+    repo_path: &P,
+) -> (Option<String>, String) {
+    _parse_repo_url(remote_url).unwrap_or((
+        Some("local".to_string()),
+        repo_path
+            .as_ref()
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned(),
+    ))
 }

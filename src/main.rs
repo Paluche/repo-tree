@@ -27,7 +27,6 @@ enum Action {
     Resolve {
         /// Repository identifier to resolve into the actual path within the
         /// workspace.
-        #[arg(short, long)]
         repo_id: String,
     },
     Completion {

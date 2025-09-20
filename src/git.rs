@@ -807,17 +807,17 @@ pub fn get_repo_info<P: AsRef<Path>>(
     repo_path: P,
 ) -> Result<RepoInfo, Box<dyn Error>> {
     let repo = Repository::discover(repo_path)?;
-    let (forge, name) = parse_repo_url(&repo);
-    let top_level = repo.workdir();
+    let top_level = repo.workdir().unwrap();
+    let (forge, name) =
+        parse_repo_url(get_remote_url_repo(&repo)?.as_ref(), &top_level);
 
-    let is_submodule = top_level.is_some_and(|value| {
-        let mut git_dir = value.to_path_buf();
+    let is_submodule = {
+        let mut git_dir = top_level.to_path_buf();
         git_dir.push(".git");
         git_dir.is_file()
-    });
+    };
 
-    let in_work_dir = !is_submodule
-        && top_level.is_some_and(|v| v.starts_with(get_work_dir()));
+    let in_work_dir = !is_submodule && top_level.starts_with(get_work_dir());
 
     Ok(RepoInfo {
         forge,
@@ -826,4 +826,25 @@ pub fn get_repo_info<P: AsRef<Path>>(
         is_submodule,
         repo,
     })
+}
+
+fn get_remote_url_repo(
+    repo: &Repository,
+) -> Result<Option<String>, Box<dyn Error>> {
+    Ok(repo
+        .find_remote("origin")
+        .ok()
+        .or(repo
+            .remotes()?
+            .get(0)
+            .and_then(|name| repo.find_remote(name).ok()))
+        .and_then(|r| r.url().map(String::from)))
+}
+
+pub fn get_remote_url<P: AsRef<Path>>(
+    repo_path: P,
+) -> Result<Option<String>, Box<dyn Error>> {
+    let repo = Repository::discover(repo_path)?;
+
+    get_remote_url_repo(&repo)
 }

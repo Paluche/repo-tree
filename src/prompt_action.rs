@@ -36,10 +36,10 @@ impl Display for PromptBuilder {
     }
 }
 
-fn join_vec_str(sep: &str, list: &[String]) -> String {
+fn join_vec_str(sep: char, list: &[String]) -> String {
     list.iter().fold(String::new(), |mut acc, element| {
         if !acc.is_empty() {
-            acc.push_str(sep);
+            acc.push(sep);
         }
         acc.push_str(element);
         acc
@@ -61,22 +61,21 @@ pub fn prompt(repo_path: String) {
         })
         .unwrap();
 
-    // forge/repo|(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|⛏operation|◀🠟🠝|◀||
+    // forge/repo|⛏operation|(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|◀🠟🠝|◀||
     let mut info = PromptBuilder::new();
     info.push_colored_string(repo_info.name.green());
 
     if !git_status.ongoing_operations.is_empty() {
-        info.push_colored_string(
-            join_vec_str(
-                " ",
-                &git_status
-                    .ongoing_operations
-                    .iter()
-                    .map(|e| format!("{e}"))
-                    .collect::<Vec<String>>(),
-            )
-            .red(),
-        );
+        let mut operations = String::from("⛏");
+        operations.push_str(&join_vec_str(
+            '🞍',
+            &git_status
+                .ongoing_operations
+                .iter()
+                .map(|e| format!("{e}"))
+                .collect::<Vec<String>>(),
+        ));
+        info.push_colored_string(operations.red());
     }
 
     // current branch name
@@ -124,6 +123,8 @@ pub fn prompt(repo_path: String) {
             } else {
                 ""
             }
+        } else if git_status.head.branch == "(detached)" {
+            ""
         } else {
             ""
         }

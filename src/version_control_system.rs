@@ -1,6 +1,7 @@
 //! Enumeration listing the different type of Version Control System we support.
 use std::{fmt::Display, path::Path};
 
+#[derive(Debug, Copy, Clone)]
 pub enum VersionControlSystem {
     /// git
     Git,

@@ -16,6 +16,10 @@ use crate::repository::Repository;
 
 use std::{env, path::Path};
 
+pub fn get_work_dir() -> String {
+    env::var("WORK_DIR").expect("Missing WORK_DIR environment variable")
+}
+
 pub fn load_workspace() -> Vec<Repository> {
     let work_dir =
         env::var("WORK_DIR").expect("Missing WORK_DIR environment variable");
