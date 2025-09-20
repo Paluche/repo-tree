@@ -1,5 +1,5 @@
 //! Module for retrieving git information.
-use crate::parse_repo_url;
+use crate::url_parsing::parse_repo_url;
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
 use git2::Repository;
