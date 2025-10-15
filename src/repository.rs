@@ -1,6 +1,6 @@
 //! Representation of a repository.
 use crate::version_control_system::VersionControlSystem;
-use crate::{git, jujutsu, url_parsing::parse_repo_url};
+use crate::{UrlParser, git, jujutsu};
 use std::{
     error::Error,
     fmt::Display,
@@ -16,7 +16,10 @@ pub struct Repository {
 }
 
 impl Repository {
-    pub fn try_new(root: PathBuf) -> Result<Option<Self>, Box<dyn Error>> {
+    pub fn try_new(
+        root: PathBuf,
+        url_parser: &UrlParser,
+    ) -> Result<Option<Self>, Box<dyn Error>> {
         let vcs = VersionControlSystem::try_new(&root);
         if vcs.is_none() {
             return Ok(None);
@@ -31,7 +34,7 @@ impl Repository {
             //}
             _ => None,
         };
-        let (forge, name) = parse_repo_url(remote_url.as_ref(), &root);
+        let (forge, name) = url_parser.parse(remote_url.as_ref(), &root);
 
         Ok(Some(Self {
             vcs,
@@ -65,7 +68,7 @@ impl Display for Repository {
     }
 }
 
-pub fn search(dir: &Path) -> Vec<Repository> {
+pub fn search(dir: &Path, url_parser: &UrlParser) -> Vec<Repository> {
     let mut ret = Vec::new();
     if !dir.is_dir() {
         return ret;
@@ -73,10 +76,12 @@ pub fn search(dir: &Path) -> Vec<Repository> {
 
     for entry in dir.read_dir().expect("read dir call failed").flatten() {
         let root = entry.path();
-        if let Some(repo) = Repository::try_new(root.clone()).unwrap() {
+        if let Some(repo) =
+            Repository::try_new(root.clone(), url_parser).unwrap()
+        {
             ret.push(repo);
         } else {
-            ret.extend(search(&root));
+            ret.extend(search(&root, url_parser));
         }
     }
 

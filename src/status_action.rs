@@ -1,4 +1,7 @@
-use crate::git::{GitStatus, SubmoduleStatus, get_repo_info, git_status};
+use crate::{
+    UrlParser,
+    git::{GitStatus, SubmoduleStatus, get_repo_info, git_status},
+};
 use colored::Colorize;
 use std::{path::Path, process::exit};
 
@@ -89,7 +92,7 @@ fn format_repo_status(
 }
 
 pub fn status(repo_path: String) {
-    let repo_info = get_repo_info(repo_path)
+    let repo_info = get_repo_info(repo_path, &UrlParser::default())
         .inspect_err(|e| {
             eprintln!("{e}");
             exit(1);

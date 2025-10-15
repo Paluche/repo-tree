@@ -1,4 +1,4 @@
-use crate::git::get_repo_info;
+use crate::{UrlParser, git::get_repo_info};
 use colored::{ColoredString, Colorize};
 use std::{fmt::Display, process::exit};
 
@@ -47,7 +47,7 @@ fn join_vec_str(sep: char, list: &[String]) -> String {
 }
 
 pub fn prompt(repo_path: String) {
-    let repo_info = get_repo_info(repo_path)
+    let repo_info = get_repo_info(repo_path, &UrlParser::default())
         .inspect_err(|e| {
             eprintln!("{e}");
             exit(1);

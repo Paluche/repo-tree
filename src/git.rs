@@ -1,5 +1,5 @@
 //! Module for retrieving git information.
-use crate::url_parsing::parse_repo_url;
+use crate::UrlParser;
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
 use git2::Repository;
@@ -805,11 +805,12 @@ fn get_work_dir() -> PathBuf {
 
 pub fn get_repo_info<P: AsRef<Path>>(
     repo_path: P,
+    url_parser: &UrlParser,
 ) -> Result<RepoInfo, Box<dyn Error>> {
     let repo = Repository::discover(repo_path)?;
     let top_level = repo.workdir().unwrap();
     let (forge, name) =
-        parse_repo_url(get_remote_url_repo(&repo)?.as_ref(), &top_level);
+        url_parser.parse(get_remote_url_repo(&repo)?.as_ref(), &top_level);
 
     let is_submodule = {
         let mut git_dir = top_level.to_path_buf();
