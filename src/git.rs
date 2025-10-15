@@ -47,22 +47,6 @@ impl EntryStatus {
         }
     }
 
-    pub fn is_modified(&self) -> bool {
-        matches!(self, Self::Unmodified)
-    }
-
-    pub fn is_deleted(&self) -> bool {
-        matches!(self, Self::Deleted)
-    }
-
-    pub fn is_unmerged(&self) -> bool {
-        matches!(self, Self::Updated)
-    }
-
-    pub fn is_untracked(&self) -> bool {
-        matches!(self, Self::Untracked)
-    }
-
     fn to_colored_string(&self, staged: bool) -> ColoredString {
         let ret = match self {
             Self::Unmodified => " ",
@@ -132,36 +116,6 @@ impl SubmoduleStatus {
         }
     }
 
-    pub fn is_submodule(&self) -> bool {
-        !matches!(self, Self::NotASubmodule)
-    }
-
-    pub fn has_commit_changed(&self) -> bool {
-        if let Self::Submodule { commit_changed, .. } = self {
-            *commit_changed
-        } else {
-            false
-        }
-    }
-
-    pub fn has_tracked_changed(&self) -> bool {
-        if let Self::Submodule {
-            tracked_changed, ..
-        } = self
-        {
-            *tracked_changed
-        } else {
-            false
-        }
-    }
-
-    pub fn has_untracked(&self) -> bool {
-        if let Self::Submodule { has_untracked, .. } = self {
-            *has_untracked
-        } else {
-            false
-        }
-    }
     fn to_colored_string(&self) -> ColoredString {
         match self {
             Self::NotASubmodule => "    ".blue(),
