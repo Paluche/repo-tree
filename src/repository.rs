@@ -1,8 +1,6 @@
 //! Representation of a repository.
-//! TODO
-//! Load of the associated remote url to associate a repository ID.
 use crate::version_control_system::VersionControlSystem;
-use crate::{git, url_parsing::parse_repo_url};
+use crate::{git, jujutsu, url_parsing::parse_repo_url};
 use std::{
     error::Error,
     fmt::Display,
@@ -28,8 +26,7 @@ impl Repository {
             VersionControlSystem::Git | VersionControlSystem::JujutsuGit => {
                 git::get_remote_url(&root)?
             }
-            //VersionControlSystem::Jujutsu => {
-            //}
+            VersionControlSystem::Jujutsu => jujutsu::get_remote_url(&root)?,
             //VersionControlSystem::Subversion => {
             //}
             _ => None,

@@ -1,6 +1,7 @@
 //! Libraries for the repo-tools utils
 //!
 mod git;
+mod jujutsu;
 mod prompt_action;
 mod repository;
 mod resolve_action;

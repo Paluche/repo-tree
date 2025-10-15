@@ -828,7 +828,7 @@ pub fn get_repo_info<P: AsRef<Path>>(
     })
 }
 
-fn get_remote_url_repo(
+pub fn get_remote_url_repo(
     repo: &Repository,
 ) -> Result<Option<String>, Box<dyn Error>> {
     Ok(repo
