@@ -13,20 +13,12 @@ fn get_host_work_dir(host: &str) -> Option<&str> {
     ])
     .get(host)
     .copied()
-    .or_else(|| {
-        eprintln!("Missing configuration for host {host}");
-        None
-    })
 }
 
 fn _parse_repo_url(
     remote_url: Option<&String>,
 ) -> Option<(Option<String>, String)> {
-    if remote_url.is_none() {
-        return None;
-    }
-
-    let url = remote_url.unwrap();
+    let url = remote_url?;
     let (_user, url) = if let Some(parse) = url.split_once("@") {
         (Some(parse.0), parse.1)
     } else {
@@ -41,6 +33,10 @@ fn _parse_repo_url(
         .or(get_host_work_dir(url.scheme()))
         .map(String::from);
     let path = url.path().to_owned();
+
+    if host_work_dir.is_none() {
+        eprintln!("Missing host configuration for {url}");
+    }
 
     if path.ends_with(".git") {
         Some((
