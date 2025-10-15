@@ -8,11 +8,11 @@ use std::{
 };
 
 pub struct Repository {
-    vcs: VersionControlSystem,
-    root: PathBuf,
-    remote_url: Option<String>,
-    forge: Option<String>,
-    name: String,
+    pub vcs: VersionControlSystem,
+    pub root: PathBuf,
+    pub remote_url: Option<String>,
+    pub forge: Option<String>,
+    pub name: String,
 }
 
 impl Repository {
