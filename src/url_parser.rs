@@ -29,7 +29,14 @@ impl<'a> UrlParser<'a> {
             .and_then(|x| self.get_host_work_dir(x))
             .or(self.get_host_work_dir(url.scheme()))
             .map(String::from);
-        let path = url.path().to_owned();
+        let path = {
+            let ret = url.path().to_owned();
+            if let Some(ret) = ret.strip_prefix('/') {
+                String::from(ret)
+            } else {
+                ret
+            }
+        };
 
         if host_work_dir.is_none() {
             eprintln!("Missing host configuration for {url}");
