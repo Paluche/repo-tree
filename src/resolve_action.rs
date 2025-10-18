@@ -19,8 +19,16 @@
 //!
 //!
 use crate::{Repository, load_workspace};
+use clap::builder::StyledStr;
+use clap_complete::engine::CompletionCandidate;
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
-use std::{collections::HashMap, iter::zip};
+use itertools::Itertools;
+use std::{
+    collections::HashMap,
+    io::Write,
+    iter::zip,
+    process::{Command, Stdio},
+};
 
 /// Find the shortest end-path to identify two
 fn reduce(path_a: String, path_b: String) -> Option<(String, String)> {
@@ -49,9 +57,9 @@ fn reduce(path_a: String, path_b: String) -> Option<(String, String)> {
 /// Reduce the name of the repositories to the shortest path that identifies
 /// each repositories individually.
 fn reduce_repo_names(
-    repositories: &Vec<Repository>,
-) -> HashMap<String, &Repository> {
-    let mut ret: HashMap<String, &Repository> = HashMap::new();
+    repositories: Vec<Repository>,
+) -> HashMap<String, Repository> {
+    let mut ret: HashMap<String, Repository> = HashMap::new();
 
     for repository in repositories {
         let name = repository.name.clone();
@@ -80,15 +88,53 @@ fn reduce_repo_names(
     ret
 }
 
-pub fn resolve(query: String) -> i32 {
+fn get_repositories() -> HashMap<String, Repository> {
     let repositories = load_workspace();
-    //let full_name_repositories: HashMap<String, &Repository>= HashMap::from_iter(
-    //    repositories.iter().map(|r| (r.name, r))
-    //);
-    let short_name_repositories = reduce_repo_names(&repositories);
+    let mut ret = reduce_repo_names(repositories.clone());
+
+    ret.extend(repositories.iter().map(|r| (r.name.clone(), r.clone())));
+
+    ret
+}
+
+fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
+    let mut child = Command::new("fzf")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .ok()?;
+
+    // Provide choices on stdin
+    {
+        let stdin = child.stdin.as_mut().unwrap();
+        stdin
+            .write_all(&repositories.keys().join("\n").into_bytes())
+            .ok()?;
+    }
+
+    // Wait and read selection
+    child
+        .wait_with_output()
+        .ok()
+        .map(|output| String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+pub fn resolve(query: Option<String>) -> i32 {
+    let repositories = get_repositories();
+
+    let Some(query) = query.or_else(|| fzf_ask(&repositories)) else {
+        eprintln!("No repository selected");
+        return 2;
+    };
+
+    if let Some(repo) = repositories.get(&query) {
+        println!("{}", repo.root.display());
+        return 0;
+    }
+
     let matcher = SkimMatcherV2::default();
 
-    let mut matches: Vec<_> = short_name_repositories
+    let mut matches: Vec<_> = repositories
         .keys()
         .filter_map(|item| {
             matcher
@@ -101,18 +147,9 @@ pub fn resolve(query: String) -> i32 {
         eprintln!("No match for {query}");
         1
     } else if matches.len() == 1 {
-        let (score, name) = matches[0];
-        if score < 100 {
-            eprintln!("Considering you meant {name}");
-        }
-        println!(
-            "{}",
-            short_name_repositories
-                .get(matches[0].1)
-                .unwrap()
-                .root
-                .display()
-        );
+        let name = matches[0].1;
+        eprintln!("Considering you meant {name}");
+        println!("{}", repositories.get(name).unwrap().root.display());
         0
     } else {
         eprintln!("Several possible match:");
@@ -125,4 +162,27 @@ pub fn resolve(query: String) -> i32 {
 
         2
     }
+}
+
+pub fn resolve_completer(
+    current: &std::ffi::OsStr,
+) -> Vec<CompletionCandidate> {
+    let Some(current) = current.to_str() else {
+        return vec![];
+    };
+
+    let repositories = get_repositories();
+    let matcher = SkimMatcherV2::default();
+    repositories
+        .keys()
+        .filter_map(|item| {
+            matcher.fuzzy_match(item, current).map(|_| {
+                let repository = repositories.get(item).unwrap();
+
+                CompletionCandidate::new(item)
+                    .tag(repository.forge.clone().map(StyledStr::from))
+                    .help(repository.remote_url.clone().map(StyledStr::from))
+            })
+        })
+        .collect()
 }

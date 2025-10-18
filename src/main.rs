@@ -1,8 +1,9 @@
-//! repositories, prompt, custom git status,
 use clap::{Command, CommandFactory, Parser, Subcommand};
-use clap_complete::{Generator, Shell, generate};
+use clap_complete::{
+    CompleteEnv, Generator, Shell, engine::ArgValueCompleter, generate,
+};
 use std::{env, io, process::exit};
-use workspace::{prompt, resolve, status};
+use workspace::{prompt, resolve, resolve_completer, status};
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -30,7 +31,8 @@ enum Action {
     Resolve {
         /// Repository identifier to resolve into the actual path within the
         /// workspace.
-        repo_id: String,
+        #[arg(add=ArgValueCompleter::new(resolve_completer))]
+        repo_id: Option<String>,
     },
     /// Generate static completion file.
     Completion { shell: Shell },
@@ -42,6 +44,8 @@ fn get_repo_path(repository: Option<String>) -> String {
 }
 
 fn main() {
+    CompleteEnv::with_factory(Args::command).complete();
+
     let args = Args::parse();
 
     exit(match args.action {

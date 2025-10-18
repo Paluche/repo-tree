@@ -10,7 +10,9 @@ mod url_parser;
 mod version_control_system;
 
 pub use crate::{
-    prompt_action::prompt, resolve_action::resolve, status_action::status,
+    prompt_action::prompt,
+    resolve_action::{resolve, resolve_completer},
+    status_action::status,
     url_parser::UrlParser,
 };
 

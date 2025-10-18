@@ -25,3 +25,39 @@ hosts:
    bitbucket: bitbucket
    my_company.gitlab.org: my_company
 ```
+
+## Completion
+
+We are using clap_complete with the unstable feature for dynamic completion.
+This could change at any moment.
+
+To enable it, configure your shell based on the following command lines:
+
+Bash
+```bash
+echo "source <(COMPLETE=bash workspace)" >> ~/.bashrc
+```
+
+Zsh
+```
+echo "source <(COMPLETE=zsh workspace)" >> ~/.zshrc
+```
+
+Elvish
+``` bash
+echo "eval (E:COMPLETE=elvish workspace | slurp)" >> ~/.elvish/rc.elv
+```
+
+Fish
+``` bash
+echo "COMPLETE=fish workspace | source" >> ~/.config/fish/config.fish
+```
+
+Powershell
+``` bash
+$env:COMPLETE = "powershell"
+echo "workspace | Out-String | Invoke-Expression" >> $PROFILE
+Remove-Item Env:\COMPLETE
+```
+
+To disable completions, you can set COMPLETE= or COMPLETE=0

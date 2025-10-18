@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[derive(Debug, Clone)]
 pub struct Repository {
     pub vcs: VersionControlSystem,
     pub root: PathBuf,
