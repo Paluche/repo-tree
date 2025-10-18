@@ -91,7 +91,7 @@ fn format_repo_status(
     ret
 }
 
-pub fn status(repo_path: String) {
+pub fn status(repo_path: String) -> i32 {
     let repo_info = get_repo_info(repo_path, &UrlParser::default())
         .inspect_err(|e| {
             eprintln!("{e}");
@@ -124,4 +124,6 @@ pub fn status(repo_path: String) {
         "{}",
         format_repo_status(top_level, None, repo_info.status().unwrap(), 0)
     );
+
+    0
 }

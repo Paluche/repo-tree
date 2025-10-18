@@ -46,7 +46,7 @@ fn join_vec_str(sep: char, list: &[String]) -> String {
     })
 }
 
-pub fn prompt(repo_path: String) {
+pub fn prompt(repo_path: String) -> i32 {
     let repo_info = get_repo_info(repo_path, &UrlParser::default())
         .inspect_err(|e| {
             eprintln!("{e}");
@@ -147,4 +147,5 @@ pub fn prompt(repo_path: String) {
     }
 
     println!("{info}");
+    0
 }

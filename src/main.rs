@@ -1,7 +1,7 @@
 //! repositories, prompt, custom git status,
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{Generator, Shell, generate};
-use std::{env, io};
+use std::{env, io, process::exit};
 use workspace::{prompt, resolve, status};
 
 #[derive(Parser, Debug, PartialEq)]
@@ -42,20 +42,20 @@ fn get_repo_path(repository: Option<String>) -> String {
 fn main() {
     let args = Args::parse();
 
-    match args.action {
+    exit(match args.action {
         Action::Completion { shell } => {
-            generate_completion(&mut Args::command(), shell);
+            generate_completion(&mut Args::command(), shell)
         }
         Action::Prompt { repository } => prompt(get_repo_path(repository)),
         Action::Status { repository } => status(get_repo_path(repository)),
         Action::Resolve { repo_id } => resolve(repo_id),
-    }
+    })
 }
 
 fn generate_completion<G: Generator + std::fmt::Debug>(
     command: &mut Command,
     generator: G,
-) {
+) -> i32 {
     eprintln!("Generating completion file for {generator:?}...");
     generate(
         generator,
@@ -63,4 +63,6 @@ fn generate_completion<G: Generator + std::fmt::Debug>(
         command.get_name().to_string(),
         &mut io::stdout(),
     );
+
+    0
 }

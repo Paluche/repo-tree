@@ -42,7 +42,7 @@ fn reduce_repo_names(
     ret
 }
 
-pub fn resolve(repo_id: String) {
+pub fn resolve(repo_id: String) -> i32 {
     let _ = repo_id;
     let repositories = reduce_repo_names(load_workspace());
 
@@ -56,4 +56,6 @@ pub fn resolve(repo_id: String) {
             repositories.get(name).unwrap().root.display()
         );
     }
+
+    0
 }
