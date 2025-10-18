@@ -14,24 +14,26 @@ struct Args {
 
 #[derive(Subcommand, Debug, PartialEq)]
 enum Action {
+    /// Generate the prompt for your shell.
     Prompt {
-        /// Path to within the git repository to work with.
+        /// Path to within the repository to work with.
         #[arg(short, long)]
         repository: Option<String>,
     },
+    /// Print the status of the git repository.
     Status {
         /// Path to within the git repository to work with.
         #[arg(short, long)]
         repository: Option<String>,
     },
+    /// Resolve the name of a repository into its path.
     Resolve {
         /// Repository identifier to resolve into the actual path within the
         /// workspace.
         repo_id: String,
     },
-    Completion {
-        shell: Shell,
-    },
+    /// Generate static completion file.
+    Completion { shell: Shell },
 }
 
 fn get_repo_path(repository: Option<String>) -> String {
