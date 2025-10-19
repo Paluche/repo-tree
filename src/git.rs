@@ -721,7 +721,6 @@ where
 pub struct RepoInfo {
     pub forge: Option<String>,
     pub name: String,
-    pub in_work_dir: bool,
     pub is_submodule: bool,
     /// None is the repository is a submodule.
     pub repo: Repository,
@@ -772,12 +771,9 @@ pub fn get_repo_info<P: AsRef<Path>>(
         git_dir.is_file()
     };
 
-    let in_work_dir = !is_submodule && top_level.starts_with(get_work_dir());
-
     Ok(RepoInfo {
         forge,
         name,
-        in_work_dir,
         is_submodule,
         repo,
     })
