@@ -1,0 +1,62 @@
+//! Action to clean the workspace.
+//! Replace the repositories where they belong to.
+
+use crate::{Repository, get_work_dir, load_workspace};
+use std::fs::{remove_dir, rename};
+
+pub fn clean(dry_run: bool) -> i32 {
+    let work_dir = get_work_dir();
+    let repositories = load_workspace()
+        .0
+        .into_iter()
+        .filter(|r| r.expected_root(&work_dir).is_some_and(|p| p != r.root))
+        .collect::<Vec<Repository>>();
+
+    let mut ret = 0;
+
+    if repositories.is_empty() {
+        println!("All repositories are where they belong");
+    } else {
+        println!("Repositories to move:");
+        for repository in repositories {
+            let expected_root = repository.expected_root(&work_dir).unwrap();
+            println!(
+                "- {}: {} => {}",
+                repository.name,
+                repository.root.display(),
+                expected_root.display(),
+            );
+            if !dry_run
+                && let Err(err) = rename(repository.root, expected_root)
+            {
+                eprintln!("{err}");
+                ret = 1;
+            }
+        }
+    }
+
+
+    let mut first = true;
+    loop {
+        let empty_dirs = load_workspace().1;
+
+        if empty_dirs.is_empty() {
+            if first {
+                println!("No empty directories to remove");
+            }
+            break;
+        }
+        first = false;
+
+        for empty_dir in empty_dirs {
+            println!("Removing empty directory: {}", empty_dir.display());
+            if !dry_run && let Err(err) = remove_dir(empty_dir) {
+                eprintln!("{err}");
+                ret = 1;
+                break;
+            }
+        }
+    }
+
+    ret
+}
