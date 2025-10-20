@@ -3,7 +3,7 @@ use clap_complete::{
     CompleteEnv, Generator, Shell, engine::ArgValueCompleter, generate,
 };
 use std::{env, io, process::exit};
-use workspace::{clean, prompt, resolve, resolve_completer, status};
+use workspace::{clean, prompt, resolve, resolve_completer, status, tree};
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -34,6 +34,8 @@ enum Action {
         #[arg(add=ArgValueCompleter::new(resolve_completer))]
         repo_id: Option<String>,
     },
+    /// Display a tree of your workspace.
+    Tree,
     /// Generate static completion file.
     Completion { shell: Shell },
     /// Clean the workspace. Move the repositories where they belong and remove
@@ -64,6 +66,7 @@ fn main() {
         Action::Status { repository } => status(get_repo_path(repository)),
         Action::Resolve { repo_id } => resolve(repo_id),
         Action::Clean { dry_run } => clean(dry_run),
+        Action::Tree => tree(),
     })
 }
 
