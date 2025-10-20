@@ -29,6 +29,7 @@ use std::{
     iter::zip,
     process::{Command, Stdio},
 };
+use which::which;
 
 /// Find the shortest end-path to identify two
 fn reduce(path_a: String, path_b: String) -> Option<(String, String)> {
@@ -98,7 +99,11 @@ fn get_repositories() -> HashMap<String, Repository> {
 }
 
 fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
-    let mut child = Command::new("fzf")
+    let fzf = which("fzf").expect(
+        "fzf not found, cannot interactively ask to select repository.",
+    );
+
+    let mut child = Command::new(fzf)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()

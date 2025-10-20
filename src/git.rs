@@ -1,8 +1,6 @@
 //! Module for retrieving git information.
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
-use strum::{EnumIter, IntoEnumIterator};
-
 use std::{
     collections::HashMap,
     error::Error,
@@ -14,6 +12,8 @@ use std::{
     str::Chars,
     time::SystemTime,
 };
+use strum::{EnumIter, IntoEnumIterator};
+use which::which;
 
 #[derive(Debug, Hash, PartialEq, Eq, EnumIter)]
 pub enum EntryStatus {
@@ -420,6 +420,10 @@ impl Display for UpstreamInfo {
     }
 }
 
+fn new_git_command() -> Command {
+    Command::new(which("git").expect("'git' not found"))
+}
+
 fn get_branches_pointing_at<S>(
     repo_path: &S,
     pointing_at: &str,
@@ -427,7 +431,7 @@ fn get_branches_pointing_at<S>(
 where
     S: AsRef<OsStr>,
 {
-    let output = Command::new("git")
+    let output = new_git_command()
         .arg("-C")
         .arg(repo_path)
         .arg("branch")
@@ -455,7 +459,7 @@ fn get_tags_pointing_at<S>(
 where
     S: AsRef<OsStr>,
 {
-    let output = Command::new("git")
+    let output = new_git_command()
         .arg("-C")
         .arg(repo_path)
         .arg("tag")
@@ -651,7 +655,7 @@ where
 {
     let git_dir = {
         let mut ret = String::from_utf8(
-            Command::new("git")
+            new_git_command()
                 .arg("-C")
                 .arg(repo_path)
                 .arg("rev-parse")
@@ -665,7 +669,7 @@ where
         PathBuf::from(ret)
     };
 
-    let output = Command::new("git")
+    let output = new_git_command()
         .arg("-C")
         .arg(repo_path)
         .arg("status")
