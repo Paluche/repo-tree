@@ -90,8 +90,14 @@ fn reduce_repo_names(
 }
 
 fn get_repositories() -> HashMap<String, Repository> {
-    let repositories = load_workspace();
+    let (repositories, empty_dirs) = load_workspace();
+
+    for empty_dir in empty_dirs {
+        eprintln!("Empty directory in WORK_DIR: {}", empty_dir.display());
+    }
+
     let mut ret = reduce_repo_names(repositories.clone());
+
 
     ret.extend(repositories.iter().map(|r| (r.name.clone(), r.clone())));
 

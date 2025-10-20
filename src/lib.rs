@@ -18,12 +18,12 @@ pub use crate::{
 
 use crate::repository::Repository;
 
-use std::{env, path::Path};
+use std::{env, path::{Path, PathBuf}};
 
 pub fn get_work_dir() -> String {
     env::var("WORK_DIR").expect("Missing WORK_DIR environment variable")
 }
 
-pub fn load_workspace() -> Vec<Repository> {
+pub fn load_workspace() -> (Vec<Repository>, Vec<PathBuf>) {
     repository::search(Path::new(&get_work_dir()), &UrlParser::default())
 }

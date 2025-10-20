@@ -93,22 +93,32 @@ impl Display for Repository {
     }
 }
 
-pub fn search(dir: &Path, url_parser: &UrlParser) -> Vec<Repository> {
-    let mut ret = Vec::new();
+pub fn search(dir: &Path, url_parser: &UrlParser) -> (Vec<Repository>, Vec<PathBuf>) {
+    let mut repositories = Vec::new();
+    let mut empty_dirs = Vec::new();
     if !dir.is_dir() {
-        return ret;
+        return (repositories, empty_dirs);
     }
 
+    let mut empty_dir = true;
+
     for entry in dir.read_dir().expect("read dir call failed").flatten() {
+        empty_dir = false;
         let root = entry.path();
         if let Some(repo) =
             Repository::try_new(root.clone(), url_parser).unwrap()
         {
-            ret.push(repo);
+            repositories.push(repo);
         } else {
-            ret.extend(search(&root, url_parser));
+            let res = search(&root, url_parser);
+            repositories.extend(res.0);
+            empty_dirs.extend(res.1);
         }
     }
 
-    ret
+    if empty_dir {
+        empty_dirs.push(dir.to_path_buf());
+    }
+
+    (repositories, empty_dirs)
 }
