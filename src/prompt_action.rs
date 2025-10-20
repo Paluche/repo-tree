@@ -1,5 +1,5 @@
 use crate::{Repository, UrlParser, git};
-use colored::{ColoredString, Colorize};
+use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
 use std::fmt::Display;
 
 struct PromptBuilder {
@@ -10,7 +10,7 @@ struct PromptBuilder {
 impl PromptBuilder {
     fn new() -> Self {
         Self {
-            prompt: format!("{}", "".bright_purple()),
+            prompt: format!("{}{}", "┣━┫".cyan(), "".bright_purple()),
             sep: format!("{}", "|".cyan()),
         }
     }
@@ -48,7 +48,8 @@ fn join_vec_str(sep: char, list: &[String]) -> String {
 
 fn git_prompt(repo: Repository) -> i32 {
     let git_status = git::status(&repo.root).unwrap();
-    // forge/repo|⛏operation|(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|◀🠟🠝|◀||
+    //  forge/repo|⛏operation|(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|◀🠟🠝|◀||
+    SHOULD_COLORIZE.set_override(true);
     let mut info = PromptBuilder::new();
     info.push_colored_string(repo.name.green());
 
