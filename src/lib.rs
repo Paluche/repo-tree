@@ -25,9 +25,5 @@ pub fn get_work_dir() -> String {
 }
 
 pub fn load_workspace() -> Vec<Repository> {
-    let work_dir =
-        env::var("WORK_DIR").expect("Missing WORK_DIR environment variable");
-    let work_dir = Path::new(&work_dir);
-    let url_parser = UrlParser::default();
-    repository::search(work_dir, &url_parser)
+    repository::search(Path::new(&get_work_dir()), &UrlParser::default())
 }
