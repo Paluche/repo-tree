@@ -10,6 +10,7 @@ use std::{
 #[derive(Debug, Clone)]
 pub struct Repository {
     pub vcs: VersionControlSystem,
+    pub is_submodule: bool,
     pub root: PathBuf,
     pub remote_url: Option<String>,
     pub forge: Option<String>,
@@ -17,6 +18,25 @@ pub struct Repository {
 }
 
 impl Repository {
+    pub fn discover(
+        path: String,
+        url_parser: &UrlParser,
+    ) -> Result<Option<Self>, Box<dyn Error>> {
+        let mut current_path = Some(PathBuf::from(path));
+
+        while current_path.is_some() {
+            if let Some(repo) =
+                Self::try_new(current_path.clone().unwrap(), url_parser)?
+            {
+                return Ok(Some(repo));
+            }
+            current_path =
+                current_path.unwrap().parent().map(|p| p.to_path_buf());
+        }
+
+        Ok(None)
+    }
+
     pub fn try_new(
         root: PathBuf,
         url_parser: &UrlParser,
@@ -25,7 +45,7 @@ impl Repository {
         if vcs.is_none() {
             return Ok(None);
         }
-        let vcs = vcs.unwrap();
+        let (vcs, is_submodule) = vcs.unwrap();
         let remote_url = match vcs {
             VersionControlSystem::Git | VersionControlSystem::JujutsuGit => {
                 git::get_remote_url(&root)?
@@ -39,6 +59,7 @@ impl Repository {
 
         Ok(Some(Self {
             vcs,
+            is_submodule,
             root,
             remote_url,
             forge,
@@ -46,12 +67,15 @@ impl Repository {
         }))
     }
 
-    pub fn vcs(&self) -> &VersionControlSystem {
-        &self.vcs
-    }
-
-    pub fn root(&self) -> &PathBuf {
-        &self.root
+    pub fn expected_root(&self, work_dir: &String) -> Option<PathBuf> {
+        if self.is_submodule || self.forge.is_none() {
+            None
+        } else {
+            let mut path = PathBuf::from(work_dir);
+            path.push(self.forge.clone().unwrap());
+            path.push(&self.name);
+            Some(path)
+        }
     }
 }
 

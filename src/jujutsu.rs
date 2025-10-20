@@ -17,5 +17,5 @@ pub fn get_remote_url<P: AsRef<Path>>(
     git_dir.push("git");
     let repo = Repository::open(git_dir)?;
 
-    git::get_remote_url_repo(&repo)
+    Ok(git::get_remote_url_repo(&repo)?)
 }

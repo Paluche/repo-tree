@@ -1,6 +1,6 @@
-use crate::{UrlParser, git::get_repo_info};
+use crate::{Repository, UrlParser, git};
 use colored::{ColoredString, Colorize};
-use std::{fmt::Display, process::exit};
+use std::fmt::Display;
 
 struct PromptBuilder {
     prompt: String,
@@ -46,24 +46,11 @@ fn join_vec_str(sep: char, list: &[String]) -> String {
     })
 }
 
-pub fn prompt(repo_path: String) -> i32 {
-    let repo_info = get_repo_info(repo_path, &UrlParser::default())
-        .inspect_err(|e| {
-            eprintln!("{e}");
-            exit(1);
-        })
-        .unwrap();
-    let git_status = repo_info
-        .status()
-        .inspect_err(|e| {
-            eprintln!("{e}");
-            exit(1);
-        })
-        .unwrap();
-
+fn git_prompt(repo: Repository) -> i32 {
+    let git_status = git::status(&repo.root).unwrap();
     // forge/repo|⛏operation|(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|◀🠟🠝|◀||
     let mut info = PromptBuilder::new();
-    info.push_colored_string(repo_info.name.green());
+    info.push_colored_string(repo.name.green());
 
     if !git_status.ongoing_operations.is_empty() {
         let mut operations = String::from("⛏");
@@ -147,5 +134,19 @@ pub fn prompt(repo_path: String) -> i32 {
     }
 
     println!("{info}");
+    0
+}
+
+pub fn prompt(repo_path: String) -> i32 {
+    let repo = Repository::discover(repo_path, &UrlParser::default())
+        .expect("Error loading the repository");
+
+    if let Some(repo) = repo {
+        if repo.vcs.is_git() {
+            return git_prompt(repo);
+        }
+        eprintln!("Prompt not yet implemented for {}", repo.vcs);
+    }
+
     0
 }

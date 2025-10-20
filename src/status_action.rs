@@ -1,12 +1,12 @@
 use crate::{
-    UrlParser,
-    git::{GitStatus, SubmoduleStatus, get_repo_info, git_status},
+    Repository, UrlParser, get_work_dir,
+    git::{self, GitStatus, SubmoduleStatus},
 };
 use colored::Colorize;
-use std::{path::Path, process::exit};
+use std::{path::PathBuf, process::exit};
 
 fn format_repo_status(
-    main_repo_path: &Path,
+    main_repo_path: &PathBuf,
     rel_path: Option<&str>,
     status: GitStatus,
     level: usize,
@@ -77,7 +77,7 @@ fn format_repo_status(
             let rel_path = item.path;
             repo_path.push(&rel_path);
             let repo_path = repo_path.to_str().unwrap();
-            let status = git_status(&repo_path).unwrap();
+            let status = git::status(&repo_path).unwrap();
 
             ret.push_str(&format_repo_status(
                 main_repo_path,
@@ -92,37 +92,40 @@ fn format_repo_status(
 }
 
 pub fn status(repo_path: String) -> i32 {
-    let repo_info = get_repo_info(repo_path, &UrlParser::default())
-        .inspect_err(|e| {
-            eprintln!("{e}");
-            exit(1);
-        })
-        .unwrap();
-    let top_level = repo_info.top_level();
-
-    if top_level.is_none() {
-        eprintln!("Bare git repository");
+    let Some(repo) = Repository::discover(repo_path, &UrlParser::default())
+        .expect("Error loading the repository")
+    else {
+        eprintln!("Not within a repository");
         exit(1);
-    }
+    };
 
-    let top_level = top_level.unwrap();
-    let expected_top_level = repo_info.expected_top_level();
+    let expected_root = repo.expected_root(&get_work_dir());
 
-    if let Some(expected_top_level) = expected_top_level
-        && top_level != expected_top_level
+    if let Some(expected_root) = expected_root
+        && repo.root != expected_root
     {
         eprintln!(
             "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
                 should be in \"{}\".",
-            repo_info.name,
-            top_level.display(),
-            expected_top_level.display(),
+            repo.name,
+            repo.root.display(),
+            expected_root.display(),
         );
+    }
+
+    if !repo.vcs.is_git() {
+        eprintln!("Status not implemented for {}", repo.vcs);
+        return 1;
     }
 
     println!(
         "{}",
-        format_repo_status(top_level, None, repo_info.status().unwrap(), 0)
+        format_repo_status(
+            &repo.root,
+            None,
+            git::status(&repo.root).expect("Error obtaining git status"),
+            0
+        )
     );
 
     0

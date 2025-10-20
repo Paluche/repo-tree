@@ -18,30 +18,42 @@ pub enum VersionControlSystem {
 }
 
 impl VersionControlSystem {
-    pub fn try_new(dir: &Path) -> Option<Self> {
-        fn has_dir(search_dir: &Path, dir: &str) -> bool {
+    /// Try to load the current version control system used by the current repository.
+    /// The path must correspond to the root of the repository.
+    /// Return a new instance of VersionControlSystem and a boolean to indicate if the repository
+    /// is a submodule or not.
+    pub fn try_new(dir: &Path) -> Option<(Self, bool)> {
+        fn exists(search_dir: &Path, dir: &str) -> (bool, bool) {
             let mut search_dir = search_dir.to_path_buf().clone();
             search_dir.push(dir);
 
-            search_dir.exists()
+            (search_dir.is_dir(), search_dir.is_file())
         }
 
-        let is_jj = has_dir(dir, ".jj");
-        if has_dir(dir, ".git") {
+        let is_jj = exists(dir, ".jj").0;
+        let (is_git_main, is_git_submodule) = exists(dir, ".git");
+
+        if is_git_main || is_git_submodule {
+            // is_git
             if is_jj {
-                Some(Self::JujutsuGit)
+                Some((Self::JujutsuGit, is_git_submodule))
             } else {
-                Some(Self::Git)
+                Some((Self::Git, is_git_submodule))
             }
         } else if is_jj {
-            Some(Self::Jujutsu)
-        } else if has_dir(dir, ".hg") {
-            Some(Self::Mercurial)
-        } else if has_dir(dir, ".svn") {
-            Some(Self::Subversion)
+            Some((Self::Jujutsu, false))
+        } else if exists(dir, ".hg").0 {
+            Some((Self::Mercurial, false))
+        } else if exists(dir, ".svn").0 {
+            // XXX Subversion can have sub-modules.
+            Some((Self::Subversion, false))
         } else {
             None
         }
+    }
+
+    pub fn is_git(&self) -> bool {
+        matches!(self, Self::Git | Self::JujutsuGit)
     }
 }
 

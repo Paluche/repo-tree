@@ -1,13 +1,10 @@
 //! Module for retrieving git information.
-use crate::UrlParser;
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
-use git2::Repository;
 use strum::{EnumIter, IntoEnumIterator};
 
 use std::{
     collections::HashMap,
-    env,
     error::Error,
     ffi::OsStr,
     fmt::Display,
@@ -648,13 +645,26 @@ impl GitStatus {
     }
 }
 
-fn git_status_internal<S>(
-    repo_path: &S,
-    git_dir: &Path,
-) -> Result<GitStatus, Box<dyn Error>>
+pub fn status<S>(repo_path: &S) -> Result<GitStatus, Box<dyn Error>>
 where
     S: AsRef<OsStr> + Sized,
 {
+    let git_dir = {
+        let mut ret = String::from_utf8(
+            Command::new("git")
+                .arg("-C")
+                .arg(repo_path)
+                .arg("rev-parse")
+                .arg("--absolute-git-dir")
+                .output()?
+                .stdout,
+        )?;
+
+        // Pop new line character.
+        ret.pop();
+        PathBuf::from(ret)
+    };
+
     let output = Command::new("git")
         .arg("-C")
         .arg(repo_path)
@@ -683,8 +693,8 @@ where
             }
         }
     }
-    let last_fetched = get_last_fetched(git_dir);
-    let ongoing_operations = get_ongoing_operations(git_dir);
+    let last_fetched = get_last_fetched(&git_dir);
+    let ongoing_operations = get_ongoing_operations(&git_dir);
 
     Ok(GitStatus {
         head: HeadInfo::new(branch_raw, repo_path)?,
@@ -695,107 +705,25 @@ where
     })
 }
 
-pub fn git_status<S>(repo_path: &S) -> Result<GitStatus, Box<dyn Error>>
-where
-    S: AsRef<OsStr> + Sized,
-{
-    let git_dir = {
-        let mut ret = String::from_utf8(
-            Command::new("git")
-                .arg("-C")
-                .arg(repo_path)
-                .arg("rev-parse")
-                .arg("--absolute-git-dir")
-                .output()?
-                .stdout,
-        )?;
-
-        // Pop new line character.
-        ret.pop();
-        PathBuf::from(ret)
-    };
-
-    git_status_internal(repo_path, &git_dir)
-}
-
-pub struct RepoInfo {
-    pub forge: Option<String>,
-    pub name: String,
-    pub is_submodule: bool,
-    /// None is the repository is a submodule.
-    pub repo: Repository,
-}
-
-impl RepoInfo {
-    pub fn top_level(&self) -> Option<&Path> {
-        self.repo.workdir()
-    }
-
-    pub fn expected_top_level(&self) -> Option<PathBuf> {
-        if self.is_submodule || self.forge.is_none() {
-            None
-        } else {
-            let mut path = get_work_dir();
-            path.push(self.forge.clone().unwrap());
-            path.push(&self.name);
-            Some(path)
-        }
-    }
-
-    pub fn status(&self) -> Result<GitStatus, Box<dyn Error>> {
-        git_status_internal(
-            &self.top_level().expect("Bare git repository"),
-            self.repo.path(),
-        )
-    }
-}
-
-fn get_work_dir() -> PathBuf {
-    PathBuf::from(
-        &env::var("WORK_DIR").expect("Missing WORK_DIR environment variable."),
-    )
-}
-
-pub fn get_repo_info<P: AsRef<Path>>(
-    repo_path: P,
-    url_parser: &UrlParser,
-) -> Result<RepoInfo, Box<dyn Error>> {
-    let repo = Repository::discover(repo_path)?;
-    let top_level = repo.workdir().unwrap();
-    let (forge, name) =
-        url_parser.parse(get_remote_url_repo(&repo)?.as_ref(), &top_level);
-
-    let is_submodule = {
-        let mut git_dir = top_level.to_path_buf();
-        git_dir.push(".git");
-        git_dir.is_file()
-    };
-
-    Ok(RepoInfo {
-        forge,
-        name,
-        is_submodule,
-        repo,
-    })
-}
-
 pub fn get_remote_url_repo(
-    repo: &Repository,
-) -> Result<Option<String>, Box<dyn Error>> {
+    repo: &git2::Repository,
+) -> Result<Option<String>, git2::Error> {
     Ok(repo
         .find_remote("origin")
-        .ok()
-        .or(repo
-            .remotes()?
-            .get(0)
-            .and_then(|name| repo.find_remote(name).ok()))
+        .map_or(
+            match repo.remotes()?.get(0) {
+                Some(name) => Some(repo.find_remote(name)?),
+                None => None,
+            },
+            Some,
+        )
         .and_then(|r| r.url().map(String::from)))
 }
 
 pub fn get_remote_url<P: AsRef<Path>>(
     repo_path: P,
-) -> Result<Option<String>, Box<dyn Error>> {
-    let repo = Repository::discover(repo_path)?;
+) -> Result<Option<String>, git2::Error> {
+    let repo = git2::Repository::discover(repo_path)?;
 
     get_remote_url_repo(&repo)
 }

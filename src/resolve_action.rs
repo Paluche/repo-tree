@@ -75,8 +75,8 @@ fn reduce_repo_names(
                 eprintln!(
                     "Duplicated repository with name {name}: {0} and {1}.
                     {1} is ignored!",
-                    conflict.root().display(),
-                    repository.root().display(),
+                    conflict.root.display(),
+                    repository.root.display(),
                 );
                 ret.insert(name, conflict);
             }
