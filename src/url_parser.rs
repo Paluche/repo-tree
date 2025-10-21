@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
 };
-use url::Url;
+use regex::Regex;
 use yaml_rust2::YamlLoader;
 
 #[derive(Debug, Clone)]
@@ -93,16 +93,6 @@ enum HostWorkDir {
 }
 
 impl HostWorkDir {
-    fn or_else<F>(self, f: F) -> HostWorkDir
-    where
-        F: FnOnce() -> HostWorkDir,
-    {
-        match self {
-            Self::Missing(_) => f(),
-            res => res,
-        }
-    }
-
     fn into_option(self) -> Option<String> {
         match self {
             Self::Missing(_) => None,
@@ -152,31 +142,51 @@ impl UrlParser {
         )
     }
 
+    fn parse_url<'a>(url: &'a str) -> Option<regex::Captures<'a>> {
+        // scheme-based URLs, e.g.:
+        //   https://github.com/owner/repo.git
+        //   ssh://user@host:2222/owner/repo.git
+        //   git://host/owner/repo
+        //   file:///path/to/repo.git
+        // Captures: scheme, user (optional), host, port (optional), path
+        let re_scheme = Regex::new(
+            concat!(
+                r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
+                r"://(?:(?P<user>[^@/:]+)@)?(?P<host>[^/:]+)",
+                r"(?::(?P<port>\d+))?/(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
+            )
+        ).unwrap();
+
+        // scp-like syntax, e.g.:
+        //   git@github.com:owner/repo.git
+        //   user@host:/absolute/path/to/repo.git
+        // Captures: user (optional), host, path
+        let re_scp = Regex::new(
+            r"^(?:(?P<user>[^@:\s]+)@)?(?P<host>[^:\s]+):(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
+        ).unwrap();
+
+        // local paths (file:// handled above; this covers bare filesystem paths)
+        // matches:
+        //   /absolute/path/to/repo.git
+        //   ./relative/path
+        //   ../relative/path
+        //   ~/path
+        //   C:\path\to\repo.git
+        let re_local = Regex::new(
+            r"^(?:file:///(?P<file_path>[^ \r\n]+)|[./~][^ \r\n]*|[A-Za-z]:[\\/][^ \r\n]*)$"
+        ).unwrap();
+
+        re_scheme.captures(url).or(re_scp.captures(url).or(
+                re_local.captures(url)
+                ))
+    }
+
     fn _parse(
         &self,
         remote_url: Option<&String>,
     ) -> Option<(Option<String>, String)> {
-        let url = remote_url?;
-        let (_user, url) = if let Some(parse) = url.split_once("@") {
-            (Some(parse.0), parse.1)
-        } else {
-            (None, url.as_str())
-        };
-
-        let url = Url::parse(url).ok()?;
-
-        let host_work_dir = self
-            .get_host_work_dir(url.host_str()?)
-            .or_else(|| self.get_host_work_dir(url.scheme()));
-
-        let path = {
-            let ret = url.path().to_owned();
-            if let Some(ret) = ret.strip_prefix('/') {
-                String::from(ret)
-            } else {
-                ret
-            }
-        };
+        let remote_cap= Self::parse_url(remote_url?)?;
+        let host_work_dir = self.get_host_work_dir(&remote_cap["host"]);
 
         if let HostWorkDir::Missing(host) = &host_work_dir
             && !self.missing_hosts.contains(host)
@@ -184,14 +194,7 @@ impl UrlParser {
             eprintln!("Missing host configuration for {host}");
         }
 
-        if path.ends_with(".git") {
-            Some((
-                host_work_dir.into_option(),
-                path.strip_suffix(".git").unwrap().to_string(),
-            ))
-        } else {
-            Some((host_work_dir.into_option(), path))
-        }
+        Some((host_work_dir.into_option(), remote_cap["path"].to_string()))
     }
 
     pub fn parse<P: AsRef<Path>>(
