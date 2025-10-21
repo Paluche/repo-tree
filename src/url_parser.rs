@@ -1,4 +1,5 @@
 //! Tools around parsing of repositories URL.
+use regex::Regex;
 use std::{
     collections::HashMap,
     error::Error,
@@ -7,7 +8,6 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
 };
-use regex::Regex;
 use yaml_rust2::YamlLoader;
 
 #[derive(Debug, Clone)]
@@ -56,7 +56,8 @@ fn load_config(
         return Ok(());
     }
 
-    let config = YamlLoader::load_from_str(&fs::read_to_string(&config_path)?)?;
+    let config =
+        YamlLoader::load_from_str(&fs::read_to_string(&config_path)?)?;
 
     parser_assert(
         config.len() == 1,
@@ -149,13 +150,12 @@ impl UrlParser {
         //   git://host/owner/repo
         //   file:///path/to/repo.git
         // Captures: scheme, user (optional), host, port (optional), path
-        let re_scheme = Regex::new(
-            concat!(
-                r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
-                r"://(?:(?P<user>[^@/:]+)@)?(?P<host>[^/:]+)",
-                r"(?::(?P<port>\d+))?/(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
-            )
-        ).unwrap();
+        let re_scheme = Regex::new(concat!(
+            r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
+            r"://(?:(?P<user>[^@/:]+)@)?(?P<host>[^/:]+)",
+            r"(?::(?P<port>\d+))?/(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
+        ))
+        .unwrap();
 
         // scp-like syntax, e.g.:
         //   git@github.com:owner/repo.git
@@ -176,16 +176,16 @@ impl UrlParser {
             r"^(?:file:///(?P<file_path>[^ \r\n]+)|[./~][^ \r\n]*|[A-Za-z]:[\\/][^ \r\n]*)$"
         ).unwrap();
 
-        re_scheme.captures(url).or(re_scp.captures(url).or(
-                re_local.captures(url)
-                ))
+        re_scheme
+            .captures(url)
+            .or(re_scp.captures(url).or(re_local.captures(url)))
     }
 
     fn _parse(
         &self,
         remote_url: Option<&String>,
     ) -> Option<(Option<String>, String)> {
-        let remote_cap= Self::parse_url(remote_url?)?;
+        let remote_cap = Self::parse_url(remote_url?)?;
         let host_work_dir = self.get_host_work_dir(&remote_cap["host"]);
 
         if let HostWorkDir::Missing(host) = &host_work_dir

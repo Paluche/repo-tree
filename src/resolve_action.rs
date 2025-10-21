@@ -18,10 +18,10 @@
 //! ```
 //!
 //!
-use crate::{load_workspace, Repository};
+use crate::{Repository, load_workspace};
 use clap::builder::StyledStr;
 use clap_complete::engine::CompletionCandidate;
-use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use itertools::Itertools;
 use std::{
     collections::HashMap,
