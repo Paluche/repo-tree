@@ -18,10 +18,10 @@
 //! ```
 //!
 //!
-use crate::{Repository, load_workspace};
+use crate::{load_workspace, Repository};
 use clap::builder::StyledStr;
 use clap_complete::engine::CompletionCandidate;
-use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
+use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use itertools::Itertools;
 use std::{
     collections::HashMap,
@@ -118,10 +118,15 @@ fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
     }
 
     // Wait and read selection
-    child
-        .wait_with_output()
-        .ok()
-        .map(|output| String::from_utf8_lossy(&output.stdout).into_owned())
+    child.wait_with_output().ok().map(|output| {
+        let res = String::from_utf8_lossy(&output.stdout).into_owned();
+
+        if res.ends_with('\n') {
+            String::from(res.strip_suffix('\n').unwrap())
+        } else {
+            res
+        }
+    })
 }
 
 pub fn resolve(query: Option<String>) -> i32 {
