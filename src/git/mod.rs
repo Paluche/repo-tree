@@ -1,6 +1,8 @@
+mod prompt;
 mod status;
 pub mod submodules;
 
+pub use prompt::prompt;
 pub use status::{GitStatus, SubmoduleStatus, status};
 use std::path::Path;
 pub use submodules::SubmoduleInfo;

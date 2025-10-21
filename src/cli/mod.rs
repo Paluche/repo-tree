@@ -17,6 +17,8 @@ use prompt::prompt;
 use resolve::{resolve, resolve_completer};
 use tree::tree;
 
+pub use prompt::PromptBuilder;
+
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
 struct Args {
