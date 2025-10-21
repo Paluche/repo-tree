@@ -1,6 +1,7 @@
 //! Module for retrieving JuJutsu information.
-use crate::{cli::PromptBuilder, git};
-use colored::Colorize;
+mod prompt;
+
+use crate::git;
 use git2::Repository;
 use jj_lib::config::StackedConfig;
 use jj_lib::repo::{ReadonlyRepo, RepoLoader, StoreFactories};
@@ -10,6 +11,7 @@ use std::{
     error::Error,
     path::{Path, PathBuf},
 };
+pub use prompt::prompt;
 
 pub fn get_remote_url<P: AsRef<Path>>(
     repo_path: P,
@@ -23,11 +25,6 @@ pub fn get_remote_url<P: AsRef<Path>>(
     let repo = Repository::open(git_dir)?;
 
     Ok(git::get_remote_url_repo(&repo)?)
-}
-
-pub fn prompt(_root: &Path, info: &mut PromptBuilder) -> i32 {
-    info.push_colored_string("N/A".red());
-    0
 }
 
 /// Load an existing jj repository.
