@@ -172,16 +172,15 @@ impl UrlParser {
         //   ../relative/path
         //   ~/path
         //   C:\path\to\repo.git
-        let re_local = Regex::new(
-            r"^(?:file:///(?P<file_path>[^ \r\n]+)|[./~][^ \r\n]*|[A-Za-z]:[\\/][^ \r\n]*)$"
-        ).unwrap();
+        // let re_local = Regex::new(
+        //     r"^(?:file:///(?P<file_path>[^ \r\n]+)|[./~][^ \r\n]*|[A-Za-z]:[\\/][^ \r\n]*)$"
+        // ).unwrap();
 
-        re_scheme
-            .captures(url)
-            .or(re_scp.captures(url).or(re_local.captures(url)))
+        re_scheme.captures(url).or(re_scp.captures(url))
+        //.or(re_local.captures(url))
     }
 
-    fn _parse(
+    pub fn parse(
         &self,
         remote_url: Option<&String>,
     ) -> Option<(Option<String>, String)> {
@@ -195,22 +194,5 @@ impl UrlParser {
         }
 
         Some((host_work_dir.into_option(), remote_cap["path"].to_string()))
-    }
-
-    pub fn parse<P: AsRef<Path>>(
-        &self,
-        remote_url: Option<&String>,
-        repo_path: &P,
-    ) -> (Option<String>, String) {
-        self._parse(remote_url).unwrap_or((
-            Some("local".to_string()),
-            repo_path
-                .as_ref()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned(),
-        ))
     }
 }

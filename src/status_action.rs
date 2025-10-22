@@ -92,14 +92,16 @@ fn format_repo_status(
 }
 
 pub fn status(repo_path: String) -> i32 {
-    let Some(repo) = Repository::discover(repo_path, &UrlParser::default())
-        .expect("Error loading the repository")
+    let work_dir = get_work_dir();
+    let Some(repo) =
+        Repository::discover(&work_dir, repo_path, &UrlParser::default())
+            .expect("Error loading the repository")
     else {
         eprintln!("Not within a repository");
         exit(1);
     };
 
-    let expected_root = repo.expected_root(&get_work_dir());
+    let expected_root = repo.expected_root(&work_dir);
 
     if let Some(expected_root) = expected_root
         && repo.root != expected_root

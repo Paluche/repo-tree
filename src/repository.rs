@@ -17,17 +17,56 @@ pub struct Repository {
     pub name: String,
 }
 
+/// Either the repository is within the ${WORK_DIR}/local directory
+/// allowing the user to organize as see fits this directory.
+/// Or take the directory name.
+fn compute_local_path<P: AsRef<Path>>(
+    work_dir: &Path,
+    repo_path: &P,
+) -> String {
+    let local_dir = work_dir.join("local");
+    let repo_path = repo_path.as_ref();
+    assert!(repo_path.is_absolute(), "repo_path is not absolute");
+    assert!(local_dir.is_absolute(), "local_dir is not absolute");
+
+    if repo_path.starts_with(&local_dir) {
+        repo_path
+            .iter()
+            .skip(local_dir.iter().count())
+            .collect::<PathBuf>()
+            .display()
+            .to_string()
+    } else {
+        repo_path.file_name().unwrap().to_str().unwrap().to_owned()
+    }
+}
+
+fn compute_repo_forge_name<P: AsRef<Path>>(
+    work_dir: &Path,
+    url_parser: &UrlParser,
+    remote_url: Option<&String>,
+    repo_path: &P,
+) -> (Option<String>, String) {
+    url_parser.parse(remote_url).unwrap_or((
+        Some("local".to_string()),
+        compute_local_path(work_dir, repo_path),
+    ))
+}
+
 impl Repository {
     pub fn discover(
+        work_dir: &Path,
         path: String,
         url_parser: &UrlParser,
     ) -> Result<Option<Self>, Box<dyn Error>> {
         let mut current_path = Some(PathBuf::from(path));
 
         while current_path.is_some() {
-            if let Some(repo) =
-                Self::try_new(current_path.clone().unwrap(), url_parser)?
-            {
+            if let Some(repo) = Self::try_new(
+                work_dir,
+                current_path.clone().unwrap(),
+                url_parser,
+            )? {
                 return Ok(Some(repo));
             }
             current_path =
@@ -38,6 +77,7 @@ impl Repository {
     }
 
     pub fn try_new(
+        work_dir: &Path,
         root: PathBuf,
         url_parser: &UrlParser,
     ) -> Result<Option<Self>, Box<dyn Error>> {
@@ -55,7 +95,12 @@ impl Repository {
             //}
             _ => None,
         };
-        let (forge, name) = url_parser.parse(remote_url.as_ref(), &root);
+        let (forge, name) = compute_repo_forge_name(
+            work_dir,
+            url_parser,
+            remote_url.as_ref(),
+            &root,
+        );
 
         Ok(Some(Self {
             vcs,
@@ -93,7 +138,8 @@ impl Display for Repository {
     }
 }
 
-pub fn search(
+fn _search(
+    work_dir: &Path,
     dir: &Path,
     url_parser: &UrlParser,
 ) -> (Vec<Repository>, Vec<PathBuf>) {
@@ -109,11 +155,11 @@ pub fn search(
         empty_dir = false;
         let root = entry.path();
         if let Some(repo) =
-            Repository::try_new(root.clone(), url_parser).unwrap()
+            Repository::try_new(work_dir, root.clone(), url_parser).unwrap()
         {
             repositories.push(repo);
         } else {
-            let res = search(&root, url_parser);
+            let res = _search(work_dir, &root, url_parser);
             repositories.extend(res.0);
             empty_dirs.extend(res.1);
         }
@@ -124,4 +170,11 @@ pub fn search(
     }
 
     (repositories, empty_dirs)
+}
+
+pub fn search(
+    work_dir: &Path,
+    url_parser: &UrlParser,
+) -> (Vec<Repository>, Vec<PathBuf>) {
+    _search(work_dir, work_dir, url_parser)
 }

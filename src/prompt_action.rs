@@ -1,4 +1,4 @@
-use crate::{Repository, UrlParser, git};
+use crate::{Repository, UrlParser, get_work_dir, git};
 use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
 use std::fmt::Display;
 
@@ -139,8 +139,12 @@ fn git_prompt(repo: Repository) -> i32 {
 }
 
 pub fn prompt(repo_path: String) -> i32 {
-    let repo = Repository::discover(repo_path, &UrlParser::default())
-        .expect("Error loading the repository");
+    let repo = Repository::discover(
+        &get_work_dir(),
+        repo_path,
+        &UrlParser::default(),
+    )
+    .expect("Error loading the repository");
 
     if let Some(repo) = repo {
         if repo.vcs.is_git() {

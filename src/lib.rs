@@ -13,17 +13,13 @@ mod version_control_system;
 pub use crate::{
     clean_action::clean,
     prompt_action::prompt,
+    repository::Repository,
     resolve_action::{resolve, resolve_completer},
     status_action::status,
     url_parser::UrlParser,
 };
 
-use crate::repository::Repository;
-
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::{env, path::PathBuf};
 
 pub fn get_work_dir() -> PathBuf {
     let ret = PathBuf::from(
@@ -36,5 +32,5 @@ pub fn get_work_dir() -> PathBuf {
 }
 
 pub fn load_workspace() -> (Vec<Repository>, Vec<PathBuf>) {
-    repository::search(Path::new(&get_work_dir()), &UrlParser::default())
+    repository::search(&get_work_dir(), &UrlParser::default())
 }
