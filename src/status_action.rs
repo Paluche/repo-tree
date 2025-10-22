@@ -3,10 +3,10 @@ use crate::{
     git::{self, GitStatus, SubmoduleStatus},
 };
 use colored::Colorize;
-use std::{path::PathBuf, process::exit};
+use std::{path::Path, process::exit};
 
 fn format_repo_status(
-    main_repo_path: &PathBuf,
+    main_repo_path: &Path,
     rel_path: Option<&str>,
     status: GitStatus,
     level: usize,

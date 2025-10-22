@@ -67,11 +67,11 @@ impl Repository {
         }))
     }
 
-    pub fn expected_root(&self, work_dir: &String) -> Option<PathBuf> {
+    pub fn expected_root(&self, work_dir: &Path) -> Option<PathBuf> {
         if self.is_submodule || self.forge.is_none() {
             None
         } else {
-            let mut path = PathBuf::from(work_dir);
+            let mut path = work_dir.to_path_buf();
             path.push(self.forge.clone().unwrap());
             path.push(&self.name);
             Some(path)
@@ -93,7 +93,10 @@ impl Display for Repository {
     }
 }
 
-pub fn search(dir: &Path, url_parser: &UrlParser) -> (Vec<Repository>, Vec<PathBuf>) {
+pub fn search(
+    dir: &Path,
+    url_parser: &UrlParser,
+) -> (Vec<Repository>, Vec<PathBuf>) {
     let mut repositories = Vec::new();
     let mut empty_dirs = Vec::new();
     if !dir.is_dir() {

@@ -35,7 +35,6 @@ pub fn clean(dry_run: bool) -> i32 {
         }
     }
 
-
     let mut first = true;
     loop {
         let empty_dirs = load_workspace().1;

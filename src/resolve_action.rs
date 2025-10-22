@@ -98,7 +98,6 @@ fn get_repositories() -> HashMap<String, Repository> {
 
     let mut ret = reduce_repo_names(repositories.clone());
 
-
     ret.extend(repositories.iter().map(|r| (r.name.clone(), r.clone())));
 
     ret

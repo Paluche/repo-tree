@@ -20,10 +20,19 @@ pub use crate::{
 
 use crate::repository::Repository;
 
-use std::{env, path::{Path, PathBuf}};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
-pub fn get_work_dir() -> String {
-    env::var("WORK_DIR").expect("Missing WORK_DIR environment variable")
+pub fn get_work_dir() -> PathBuf {
+    let ret = PathBuf::from(
+        &env::var("WORK_DIR").expect("Missing WORK_DIR environment variable"),
+    );
+
+    assert!(ret.is_absolute(), "WORK_DIR value must be an absolute path");
+
+    ret
 }
 
 pub fn load_workspace() -> (Vec<Repository>, Vec<PathBuf>) {
