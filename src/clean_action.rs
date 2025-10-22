@@ -2,7 +2,7 @@
 //! Replace the repositories where they belong to.
 
 use crate::{Repository, get_work_dir, load_workspace};
-use std::fs::{remove_dir, rename};
+use std::fs::{create_dir_all, remove_dir, rename};
 
 pub fn clean(dry_run: bool) -> i32 {
     let work_dir = get_work_dir();
@@ -26,9 +26,21 @@ pub fn clean(dry_run: bool) -> i32 {
                 repository.root.display(),
                 expected_root.display(),
             );
-            if !dry_run
-                && let Err(err) = rename(repository.root, expected_root)
+
+            if dry_run {
+                continue;
+            }
+
+            let parent = expected_root.parent().unwrap();
+
+            if !parent.exists()
+                && let Err(err) = create_dir_all(parent)
             {
+                eprintln!("{err}");
+                ret = 1;
+            }
+
+            if let Err(err) = rename(repository.root, expected_root) {
                 eprintln!("{err}");
                 ret = 1;
             }
