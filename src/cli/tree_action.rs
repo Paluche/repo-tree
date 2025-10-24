@@ -2,6 +2,30 @@ use crate::{Repository, get_work_dir, load_workspace};
 use colored::Colorize;
 use std::{collections::HashMap, ffi::OsStr, fmt::Display, path::PathBuf};
 
+enum DirState {
+    Root,
+    SubDir,
+    FinalSubDir,
+}
+
+impl DirState {
+    fn get_dir_prefix(&self) -> &str {
+        match self {
+            Self::Root => "",
+            Self::SubDir => "├── ",
+            Self::FinalSubDir => "└── ",
+        }
+    }
+
+    fn get_subdir_prefix(&self) -> &str {
+        match self {
+            Self::Root => "",
+            Self::SubDir => "│   ",
+            Self::FinalSubDir => "    ",
+        }
+    }
+}
+
 #[derive(Default, Debug)]
 struct Directory {
     childs: HashMap<String, Self>,
@@ -29,41 +53,54 @@ impl Directory {
         &self,
         f: &mut std::fmt::Formatter<'_>,
         prefix: String,
+        name: &str,
+        dir_state: DirState,
     ) -> std::fmt::Result {
-        if self.childs.is_empty() {
+        let mut current = self;
+        let mut current_dir = name.to_string();
+        while current.childs.len() == 1 {
+            current_dir.push('/');
+            let (child_name, next) = current.childs.iter().next().unwrap();
+            current_dir.push_str(child_name);
+            current = next;
+        }
+
+        writeln!(
+            f,
+            "{:40}{}",
+            format!(
+                "{prefix}{}{}",
+                dir_state.get_dir_prefix(),
+                current_dir.to_string().blue()
+            ),
+            if let Some(r) = &current.repository {
+                format!(
+                    " -- {}",
+                    r.remote_url
+                        .clone()
+                        .unwrap_or_else(|| r.name.clone())
+                        .green()
+                )
+            } else {
+                "".to_string()
+            }
+        )?;
+
+        if current.childs.is_empty() {
             return Ok(());
         }
 
-        let final_i = self.childs.len() - 1;
-
-        for (i, (name, directory)) in self.childs.iter().enumerate() {
-            let is_final = i == final_i;
-
-            let a = format!(
-                "{prefix}{}{}",
-                if is_final { "└── " } else { "├── " },
-                name.to_string().blue(),
-            );
-
-            writeln!(
-                f,
-                "{a:40}{}",
-                if let Some(r) = &directory.repository {
-                    format!(
-                        " -- {}",
-                        r.remote_url
-                            .clone()
-                            .unwrap_or_else(|| r.name.clone())
-                            .green()
-                    )
-                } else {
-                    "".to_string()
-                }
-            )?;
-
+        let final_i = current.childs.len() - 1;
+        for (i, (name, directory)) in current.childs.iter().enumerate() {
             directory.display(
                 f,
-                format!("{prefix}{}", if is_final { "    " } else { "│   " }),
+                format!("{prefix}{}", dir_state.get_subdir_prefix()),
+                name,
+                if i == final_i {
+                    DirState::FinalSubDir
+                } else {
+                    DirState::SubDir
+                },
             )?;
         }
 
@@ -95,8 +132,12 @@ impl RootDirectory {
 
 impl Display for RootDirectory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", format!("{}", self.path.display()).blue())?;
-        self.directory.display(f, "".to_string())
+        self.directory.display(
+            f,
+            "".to_string(),
+            self.path.to_str().unwrap(),
+            DirState::Root,
+        )
     }
 }
 
