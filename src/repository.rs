@@ -56,10 +56,10 @@ fn compute_repo_forge_name<P: AsRef<Path>>(
 impl Repository {
     pub fn discover(
         work_dir: &Path,
-        path: String,
+        path: PathBuf,
         url_parser: &UrlParser,
     ) -> Result<Option<Self>, Box<dyn Error>> {
-        let mut current_path = Some(PathBuf::from(path));
+        let mut current_path = Some(path);
 
         while current_path.is_some() {
             if let Some(repo) = Self::try_new(

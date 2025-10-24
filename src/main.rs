@@ -3,7 +3,7 @@ use clap_complete::{
     CompleteEnv, Generator, PathCompleter, Shell, engine::ArgValueCompleter,
     generate,
 };
-use std::{env, io, process::exit};
+use std::{env, fs::canonicalize, io, path::PathBuf, process::exit};
 use workspace::cli;
 
 #[derive(Parser, Debug, PartialEq)]
@@ -49,9 +49,21 @@ enum Action {
     },
 }
 
-fn get_repo_path(repository: Option<String>) -> String {
-    repository
-        .unwrap_or(String::from(env::current_dir().unwrap().to_str().unwrap()))
+fn cwd_default_path(path: Option<String>) -> PathBuf {
+    let ret = path.map_or_else(|| env::current_dir().unwrap(), PathBuf::from);
+
+    if !ret.exists() {
+        eprintln!("No such directory {}", ret.display());
+        exit(1);
+    }
+
+    if !ret.is_absolute() {
+        let mut abs = env::current_dir().unwrap();
+        abs.push(ret);
+        canonicalize(abs).unwrap()
+    } else {
+        ret
+    }
 }
 
 fn main() {
@@ -64,10 +76,10 @@ fn main() {
             generate_completion(&mut Args::command(), shell)
         }
         Action::Prompt { repository } => {
-            cli::prompt(get_repo_path(repository))
+            cli::prompt(cwd_default_path(repository))
         }
         Action::Status { repository } => {
-            cli::status(get_repo_path(repository))
+            cli::status(cwd_default_path(repository))
         }
         Action::Resolve { repo_id } => cli::resolve(repo_id),
         Action::Clean { dry_run } => cli::clean(dry_run),

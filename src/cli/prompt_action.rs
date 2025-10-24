@@ -1,6 +1,6 @@
 use crate::{Repository, UrlParser, get_work_dir, git};
 use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf};
 
 struct PromptBuilder {
     prompt: String,
@@ -138,7 +138,7 @@ fn git_prompt(repo: Repository) -> i32 {
     0
 }
 
-pub fn prompt(repo_path: String) -> i32 {
+pub fn prompt(repo_path: PathBuf) -> i32 {
     let repo = Repository::discover(
         &get_work_dir(),
         repo_path,

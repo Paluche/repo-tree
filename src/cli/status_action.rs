@@ -3,7 +3,10 @@ use crate::{
     git::{self, GitStatus, SubmoduleStatus},
 };
 use colored::Colorize;
-use std::{path::Path, process::exit};
+use std::{
+    path::{Path, PathBuf},
+    process::exit,
+};
 
 fn format_repo_status(
     main_repo_path: &Path,
@@ -91,7 +94,7 @@ fn format_repo_status(
     ret
 }
 
-pub fn status(repo_path: String) -> i32 {
+pub fn status(repo_path: PathBuf) -> i32 {
     let work_dir = get_work_dir();
     let Some(repo) =
         Repository::discover(&work_dir, repo_path, &UrlParser::default())
