@@ -76,9 +76,9 @@ impl Directory {
             if let Some(r) = &current.repository {
                 format!(
                     " -- {}",
-                    r.remote_url
+                    r.id.remote_url
                         .clone()
-                        .unwrap_or_else(|| r.name.clone())
+                        .unwrap_or_else(|| r.id.name.clone())
                         .green()
                 )
             } else {

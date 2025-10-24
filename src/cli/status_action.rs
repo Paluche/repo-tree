@@ -112,7 +112,7 @@ pub fn status(repo_path: PathBuf) -> i32 {
         eprintln!(
             "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
                 should be in \"{}\".",
-            repo.name,
+            repo.id.name,
             root.display(),
             expected_root.display(),
         );

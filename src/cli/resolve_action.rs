@@ -63,12 +63,12 @@ fn reduce_repo_names(
     let mut ret: HashMap<String, Repository> = HashMap::new();
 
     for repository in repositories {
-        let name = repository.name.clone();
+        let name = repository.id.name.clone();
         let name = String::from(name.split('/').next_back().unwrap());
 
         if let Some(conflict) = ret.remove(&name) {
             if let Some((conflict_name, name)) =
-                reduce(conflict.name.clone(), repository.name.clone())
+                reduce(conflict.id.name.clone(), repository.id.name.clone())
             {
                 ret.insert(conflict_name, conflict);
                 ret.insert(name, repository);
@@ -98,7 +98,7 @@ fn get_repositories() -> HashMap<String, Repository> {
 
     let mut ret = reduce_repo_names(repositories.clone());
 
-    ret.extend(repositories.iter().map(|r| (r.name.clone(), r.clone())));
+    ret.extend(repositories.iter().map(|r| (r.id.name.clone(), r.clone())));
 
     ret
 }
@@ -195,8 +195,10 @@ pub fn resolve_completer(
                 let repository = repositories.get(item).unwrap();
 
                 CompletionCandidate::new(item)
-                    .tag(repository.forge.clone().map(StyledStr::from))
-                    .help(repository.remote_url.clone().map(StyledStr::from))
+                    .tag(repository.id.forge.clone().map(StyledStr::from))
+                    .help(
+                        repository.id.remote_url.clone().map(StyledStr::from),
+                    )
             })
         })
         .collect()

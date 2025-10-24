@@ -54,7 +54,7 @@ fn git_prompt(root: &Path, repository: Repository) -> i32 {
     //  forge/repo|⛏operation|(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|◀🠟🠝|◀||
     SHOULD_COLORIZE.set_override(true);
     let mut info = PromptBuilder::new();
-    info.push_colored_string(repository.name.green());
+    info.push_colored_string(repository.id.name.green());
 
     if !git_status.ongoing_operations.is_empty() {
         let mut operations = String::from("⛏");

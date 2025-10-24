@@ -22,7 +22,7 @@ pub fn clean(dry_run: bool) -> i32 {
             let expected_root = repository.expected_root(&work_dir).unwrap();
             println!(
                 "- {}: {} => {}",
-                repository.name,
+                repository.id.name,
                 repository.root.display(),
                 expected_root.display(),
             );

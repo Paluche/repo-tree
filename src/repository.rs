@@ -7,14 +7,36 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[derive(Debug, Clone, Hash)]
+pub struct RepoId {
+    pub remote_url: Option<String>,
+    pub forge: Option<String>,
+    pub name: String,
+}
+
+impl RepoId {
+    pub fn expected_root(&self, work_dir: &Path) -> Option<PathBuf> {
+        self.forge.clone().map(|forge| {
+            let mut path = work_dir.to_path_buf();
+            path.push(forge);
+            path.push(&self.name);
+            path
+        })
+    }
+}
+
+impl Display for RepoId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?} {} {:?})", self.forge, self.name, self.remote_url)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Repository {
     pub vcs: VersionControlSystem,
     pub is_submodule: bool,
     pub root: PathBuf,
-    pub remote_url: Option<String>,
-    pub forge: Option<String>,
-    pub name: String,
+    pub id: RepoId,
 }
 
 /// Either the repository is within the ${WORK_DIR}/local directory
@@ -100,25 +122,25 @@ impl Repository {
             remote_url.as_ref(),
             &root,
         );
+        let id = RepoId {
+            remote_url,
+            forge,
+            name,
+        };
 
         Ok(Some(Self {
             vcs,
             is_submodule,
             root,
-            remote_url,
-            forge,
-            name,
+            id,
         }))
     }
 
     pub fn expected_root(&self, work_dir: &Path) -> Option<PathBuf> {
-        if self.is_submodule || self.forge.is_none() {
+        if self.is_submodule {
             None
         } else {
-            let mut path = work_dir.to_path_buf();
-            path.push(self.forge.clone().unwrap());
-            path.push(&self.name);
-            Some(path)
+            self.id.expected_root(work_dir)
         }
     }
 }
@@ -127,12 +149,10 @@ impl Display for Repository {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} repository at {} ({:?} {} {:?})",
+            "{} repository at {} ({})",
             self.vcs,
             self.root.display(),
-            self.forge,
-            self.name,
-            self.remote_url
+            self.id,
         )
     }
 }
