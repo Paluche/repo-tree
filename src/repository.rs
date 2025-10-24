@@ -36,6 +36,7 @@ pub struct Repository {
     pub vcs: VersionControlSystem,
     pub is_submodule: bool,
     pub root: PathBuf,
+    pub submodules: Vec<(PathBuf, Option<String>)>,
     pub id: RepoId,
 }
 
@@ -128,11 +129,18 @@ impl Repository {
             name,
         };
 
+        let submodules = if vcs.is_git() {
+            git::get_submodules(&root)?
+        } else {
+            Vec::new()
+        };
+
         Ok(Some(Self {
             vcs,
             is_submodule,
             root,
             id,
+            submodules,
         }))
     }
 

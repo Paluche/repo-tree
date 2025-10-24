@@ -731,3 +731,15 @@ pub fn get_remote_url<P: AsRef<Path>>(
 
     get_remote_url_repo(&repo)
 }
+
+pub fn get_submodules<P: AsRef<Path>>(
+    repo_path: P,
+) -> Result<Vec<(PathBuf, Option<String>)>, git2::Error> {
+    let repo = git2::Repository::discover(repo_path)?;
+    let submodules = repo.submodules()?;
+
+    Ok(submodules
+        .iter()
+        .map(|s| (s.path().to_path_buf(), s.url().map(|s| s.to_string())))
+        .collect())
+}
