@@ -1,6 +1,7 @@
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{
-    CompleteEnv, Generator, Shell, engine::ArgValueCompleter, generate,
+    CompleteEnv, Generator, PathCompleter, Shell, engine::ArgValueCompleter,
+    generate,
 };
 use std::{env, io, process::exit};
 use workspace::{clean, prompt, resolve, resolve_completer, status, tree};
@@ -18,13 +19,13 @@ enum Action {
     /// Generate the prompt for your shell.
     Prompt {
         /// Path to within the repository to work with.
-        #[arg(short, long)]
+        #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
         repository: Option<String>,
     },
     /// Print the status of the git repository.
     Status {
         /// Path to within the git repository to work with.
-        #[arg(short, long)]
+        #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
         repository: Option<String>,
     },
     /// Resolve the name of a repository into its path.
