@@ -4,7 +4,7 @@ use clap_complete::{
     generate,
 };
 use std::{env, io, process::exit};
-use workspace::{clean, prompt, resolve, resolve_completer, status, tree};
+use workspace::cli;
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -32,7 +32,7 @@ enum Action {
     Resolve {
         /// Repository identifier to resolve into the actual path within the
         /// workspace.
-        #[arg(add=ArgValueCompleter::new(resolve_completer))]
+        #[arg(add=ArgValueCompleter::new(cli::resolve_completer))]
         repo_id: Option<String>,
     },
     /// Display a tree of your workspace.
@@ -63,11 +63,15 @@ fn main() {
         Action::Completion { shell } => {
             generate_completion(&mut Args::command(), shell)
         }
-        Action::Prompt { repository } => prompt(get_repo_path(repository)),
-        Action::Status { repository } => status(get_repo_path(repository)),
-        Action::Resolve { repo_id } => resolve(repo_id),
-        Action::Clean { dry_run } => clean(dry_run),
-        Action::Tree => tree(),
+        Action::Prompt { repository } => {
+            cli::prompt(get_repo_path(repository))
+        }
+        Action::Status { repository } => {
+            cli::status(get_repo_path(repository))
+        }
+        Action::Resolve { repo_id } => cli::resolve(repo_id),
+        Action::Clean { dry_run } => cli::clean(dry_run),
+        Action::Tree => cli::tree(),
     })
 }
 

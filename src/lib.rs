@@ -1,24 +1,12 @@
 //! Libraries for the repo-tools utils
-mod clean_action;
+pub mod cli;
 mod git;
 mod jujutsu;
-mod prompt_action;
 mod repository;
-mod resolve_action;
-mod status_action;
-mod tree_action;
 mod url_parser;
 mod version_control_system;
 
-pub use crate::{
-    clean_action::clean,
-    prompt_action::prompt,
-    repository::Repository,
-    resolve_action::{resolve, resolve_completer},
-    status_action::status,
-    tree_action::tree,
-    url_parser::UrlParser,
-};
+pub use crate::{repository::Repository, url_parser::UrlParser};
 
 use std::{env, path::PathBuf};
 
