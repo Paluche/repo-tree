@@ -96,7 +96,7 @@ fn format_repo_status(
 
 pub fn status(repo_path: PathBuf) -> i32 {
     let work_dir = get_work_dir();
-    let Some(repo) =
+    let Some((root, repo)) =
         Repository::discover(&work_dir, repo_path, &UrlParser::default())
             .expect("Error loading the repository")
     else {
@@ -107,13 +107,13 @@ pub fn status(repo_path: PathBuf) -> i32 {
     let expected_root = repo.expected_root(&work_dir);
 
     if let Some(expected_root) = expected_root
-        && repo.root != expected_root
+        && root != expected_root
     {
         eprintln!(
             "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
                 should be in \"{}\".",
             repo.name,
-            repo.root.display(),
+            root.display(),
             expected_root.display(),
         );
     }
@@ -126,9 +126,9 @@ pub fn status(repo_path: PathBuf) -> i32 {
     println!(
         "{}",
         format_repo_status(
-            &repo.root,
+            &root,
             None,
-            git::status(&repo.root).expect("Error obtaining git status"),
+            git::status(&root).expect("Error obtaining git status"),
             0
         )
     );

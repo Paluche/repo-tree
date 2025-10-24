@@ -58,16 +58,15 @@ impl Repository {
         work_dir: &Path,
         path: PathBuf,
         url_parser: &UrlParser,
-    ) -> Result<Option<Self>, Box<dyn Error>> {
+    ) -> Result<Option<(PathBuf, Self)>, Box<dyn Error>> {
         let mut current_path = Some(path);
 
         while current_path.is_some() {
-            if let Some(repo) = Self::try_new(
-                work_dir,
-                current_path.clone().unwrap(),
-                url_parser,
-            )? {
-                return Ok(Some(repo));
+            let root = current_path.clone().unwrap();
+            if let Some(repo) =
+                Self::try_new(work_dir, root.clone(), url_parser)?
+            {
+                return Ok(Some((root, repo)));
             }
             current_path =
                 current_path.unwrap().parent().map(|p| p.to_path_buf());
