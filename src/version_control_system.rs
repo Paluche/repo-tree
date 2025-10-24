@@ -55,6 +55,10 @@ impl VersionControlSystem {
     pub fn is_git(&self) -> bool {
         matches!(self, Self::Git | Self::JujutsuGit)
     }
+
+    pub fn is_jujutsu(&self) -> bool {
+        matches!(self, Self::Jujutsu | Self::JujutsuGit)
+    }
 }
 
 impl Display for VersionControlSystem {
