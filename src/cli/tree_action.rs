@@ -74,33 +74,55 @@ impl Directory {
 
         if let Some(r) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
-            writeln!(
-                f,
-                "{prefix}{}{}",
-                if r.submodules.is_empty() {
-                    DirState::FinalSubDir
-                } else {
-                    DirState::SubDir
-                }
-                .get_subdir_prefix(),
-                r.id.remote_url
-                    .clone()
-                    .unwrap_or_else(|| r.id.name.clone())
-                    .green()
-            )?;
-            if !r.submodules.is_empty() {
-                let final_i = r.submodules.len() - 1;
-                for (i, submodule) in r.submodules.iter().enumerate() {
+            let submodules = r.submodules().unwrap();
+            if let Some(remote_url) = r.id.remote_url.clone() {
+                writeln!(
+                    f,
+                    "{prefix}{}{}",
+                    if submodules.is_empty() {
+                        DirState::FinalSubDir
+                    } else {
+                        DirState::SubDir
+                    }
+                    .get_subdir_prefix(),
+                    remote_url.green()
+                )?;
+            }
+            if !submodules.is_empty() {
+                let final_i = submodules.len() - 1;
+                for (i, submodule) in submodules.iter().enumerate() {
+                    let submodule_url = {
+                        let option_to_str = |o: Option<String>| {
+                            o.map_or("None".to_string().red(), |v| {
+                                v.bright_black()
+                            })
+                        };
+                        let config_url = option_to_str(submodule.1.clone());
+                        let resolved_url = option_to_str(submodule.2.clone());
+
+                        if config_url == resolved_url {
+                            format!("{}", config_url)
+                        } else {
+                            format!(
+                                "{:40} {} {}",
+                                config_url,
+                                "=>".bright_black(),
+                                resolved_url
+                            )
+                        }
+                    };
+
                     writeln!(
                         f,
-                        "{prefix}{}{:?}",
+                        "{prefix}{}{:40} {} ",
                         if i == final_i {
                             DirState::FinalSubDir
                         } else {
                             DirState::SubDir
                         }
                         .get_dir_prefix(),
-                        submodule.1
+                        submodule.0.display(),
+                        submodule_url
                     )?;
                 }
             }

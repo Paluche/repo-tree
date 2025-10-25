@@ -13,5 +13,6 @@ git2 = { version = "0.20.2", default-features=false }
 itertools = "0.14.0"
 regex = "1.12.2"
 strum = { version = "0.27.2", features = ["derive"] }
+url = "2.5.7"
 which = "8.0.0"
 yaml-rust2 = "0.10.2"

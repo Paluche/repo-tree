@@ -1059,6 +1059,7 @@ dependencies = [
  "itertools",
  "regex",
  "strum",
+ "url",
  "which",
  "yaml-rust2",
 ]

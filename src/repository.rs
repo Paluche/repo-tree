@@ -1,6 +1,10 @@
 //! Representation of a repository.
-use crate::version_control_system::VersionControlSystem;
-use crate::{UrlParser, git, jujutsu};
+use crate::{
+    UrlParser,
+    git::{self, SubmoduleInfo},
+    jujutsu,
+    version_control_system::VersionControlSystem,
+};
 use std::{
     error::Error,
     fmt::Display,
@@ -36,7 +40,6 @@ pub struct Repository {
     pub vcs: VersionControlSystem,
     pub is_submodule: bool,
     pub root: PathBuf,
-    pub submodules: Vec<(PathBuf, Option<String>)>,
     pub id: RepoId,
 }
 
@@ -123,16 +126,11 @@ impl Repository {
             remote_url.as_ref(),
             &root,
         );
+
         let id = RepoId {
             remote_url,
             forge,
             name,
-        };
-
-        let submodules = if vcs.is_git() {
-            git::get_submodules(&root)?
-        } else {
-            Vec::new()
         };
 
         Ok(Some(Self {
@@ -140,7 +138,6 @@ impl Repository {
             is_submodule,
             root,
             id,
-            submodules,
         }))
     }
 
@@ -150,6 +147,14 @@ impl Repository {
         } else {
             self.id.expected_root(work_dir)
         }
+    }
+
+    pub fn submodules(&self) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
+        Ok(if self.vcs.is_git() {
+            git::submodules::get(&self.root, self.id.remote_url.clone())?
+        } else {
+            Vec::new()
+        })
     }
 }
 
