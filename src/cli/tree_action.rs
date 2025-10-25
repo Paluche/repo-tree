@@ -67,24 +67,47 @@ impl Directory {
 
         writeln!(
             f,
-            "{:40}{}",
-            format!(
-                "{prefix}{}{}",
-                dir_state.get_dir_prefix(),
-                current_dir.to_string().blue()
-            ),
-            if let Some(r) = &current.repository {
-                format!(
-                    " -- {}",
-                    r.id.remote_url
-                        .clone()
-                        .unwrap_or_else(|| r.id.name.clone())
-                        .green()
-                )
-            } else {
-                "".to_string()
-            }
+            "{prefix}{}{}",
+            dir_state.get_dir_prefix(),
+            current_dir.to_string().blue()
         )?;
+
+        if let Some(r) = &current.repository {
+            let prefix = format!(
+                "{prefix}{}",
+                dir_state.get_subdir_prefix(),
+            );
+            writeln!(
+                f,
+                "{prefix}{}{}",
+                if r.submodules.is_empty() {
+                    DirState::FinalSubDir
+                } else {
+                    DirState::SubDir
+                }
+                .get_subdir_prefix(),
+                r.id.remote_url
+                    .clone()
+                    .unwrap_or_else(|| r.id.name.clone())
+                    .green()
+            )?;
+            if !r.submodules.is_empty() {
+                let final_i = r.submodules.len() - 1;
+                for (i, submodule) in r.submodules.iter().enumerate() {
+                    writeln!(
+                        f,
+                        "{prefix}{}{:?}",
+                        if i == final_i {
+                            DirState::FinalSubDir
+                        } else {
+                            DirState::SubDir
+                        }
+                        .get_dir_prefix(),
+                        submodule.1
+                    )?;
+                }
+            }
+        }
 
         if current.childs.is_empty() {
             return Ok(());
