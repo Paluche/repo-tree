@@ -73,10 +73,7 @@ impl Directory {
         )?;
 
         if let Some(r) = &current.repository {
-            let prefix = format!(
-                "{prefix}{}",
-                dir_state.get_subdir_prefix(),
-            );
+            let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
             writeln!(
                 f,
                 "{prefix}{}{}",
