@@ -6,9 +6,9 @@ use clap_complete::{
 use std::{env, fs::canonicalize, io, path::PathBuf, process::exit};
 
 mod clean_action;
+mod git;
 mod prompt_action;
 mod resolve_action;
-mod status_action;
 mod tree_action;
 
 #[derive(Parser, Debug, PartialEq)]
@@ -21,18 +21,6 @@ struct Args {
 
 #[derive(Subcommand, Debug, PartialEq)]
 enum Action {
-    /// Generate the prompt for your shell.
-    Prompt {
-        /// Path to within the repository to work with.
-        #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
-        repository: Option<String>,
-    },
-    /// Print the status of the git repository.
-    Status {
-        /// Path to within the git repository to work with.
-        #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
-        repository: Option<String>,
-    },
     /// Resolve the name of a repository into its path.
     Resolve {
         /// Repository identifier to resolve into the actual path within the
@@ -42,8 +30,6 @@ enum Action {
     },
     /// Display a tree of your workspace.
     Tree,
-    /// Generate static completion file.
-    Completion { shell: Shell },
     /// Clean the workspace. Move the repositories where they belong and remove
     /// empty directories.
     Clean {
@@ -52,6 +38,19 @@ enum Action {
         #[arg(short, long)]
         dry_run: bool,
     },
+    /// Actions for git repositories.
+    Git {
+        #[command(subcommand)]
+        action: git::GitAction,
+    },
+    /// Generate the prompt for your shell.
+    Prompt {
+        /// Path to within the repository to work with.
+        #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
+        repository: Option<String>,
+    },
+    /// Generate static completion file.
+    Completion { shell: Shell },
 }
 
 fn cwd_default_path(path: Option<String>) -> PathBuf {
@@ -77,18 +76,16 @@ pub fn run() -> i32 {
     let args = Args::parse();
 
     match args.action {
-        Action::Completion { shell } => {
-            generate_completion(&mut Args::command(), shell)
-        }
+        Action::Resolve { repo_id } => resolve_action::resolve(repo_id),
+        Action::Tree => tree_action::tree(),
+        Action::Clean { dry_run } => clean_action::clean(dry_run),
+        Action::Git { action } => git::run_git(action),
         Action::Prompt { repository } => {
             prompt_action::prompt(cwd_default_path(repository))
         }
-        Action::Status { repository } => {
-            status_action::status(cwd_default_path(repository))
+        Action::Completion { shell } => {
+            generate_completion(&mut Args::command(), shell)
         }
-        Action::Resolve { repo_id } => resolve_action::resolve(repo_id),
-        Action::Clean { dry_run } => clean_action::clean(dry_run),
-        Action::Tree => tree_action::tree(),
     }
 }
 
