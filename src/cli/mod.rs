@@ -5,11 +5,17 @@ use clap_complete::{
 };
 use std::{env, fs::canonicalize, io, path::PathBuf, process::exit};
 
-mod clean_action;
+mod clean;
 mod git;
-mod prompt_action;
-mod resolve_action;
-mod tree_action;
+mod prompt;
+mod resolve;
+mod tree;
+
+use clean::clean;
+use git::{GitAction, run_git};
+use prompt::prompt;
+use resolve::{resolve, resolve_completer};
+use tree::tree;
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -25,7 +31,7 @@ enum Action {
     Resolve {
         /// Repository identifier to resolve into the actual path within the
         /// workspace.
-        #[arg(add=ArgValueCompleter::new(resolve_action::resolve_completer))]
+        #[arg(add=ArgValueCompleter::new(resolve_completer))]
         repo_id: Option<String>,
     },
     /// Display a tree of your workspace.
@@ -41,7 +47,7 @@ enum Action {
     /// Actions for git repositories.
     Git {
         #[command(subcommand)]
-        action: git::GitAction,
+        action: GitAction,
     },
     /// Generate the prompt for your shell.
     Prompt {
@@ -76,13 +82,11 @@ pub fn run() -> i32 {
     let args = Args::parse();
 
     match args.action {
-        Action::Resolve { repo_id } => resolve_action::resolve(repo_id),
-        Action::Tree => tree_action::tree(),
-        Action::Clean { dry_run } => clean_action::clean(dry_run),
-        Action::Git { action } => git::run_git(action),
-        Action::Prompt { repository } => {
-            prompt_action::prompt(cwd_default_path(repository))
-        }
+        Action::Resolve { repo_id } => resolve(repo_id),
+        Action::Tree => tree(),
+        Action::Clean { dry_run } => clean(dry_run),
+        Action::Git { action } => run_git(action),
+        Action::Prompt { repository } => prompt(cwd_default_path(repository)),
         Action::Completion { shell } => {
             generate_completion(&mut Args::command(), shell)
         }
