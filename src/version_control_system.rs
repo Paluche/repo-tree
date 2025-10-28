@@ -59,6 +59,17 @@ impl VersionControlSystem {
     pub fn is_jujutsu(&self) -> bool {
         matches!(self, Self::Jujutsu | Self::JujutsuGit)
     }
+
+    pub fn short_display(&self) -> &str {
+        match self {
+            Self::Git => "󰊢",
+            Self::Subversion => "",
+            Self::GitSubversion => "󰊢+",
+            Self::Jujutsu => "󱗆",
+            Self::JujutsuGit => "󱗆+󰊢",
+            Self::Mercurial => "",
+        }
+    }
 }
 
 impl Display for VersionControlSystem {
