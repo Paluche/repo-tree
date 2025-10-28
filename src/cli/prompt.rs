@@ -1,4 +1,4 @@
-use crate::{Repository, UrlParser, get_work_dir, git};
+use crate::{Config, Repository, UrlParser, get_work_dir, git};
 use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
 use std::{fmt::Display, path::PathBuf};
 
@@ -52,7 +52,7 @@ pub fn prompt(repo_path: PathBuf) -> i32 {
     let repo = Repository::discover(
         &get_work_dir(),
         repo_path,
-        &UrlParser::default(),
+        &UrlParser::new(&Config::default()),
     )
     .expect("Error loading the repository");
 

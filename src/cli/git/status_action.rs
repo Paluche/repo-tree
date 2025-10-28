@@ -1,5 +1,5 @@
 use crate::{
-    Repository, UrlParser, get_work_dir,
+    Config, Repository, UrlParser, get_work_dir,
     git::{self, GitStatus, SubmoduleStatus},
 };
 use colored::Colorize;
@@ -96,10 +96,12 @@ fn format_repo_status(
 
 pub fn status(repo_path: PathBuf) -> i32 {
     let work_dir = get_work_dir();
-    let Some((root, repo)) =
-        Repository::discover(&work_dir, repo_path, &UrlParser::default())
-            .expect("Error loading the repository")
-    else {
+    let Some((root, repo)) = Repository::discover(
+        &work_dir,
+        repo_path,
+        &UrlParser::new(&Config::default()),
+    )
+    .expect("Error loading the repository") else {
         eprintln!("Not within a repository");
         exit(1);
     };

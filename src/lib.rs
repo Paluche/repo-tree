@@ -1,12 +1,15 @@
 //! Libraries for the repo-tools utils
 pub mod cli;
+mod config;
 mod git;
 mod jujutsu;
 mod repository;
 mod url_parser;
 mod version_control_system;
 
-pub use crate::{repository::Repository, url_parser::UrlParser};
+pub use crate::{
+    config::Config, repository::Repository, url_parser::UrlParser,
+};
 
 use std::{env, path::PathBuf};
 
@@ -20,6 +23,8 @@ pub fn get_work_dir() -> PathBuf {
     ret
 }
 
-pub fn load_workspace() -> (Vec<Repository>, Vec<PathBuf>) {
-    repository::search(&get_work_dir(), &UrlParser::default())
+pub fn load_workspace(
+    url_parser: &UrlParser,
+) -> (Vec<Repository>, Vec<PathBuf>) {
+    repository::search(&get_work_dir(), url_parser)
 }

@@ -1,12 +1,14 @@
 //! Action to clean the workspace.
 //! Replace the repositories where they belong to.
 
-use crate::{Repository, get_work_dir, load_workspace};
+use crate::{Config, Repository, UrlParser, get_work_dir, load_workspace};
 use std::fs::{create_dir_all, remove_dir, rename};
 
 pub fn clean(dry_run: bool) -> i32 {
     let work_dir = get_work_dir();
-    let repositories = load_workspace()
+    let config = Config::default();
+    let url_parser = UrlParser::new(&config);
+    let repositories = load_workspace(&url_parser)
         .0
         .into_iter()
         .filter(|r| r.expected_root(&work_dir).is_some_and(|p| p != r.root))
@@ -49,7 +51,7 @@ pub fn clean(dry_run: bool) -> i32 {
 
     let mut first = true;
     loop {
-        let empty_dirs = load_workspace().1;
+        let empty_dirs = load_workspace(&url_parser).1;
 
         if empty_dirs.is_empty() {
             if first {
