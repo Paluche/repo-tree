@@ -202,7 +202,13 @@ pub fn resolve_completer(
                 let repository = repositories.get(item).unwrap();
 
                 CompletionCandidate::new(item)
-                    .tag(repository.id.forge.clone().map(StyledStr::from))
+                    .tag(
+                        repository
+                            .id
+                            .host
+                            .clone()
+                            .map(|h| StyledStr::from(h.name)),
+                    )
                     .help(
                         repository.id.remote_url.clone().map(StyledStr::from),
                     )

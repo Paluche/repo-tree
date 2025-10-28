@@ -1,18 +1,43 @@
 //! Tools around parsing of repositories URL.
-use crate::config::Config;
+use crate::config::{Config, Host};
 use regex::Regex;
+use std::path::{Path, PathBuf};
 
 enum HostWorkDir {
     Missing(String),
-    Resolved(String),
+    Resolved(Host),
 }
 
 impl HostWorkDir {
-    fn into_option(self) -> Option<String> {
+    fn into_option(self) -> Option<Host> {
         match self {
             Self::Missing(_) => None,
             Self::Resolved(res) => Some(res),
         }
+    }
+}
+
+/// Either the repository is within the ${WORK_DIR}/local directory
+/// allowing the user to organize as see fits this directory.
+/// Or take the directory name.
+fn compute_local_path<P: AsRef<Path>>(
+    work_dir: &Path,
+    repo_path: &P,
+) -> String {
+    let local_dir = work_dir.join("local");
+    let repo_path = repo_path.as_ref();
+    assert!(repo_path.is_absolute(), "repo_path is not absolute");
+    assert!(local_dir.is_absolute(), "local_dir is not absolute");
+
+    if repo_path.starts_with(&local_dir) {
+        repo_path
+            .iter()
+            .skip(local_dir.iter().count())
+            .collect::<PathBuf>()
+            .display()
+            .to_string()
+    } else {
+        repo_path.file_name().unwrap().to_str().unwrap().to_owned()
     }
 }
 
@@ -29,14 +54,15 @@ impl<'a> UrlParser<'a> {
         }
     }
 
-    fn get_host_work_dir(&self, host: &str) -> HostWorkDir {
-        self.config.get_host(host).cloned().map_or(
-            HostWorkDir::Missing(String::from(host)),
+    fn get_host_work_dir(&self, host_url: &str) -> HostWorkDir {
+        self.config.get_host(host_url).cloned().map_or_else(
+            || HostWorkDir::Missing(host_url.to_string()),
             HostWorkDir::Resolved,
         )
     }
 
-    fn parse_url<'b>(url: &'b str) -> Option<regex::Captures<'b>> {
+    fn parse_url<'b>(url: Option<&'b String>) -> Option<regex::Captures<'b>> {
+        let url = url?;
         // scheme-based URLs, e.g.:
         //   https://github.com/owner/repo.git
         //   ssh://user@host:2222/owner/repo.git
@@ -73,11 +99,22 @@ impl<'a> UrlParser<'a> {
         //.or(re_local.captures(url))
     }
 
-    pub fn parse(
+    pub fn parse<P: AsRef<Path>>(
         &self,
+        work_dir: &Path,
         remote_url: Option<&String>,
-    ) -> Option<(Option<String>, String)> {
-        let remote_cap = Self::parse_url(remote_url?)?;
+        repo_path: &P,
+    ) -> (Option<Host>, String) {
+        let remote_cap = match Self::parse_url(remote_url) {
+            Some(v) => v,
+            None => {
+                return (
+                    Some(self.config.local.clone()),
+                    compute_local_path(work_dir, repo_path),
+                );
+            }
+        };
+
         let host_work_dir = self.get_host_work_dir(&remote_cap["host"]);
 
         if let HostWorkDir::Missing(host) = &host_work_dir
@@ -86,6 +123,6 @@ impl<'a> UrlParser<'a> {
             eprintln!("Missing host configuration for {host}");
         }
 
-        Some((host_work_dir.into_option(), remote_cap["path"].to_string()))
+        (host_work_dir.into_option(), remote_cap["path"].to_string())
     }
 }

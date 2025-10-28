@@ -1,6 +1,7 @@
 //! Representation of a repository.
 use crate::{
     UrlParser,
+    config::Host,
     git::{self, SubmoduleInfo},
     jujutsu,
     version_control_system::VersionControlSystem,
@@ -14,15 +15,15 @@ use std::{
 #[derive(Debug, Clone, Hash)]
 pub struct RepoId {
     pub remote_url: Option<String>,
-    pub forge: Option<String>,
+    pub host: Option<Host>,
     pub name: String,
 }
 
 impl RepoId {
     pub fn expected_root(&self, work_dir: &Path) -> Option<PathBuf> {
-        self.forge.clone().map(|forge| {
+        self.host.clone().map(|host| {
             let mut path = work_dir.to_path_buf();
-            path.push(forge);
+            path.push(host.name);
             path.push(&self.name);
             path
         })
@@ -31,7 +32,7 @@ impl RepoId {
 
 impl Display for RepoId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?} {} {:?})", self.forge, self.name, self.remote_url)
+        write!(f, "{:?} {} {:?})", self.host, self.name, self.remote_url)
     }
 }
 
@@ -41,42 +42,6 @@ pub struct Repository {
     pub is_submodule: bool,
     pub root: PathBuf,
     pub id: RepoId,
-}
-
-/// Either the repository is within the ${WORK_DIR}/local directory
-/// allowing the user to organize as see fits this directory.
-/// Or take the directory name.
-fn compute_local_path<P: AsRef<Path>>(
-    work_dir: &Path,
-    repo_path: &P,
-) -> String {
-    let local_dir = work_dir.join("local");
-    let repo_path = repo_path.as_ref();
-    assert!(repo_path.is_absolute(), "repo_path is not absolute");
-    assert!(local_dir.is_absolute(), "local_dir is not absolute");
-
-    if repo_path.starts_with(&local_dir) {
-        repo_path
-            .iter()
-            .skip(local_dir.iter().count())
-            .collect::<PathBuf>()
-            .display()
-            .to_string()
-    } else {
-        repo_path.file_name().unwrap().to_str().unwrap().to_owned()
-    }
-}
-
-fn compute_repo_forge_name<P: AsRef<Path>>(
-    work_dir: &Path,
-    url_parser: &UrlParser,
-    remote_url: Option<&String>,
-    repo_path: &P,
-) -> (Option<String>, String) {
-    url_parser.parse(remote_url).unwrap_or((
-        Some("local".to_string()),
-        compute_local_path(work_dir, repo_path),
-    ))
 }
 
 impl Repository {
@@ -120,16 +85,12 @@ impl Repository {
             //}
             _ => None,
         };
-        let (forge, name) = compute_repo_forge_name(
-            work_dir,
-            url_parser,
-            remote_url.as_ref(),
-            &root,
-        );
+        let (host, name) =
+            url_parser.parse(work_dir, remote_url.as_ref(), &root);
 
         let id = RepoId {
             remote_url,
-            forge,
+            host,
             name,
         };
 
