@@ -1,13 +1,11 @@
-use crate::{Repository, cli::PromptBuilder, git};
+use crate::{cli::PromptBuilder, git};
 use colored::Colorize;
 use std::path::Path;
 
-pub fn prompt(root: &Path, repository: Repository) -> i32 {
+pub fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
     let git_status = git::status(&root.to_path_buf()).unwrap();
-    //  forge/repo|⛏operation|(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|◀🠟🠝|◀||
-    let mut info = PromptBuilder::default();
-    info.push_colored_string(repository.id.name.green());
 
+    // |⛏operation|
     if !git_status.ongoing_operations.is_empty() {
         let mut operations = String::from("⛏");
         operations.push_str(&PromptBuilder::join_vec_str(
@@ -21,7 +19,7 @@ pub fn prompt(root: &Path, repository: Repository) -> i32 {
         info.push_colored_string(operations.red());
     }
 
-    // current branch name
+    // |(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|
     let mut branch_info = git_status.head.branch.clone();
 
     // All other branches at the current reference
@@ -89,6 +87,5 @@ pub fn prompt(root: &Path, repository: Repository) -> i32 {
         info.push_colored_string("".white());
     }
 
-    println!("{info}");
     0
 }

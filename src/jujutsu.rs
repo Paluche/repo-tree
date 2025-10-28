@@ -1,5 +1,6 @@
 //! Module for retrieving JuJutsu information.
-use crate::git;
+use crate::{cli::PromptBuilder, git};
+use colored::Colorize;
 use git2::Repository;
 use std::{
     error::Error,
@@ -18,4 +19,9 @@ pub fn get_remote_url<P: AsRef<Path>>(
     let repo = Repository::open(git_dir)?;
 
     Ok(git::get_remote_url_repo(&repo)?)
+}
+
+pub fn prompt(_root: &Path, info: &mut PromptBuilder) -> i32 {
+    info.push_colored_string("N/A".red());
+    0
 }
