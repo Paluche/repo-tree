@@ -1,3 +1,8 @@
+//! Format of the configuration file.
+//! Should be located in `${XDG_CONFIG_HOME}/workspace/config.yml`.
+//! If `XDG_CONFIG_HOME` is not set, then we will use the value
+//! `${HOME}/.config` in place.
+
 use std::{
     collections::HashMap,
     error::Error,
@@ -6,16 +11,16 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
 };
-use yaml_rust2::YamlLoader;
+use yaml_rust2::{Yaml, YamlLoader};
 
 #[derive(Debug, Clone)]
 struct ParseError {
     path: PathBuf,
-    msg: &'static str,
+    msg: String,
 }
 
 impl ParseError {
-    fn new(path: &Path, msg: &'static str) -> Self {
+    fn new(path: &Path, msg: String) -> Self {
         Self {
             path: path.to_path_buf(),
             msg,
@@ -38,7 +43,7 @@ fn parser_assert(
 }
 
 fn load_config(
-    res: &mut HashMap<String, String>,
+    hosts: &mut HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     let mut config_path = std::env::var("XDG_CONFIG_HOME").map_or(
         std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
@@ -46,7 +51,7 @@ fn load_config(
     )?;
 
     config_path.push("workspace");
-    config_path.push("remote_hosts.yml");
+    config_path.push("config.yml");
 
     if !config_path.is_file() {
         // No configuration file present.
@@ -60,24 +65,53 @@ fn load_config(
         config.len() == 1,
         ParseError::new(
             &config_path,
-            "A: Expecting only entries in the format `string: string`",
+            "A: Expecting only entries in the format `string: string`".to_string(),
         ),
     )?;
 
     let hash = config.first().unwrap().as_hash().ok_or(ParseError::new(
         &config_path,
-        "B: Expecting only entries in the format `string: string`",
+        "B: Expecting only entries in the format `string: string`".to_string(),
     ))?;
 
     for (key, value) in hash {
-        res.insert(
-            String::from(key.as_str().ok_or(ParseError::new(
+        let key = String::from(key.as_str().ok_or(ParseError::new(
+            &config_path,
+            "Expecting configuration keys to be strings".to_string(),
+        ))?);
+
+        match key.as_str() {
+            "hosts" => parse_hosts(&config_path, hosts, value),
+            key => Err(ParseError::new(
                 &config_path,
-                "C: Expecting only entries in the format `string: string`",
+                format!("Unknown key \"{key}\""),
+            ))
+        }?;
+    }
+
+    Ok(())
+}
+
+fn parse_hosts(
+    config_path: &Path,
+    hosts: &mut HashMap<String, String>,
+    value: &Yaml,
+) -> Result<(), ParseError> {
+    let hash = value.as_hash().ok_or(ParseError::new(
+        config_path,
+        "B: Expecting only entries in the format `string: string`".to_string(),
+    ))?;
+
+    let error_msg = "Expecting \"hosts\" entries in the format `string: string`";
+    for (key, value) in hash {
+        hosts.insert(
+            String::from(key.as_str().ok_or(ParseError::new(
+                config_path,
+                error_msg.to_string(),
             ))?),
             String::from(value.as_str().ok_or(ParseError::new(
-                &config_path,
-                "D: Expecting only entries in the format `string: string`",
+               config_path,
+                error_msg.to_string(),
             ))?),
         );
     }
