@@ -160,8 +160,14 @@ pub fn resolve(query: Option<String>) -> i32 {
 
     if matches.is_empty() {
         eprintln!("No match for {query}");
-        1
-    } else if matches.len() == 1 {
+        return 1;
+    }
+
+    matches.dedup_by_key(|(_, name)| {
+        repositories.get(*name).unwrap().root.to_str()
+    });
+
+    if matches.len() == 1 {
         let name = matches[0].1;
         eprintln!("Considering you meant {name}");
         println!("{}", repositories.get(name).unwrap().root.display());
