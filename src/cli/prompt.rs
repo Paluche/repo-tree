@@ -17,7 +17,7 @@ impl PromptBuilder {
             prompt: format!(
                 "{}{}{sep}{}{sep}{}",
                 "┣━┫".cyan(),
-                repository.vcs.short_display().bright_purple(),
+                repository.vcs.short_display(),
                 repository
                     .id
                     .host

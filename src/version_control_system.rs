@@ -1,4 +1,5 @@
 //! Enumeration listing the different type of Version Control System we support.
+use colored::Colorize;
 use std::{fmt::Display, path::Path};
 
 #[derive(Debug, Copy, Clone)]
@@ -56,13 +57,21 @@ impl VersionControlSystem {
         matches!(self, Self::Jujutsu | Self::JujutsuGit)
     }
 
-    pub fn short_display(&self) -> &str {
+    pub fn short_display(&self) -> String {
         match self {
-            Self::Git => "󰊢",
-            Self::Subversion => "",
-            Self::GitSubversion => "󰊢+",
-            Self::Jujutsu => "󱗆",
-            Self::JujutsuGit => "󱗆+󰊢",
+            Self::Git => "󰊢".ansi_color(166).to_string(),
+            Self::Subversion => "".blue().to_string(),
+            Self::GitSubversion => format!(
+                "{}{}",
+                Self::Git.short_display(),
+                Self::Subversion.short_display(),
+            ),
+            Self::Jujutsu => "".blue().to_string(),
+            Self::JujutsuGit => format!(
+                "{}{}",
+                Self::Jujutsu.short_display(),
+                Self::Git.short_display(),
+            ),
         }
     }
 }
