@@ -22,8 +22,7 @@ impl PromptBuilder {
                     .id
                     .host
                     .clone()
-                    .map_or("".to_string(), |h| h.repr)
-                    .green(),
+                    .map_or("".red().to_string(), |h| h.repr),
                 repository.id.name.green()
             ),
             sep,
@@ -61,6 +60,8 @@ impl Display for PromptBuilder {
 }
 
 pub fn prompt(repo_path: PathBuf) -> i32 {
+    SHOULD_COLORIZE.set_override(true);
+
     let repo = Repository::discover(
         &get_work_dir(),
         repo_path,
@@ -71,8 +72,6 @@ pub fn prompt(repo_path: PathBuf) -> i32 {
     if repo.is_none() {
         return 0;
     }
-
-    SHOULD_COLORIZE.set_override(true);
 
     let (root, repository) = repo.unwrap();
     let mut info = PromptBuilder::new(&repository);

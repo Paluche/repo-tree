@@ -11,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
 };
+use colored::Colorize;
 use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
 
 #[derive(Debug, Clone)]
@@ -27,6 +28,7 @@ impl ParseError {
         }
     }
 }
+
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}: {}", self.path.display(), self.msg)
@@ -214,11 +216,11 @@ impl Default for Config {
         let mut hosts = HashMap::new();
 
         [
-            ("github.com", "github", ""),
-            ("gitlab.com", "gitlab", ""),
-            ("git.kernel.org", "kernel", ""),
-            ("git.buildroot.net", ".", "󰥯"),
-            ("bitbucket.org", "bitbucket", ""),
+            ("github.com", "github", "".white()),
+            ("gitlab.com", "gitlab", "󰮠".ansi_color(166)),
+            ("git.kernel.org", "kernel", "".white()),
+            ("git.buildroot.net", ".", "󰥯".yellow()),
+            ("bitbucket.org", "bitbucket", "".blue()),
         ]
         .iter()
         .map(|(u, n, r)| (u.to_string(), n.to_string(), r.to_string()))
