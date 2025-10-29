@@ -66,11 +66,11 @@ impl VersionControlSystem {
                 Self::Git.short_display(),
                 Self::Subversion.short_display(),
             ),
-            Self::Jujutsu => "".blue().to_string(),
+            Self::Jujutsu => "".blue().to_string(),
             Self::JujutsuGit => format!(
                 "{}{}",
-                Self::Jujutsu.short_display(),
                 Self::Git.short_display(),
+                Self::Jujutsu.short_display(),
             ),
         }
     }

@@ -20,12 +20,12 @@ pub fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
     }
 
     // |(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|
-    let mut branch_info = git_status.head.branch.clone();
+    let mut branch_info = String::new();
 
     // All other branches at the current reference
     for (i, branch) in git_status.head.branches.iter().enumerate() {
         if i == 0 {
-            branch_info.push_str(" ");
+            branch_info.push_str(" 󰫍");
         } else {
             branch_info.push('🞍');
         }
@@ -48,7 +48,11 @@ pub fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
         branch_info
     };
 
-    info.push_colored_string(branch_info.yellow());
+    info.push_string(&format!(
+        "{}{}",
+        git_status.head.branch.blue(),
+        branch_info.yellow()
+    ));
 
     // Upstream info
     info.push_colored_string(
