@@ -13,8 +13,6 @@ pub enum VersionControlSystem {
     Jujutsu,
     /// Jujutsu collocated with Git.
     JujutsuGit,
-    /// hg
-    Mercurial,
 }
 
 impl VersionControlSystem {
@@ -42,8 +40,6 @@ impl VersionControlSystem {
             }
         } else if is_jj {
             Some((Self::Jujutsu, false))
-        } else if exists(dir, ".hg").0 {
-            Some((Self::Mercurial, false))
         } else if exists(dir, ".svn").0 {
             // XXX Subversion can have sub-modules.
             Some((Self::Subversion, false))
@@ -67,7 +63,6 @@ impl VersionControlSystem {
             Self::GitSubversion => "󰊢+",
             Self::Jujutsu => "󱗆",
             Self::JujutsuGit => "󱗆+󰊢",
-            Self::Mercurial => "",
         }
     }
 }
@@ -83,7 +78,6 @@ impl Display for VersionControlSystem {
                 Self::GitSubversion => "git-svn",
                 Self::Jujutsu => "jj",
                 Self::JujutsuGit => "jj collocated git",
-                Self::Mercurial => "hg",
             }
         )
     }
