@@ -62,7 +62,15 @@ enum Action {
 }
 
 fn cwd_default_path(path: Option<String>) -> PathBuf {
-    let ret = path.map_or_else(|| env::current_dir().unwrap(), PathBuf::from);
+    let ret = path.map_or_else(
+        || env::current_dir().inspect_err(
+            |_| {
+                eprintln!("Current directory does not exist");
+                exit(1);
+            }
+        ).unwrap(),
+        PathBuf::from,
+    );
 
     if !ret.exists() {
         eprintln!("No such directory {}", ret.display());
