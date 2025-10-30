@@ -8,12 +8,14 @@ use std::{env, fs::canonicalize, io, path::PathBuf, process::exit};
 mod clean;
 mod git;
 mod prompt;
+mod repo;
 mod resolve;
 mod tree;
 
 use clean::clean;
 use git::{GitAction, run_git};
 use prompt::prompt;
+use repo::{RepoAction, run_repo};
 use resolve::{resolve, resolve_completer};
 use tree::tree;
 
@@ -46,6 +48,11 @@ enum Action {
         #[arg(short, long)]
         dry_run: bool,
     },
+    /// Actions for any type of repository.
+    Repo {
+        #[command(subcommand)]
+        action: RepoAction,
+    },
     /// Actions for git repositories.
     Git {
         #[command(subcommand)]
@@ -61,16 +68,17 @@ enum Action {
     Completion { shell: Shell },
 }
 
+fn get_cwd() -> PathBuf {
+    env::current_dir()
+        .inspect_err(|_| {
+            eprintln!("Current directory does not exist");
+            exit(1);
+        })
+        .unwrap()
+}
+
 fn cwd_default_path(path: Option<String>) -> PathBuf {
-    let ret = path.map_or_else(
-        || env::current_dir().inspect_err(
-            |_| {
-                eprintln!("Current directory does not exist");
-                exit(1);
-            }
-        ).unwrap(),
-        PathBuf::from,
-    );
+    let ret = path.map_or_else(get_cwd, PathBuf::from);
 
     if !ret.exists() {
         eprintln!("No such directory {}", ret.display());
@@ -95,6 +103,7 @@ pub fn run() -> i32 {
         Action::Resolve { repo_id } => resolve(repo_id),
         Action::Tree => tree(),
         Action::Clean { dry_run } => clean(dry_run),
+        Action::Repo { action } => run_repo(action),
         Action::Git { action } => run_git(action),
         Action::Prompt { repository } => prompt(cwd_default_path(repository)),
         Action::Completion { shell } => {

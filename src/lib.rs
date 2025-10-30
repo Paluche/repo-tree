@@ -4,12 +4,13 @@ mod config;
 mod git;
 mod jujutsu;
 mod repository;
+mod subversion;
 mod url_parser;
 mod version_control_system;
-mod subversion;
 
 pub use crate::{
     config::Config, repository::Repository, url_parser::UrlParser,
+    version_control_system::VersionControlSystem,
 };
 
 use std::{env, path::PathBuf};

@@ -1,6 +1,9 @@
 //! Enumeration listing the different type of Version Control System we support.
 use colored::Colorize;
-use std::{fmt::Display, path::Path};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Copy, Clone)]
 pub enum VersionControlSystem {
@@ -17,6 +20,21 @@ pub enum VersionControlSystem {
 }
 
 impl VersionControlSystem {
+    pub fn discover_root(path: PathBuf) -> Option<(PathBuf, Self, bool)> {
+        let mut current_path = Some(path);
+        while current_path.is_some() {
+            let root = current_path.clone().unwrap();
+            if let Some((vcs, is_submodule)) =
+                VersionControlSystem::try_new(&root)
+            {
+                return current_path.map(|cp| (cp, vcs, is_submodule));
+            }
+            current_path = current_path
+                .and_then(|cp| cp.parent().map(|p| p.to_path_buf()));
+        }
+        None
+    }
+
     /// Try to load the current version control system used by the current repository.
     /// The path must correspond to the root of the repository.
     /// Return a new instance of VersionControlSystem and a boolean to indicate if the repository
@@ -86,7 +104,7 @@ impl Display for VersionControlSystem {
                 Self::Subversion => "svn",
                 Self::GitSubversion => "git-svn",
                 Self::Jujutsu => "jj",
-                Self::JujutsuGit => "jj collocated git",
+                Self::JujutsuGit => "jj-git",
             }
         )
     }
