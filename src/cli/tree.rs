@@ -1,4 +1,4 @@
-use crate::{Config, Repository, UrlParser, get_work_dir, load_workspace};
+use crate::{Config, Repository, UrlParser, get_workspace_dir, load_workspace};
 use colored::Colorize;
 use std::{collections::HashMap, ffi::OsStr, fmt::Display, path::PathBuf};
 
@@ -184,7 +184,7 @@ impl Display for RootDirectory {
 }
 
 pub fn tree() -> i32 {
-    let mut root = RootDirectory::new(get_work_dir());
+    let mut root = RootDirectory::new(get_workspace_dir());
 
     let repositories = load_workspace(&UrlParser::new(&Config::default())).0;
 

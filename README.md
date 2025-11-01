@@ -2,7 +2,7 @@
 
 This repository provides a series of tool to organize your repositories you
 clone. It basically revolves around the path resolution, from a git URL to a
-certain path in your `WORK_DIR`.
+certain path in your `WORKSPACE_DIR`.
 
 ## Configuration
 

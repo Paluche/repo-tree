@@ -20,9 +20,9 @@ pub struct RepoId {
 }
 
 impl RepoId {
-    pub fn expected_root(&self, work_dir: &Path) -> Option<PathBuf> {
+    pub fn expected_root(&self, workspace_dir: &Path) -> Option<PathBuf> {
         self.host.clone().map(|host| {
-            let mut path = work_dir.to_path_buf();
+            let mut path = workspace_dir.to_path_buf();
             path.push(host.name);
             path.push(&self.name);
             path
@@ -46,7 +46,7 @@ pub struct Repository {
 
 impl Repository {
     pub fn discover(
-        work_dir: &Path,
+        workspace_dir: &Path,
         path: PathBuf,
         url_parser: &UrlParser,
     ) -> Result<Option<(PathBuf, Self)>, Box<dyn Error>> {
@@ -55,7 +55,7 @@ impl Repository {
         while current_path.is_some() {
             let root = current_path.clone().unwrap();
             if let Some(repo) =
-                Self::try_new(work_dir, root.clone(), url_parser)?
+                Self::try_new(workspace_dir, root.clone(), url_parser)?
             {
                 return Ok(Some((root, repo)));
             }
@@ -67,7 +67,7 @@ impl Repository {
     }
 
     pub fn try_new(
-        work_dir: &Path,
+        workspace_dir: &Path,
         root: PathBuf,
         url_parser: &UrlParser,
     ) -> Result<Option<Self>, Box<dyn Error>> {
@@ -86,7 +86,7 @@ impl Repository {
             _ => None,
         };
         let (host, name) =
-            url_parser.parse(work_dir, remote_url.as_ref(), &root);
+            url_parser.parse(workspace_dir, remote_url.as_ref(), &root);
 
         let id = RepoId {
             remote_url,
@@ -102,11 +102,11 @@ impl Repository {
         }))
     }
 
-    pub fn expected_root(&self, work_dir: &Path) -> Option<PathBuf> {
+    pub fn expected_root(&self, workspace_dir: &Path) -> Option<PathBuf> {
         if self.is_submodule {
             None
         } else {
-            self.id.expected_root(work_dir)
+            self.id.expected_root(workspace_dir)
         }
     }
 
@@ -132,7 +132,7 @@ impl Display for Repository {
 }
 
 fn _search(
-    work_dir: &Path,
+    workspace_dir: &Path,
     dir: &Path,
     url_parser: &UrlParser,
 ) -> (Vec<Repository>, Vec<PathBuf>) {
@@ -148,11 +148,11 @@ fn _search(
         empty_dir = false;
         let root = entry.path();
         if let Some(repo) =
-            Repository::try_new(work_dir, root.clone(), url_parser).unwrap()
+            Repository::try_new(workspace_dir, root.clone(), url_parser).unwrap()
         {
             repositories.push(repo);
         } else {
-            let res = _search(work_dir, &root, url_parser);
+            let res = _search(workspace_dir, &root, url_parser);
             repositories.extend(res.0);
             empty_dirs.extend(res.1);
         }
@@ -166,8 +166,8 @@ fn _search(
 }
 
 pub fn search(
-    work_dir: &Path,
+    workspace_dir: &Path,
     url_parser: &UrlParser,
 ) -> (Vec<Repository>, Vec<PathBuf>) {
-    _search(work_dir, work_dir, url_parser)
+    _search(workspace_dir, workspace_dir, url_parser)
 }

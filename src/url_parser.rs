@@ -17,14 +17,14 @@ impl HostWorkDir {
     }
 }
 
-/// Either the repository is within the ${WORK_DIR}/local directory
+/// Either the repository is within the ${WORKSPACE_DIR}/local directory
 /// allowing the user to organize as see fits this directory.
 /// Or take the directory name.
 fn compute_local_path<P: AsRef<Path>>(
-    work_dir: &Path,
+    workspace_dir: &Path,
     repo_path: &P,
 ) -> String {
-    let local_dir = work_dir.join("local");
+    let local_dir = workspace_dir.join("local");
     let repo_path = repo_path.as_ref();
     assert!(repo_path.is_absolute(), "repo_path is not absolute");
     assert!(local_dir.is_absolute(), "local_dir is not absolute");
@@ -54,7 +54,7 @@ impl<'a> UrlParser<'a> {
         }
     }
 
-    fn get_host_work_dir(&self, host_url: &str) -> HostWorkDir {
+    fn get_host_workspace_dir(&self, host_url: &str) -> HostWorkDir {
         self.config.get_host(host_url).cloned().map_or_else(
             || HostWorkDir::Missing(host_url.to_string()),
             HostWorkDir::Resolved,
@@ -101,7 +101,7 @@ impl<'a> UrlParser<'a> {
 
     pub fn parse<P: AsRef<Path>>(
         &self,
-        work_dir: &Path,
+        workspace_dir: &Path,
         remote_url: Option<&String>,
         repo_path: &P,
     ) -> (Option<Host>, String) {
@@ -110,19 +110,19 @@ impl<'a> UrlParser<'a> {
             None => {
                 return (
                     Some(self.config.local.clone()),
-                    compute_local_path(work_dir, repo_path),
+                    compute_local_path(workspace_dir, repo_path),
                 );
             }
         };
 
-        let host_work_dir = self.get_host_work_dir(&remote_cap["host"]);
+        let host_workspace_dir = self.get_host_workspace_dir(&remote_cap["host"]);
 
-        if let HostWorkDir::Missing(host) = &host_work_dir
+        if let HostWorkDir::Missing(host) = &host_workspace_dir
             && !self.missing_hosts.contains(host)
         {
             eprintln!("Missing host configuration for {host}");
         }
 
-        (host_work_dir.into_option(), remote_cap["path"].to_string())
+        (host_workspace_dir.into_option(), remote_cap["path"].to_string())
     }
 }

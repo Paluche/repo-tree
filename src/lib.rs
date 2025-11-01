@@ -15,12 +15,16 @@ pub use crate::{
 
 use std::{env, path::PathBuf};
 
-pub fn get_work_dir() -> PathBuf {
+pub fn get_workspace_dir() -> PathBuf {
     let ret = PathBuf::from(
-        &env::var("WORK_DIR").expect("Missing WORK_DIR environment variable"),
+        &env::var("WORKSPACE_DIR")
+            .expect("Missing WORKSPACE_DIR environment variable"),
     );
 
-    assert!(ret.is_absolute(), "WORK_DIR value must be an absolute path");
+    assert!(
+        ret.is_absolute(),
+        "WORKSPACE_DIR value must be an absolute path"
+    );
 
     ret
 }
@@ -28,5 +32,5 @@ pub fn get_work_dir() -> PathBuf {
 pub fn load_workspace(
     url_parser: &UrlParser,
 ) -> (Vec<Repository>, Vec<PathBuf>) {
-    repository::search(&get_work_dir(), url_parser)
+    repository::search(&get_workspace_dir(), url_parser)
 }
