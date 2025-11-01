@@ -61,8 +61,7 @@ impl<'a> UrlParser<'a> {
         )
     }
 
-    fn parse_url<'b>(url: Option<&'b String>) -> Option<regex::Captures<'b>> {
-        let url = url?;
+    fn capture_url<'b>(url: &'b str) -> Option<regex::Captures<'b>> {
         // scheme-based URLs, e.g.:
         //   https://github.com/owner/repo.git
         //   ssh://user@host:2222/owner/repo.git
@@ -99,22 +98,11 @@ impl<'a> UrlParser<'a> {
         //.or(re_local.captures(url))
     }
 
-    pub fn parse<P: AsRef<Path>>(
+    pub fn parse_url(
         &self,
-        workspace_dir: &Path,
-        remote_url: Option<&String>,
-        repo_path: &P,
-    ) -> (Option<Host>, String) {
-        let remote_cap = match Self::parse_url(remote_url) {
-            Some(v) => v,
-            None => {
-                return (
-                    Some(self.config.local.clone()),
-                    compute_local_path(workspace_dir, repo_path),
-                );
-            }
-        };
-
+        remote_url: &str,
+    ) -> Option<(Option<Host>, String)> {
+        let remote_cap = Self::capture_url(remote_url)?;
         let host_workspace_dir =
             self.get_host_workspace_dir(&remote_cap["host"]);
 
@@ -124,9 +112,25 @@ impl<'a> UrlParser<'a> {
             eprintln!("Missing host configuration for {host}");
         }
 
-        (
+        Some((
             host_workspace_dir.into_option(),
             remote_cap["path"].to_string(),
-        )
+        ))
+    }
+
+    pub fn parse_repo_url<P: AsRef<Path>>(
+        &self,
+        workspace_dir: &Path,
+        repo_path: &P,
+        remote_url: Option<&String>,
+    ) -> (Option<Host>, String) {
+        remote_url
+            .and_then(|u| self.parse_url(u))
+            .unwrap_or_else(|| {
+                (
+                    Some(self.config.local.clone()),
+                    compute_local_path(workspace_dir, repo_path),
+                )
+            })
     }
 }

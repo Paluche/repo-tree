@@ -85,8 +85,11 @@ impl Repository {
             //}
             _ => None,
         };
-        let (host, name) =
-            url_parser.parse(workspace_dir, remote_url.as_ref(), &root);
+        let (host, name) = url_parser.parse_repo_url(
+            workspace_dir,
+            &root,
+            remote_url.as_ref(),
+        );
 
         let id = RepoId {
             remote_url,
