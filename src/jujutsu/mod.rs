@@ -1,31 +1,16 @@
 //! Module for retrieving JuJutsu information.
+pub mod git;
 mod prompt;
 
-use crate::git;
-use git2::Repository;
-use jj_lib::config::StackedConfig;
-use jj_lib::repo::{ReadonlyRepo, RepoLoader, StoreFactories};
-use jj_lib::settings::UserSettings;
+pub use git::get_remote_url;
+use jj_lib::{
+    config::StackedConfig,
+    repo::{ReadonlyRepo, RepoLoader, StoreFactories},
+    settings::UserSettings,
+};
 pub use prompt::prompt;
 use std::sync::Arc;
-use std::{
-    error::Error,
-    path::{Path, PathBuf},
-};
-
-pub fn get_remote_url<P: AsRef<Path>>(
-    repo_path: P,
-) -> Result<Option<String>, Box<dyn Error>> {
-    let mut git_dir = PathBuf::new();
-    git_dir.push(&repo_path);
-    git_dir.push(".jj");
-    git_dir.push("repo");
-    git_dir.push("store");
-    git_dir.push("git");
-    let repo = Repository::open(git_dir)?;
-
-    Ok(git::get_remote_url_repo(&repo)?)
-}
+use std::{error::Error, path::Path};
 
 /// Load an existing jj repository.
 pub fn load<P: AsRef<Path>>(
