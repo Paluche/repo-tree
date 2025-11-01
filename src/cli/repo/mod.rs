@@ -1,7 +1,11 @@
+mod clone;
 mod root;
-use clap::Subcommand;
 
+use clap::Subcommand;
+use clone::clone;
 use root::root;
+
+use crate::VersionControlSystem;
 
 #[derive(Subcommand, Debug, PartialEq)]
 pub enum RepoAction {
@@ -18,10 +22,17 @@ pub enum RepoAction {
         #[arg(long)]
         print_type: bool,
     },
+    Clone {
+        /// Url of the repository to clone.
+        url: String,
+        #[arg(long, short)]
+        vcs: Option<VersionControlSystem>,
+    },
 }
 
 pub fn run_repo(action: RepoAction) -> i32 {
     match action {
         RepoAction::Root { parent, print_type } => root(parent, print_type),
+        RepoAction::Clone { url, vcs } => clone(url, vcs),
     }
 }

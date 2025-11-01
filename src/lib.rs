@@ -9,7 +9,9 @@ mod url_parser;
 mod version_control_system;
 
 pub use crate::{
-    config::Config, repository::Repository, url_parser::UrlParser,
+    config::{Config, Host},
+    repository::Repository,
+    url_parser::UrlParser,
     version_control_system::VersionControlSystem,
 };
 

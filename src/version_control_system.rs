@@ -1,11 +1,12 @@
 //! Enumeration listing the different type of Version Control System we support.
+use clap::ValueEnum;
 use colored::Colorize;
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
 };
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, ValueEnum, PartialEq)]
 pub enum VersionControlSystem {
     /// git
     Git,

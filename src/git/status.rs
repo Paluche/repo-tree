@@ -8,12 +8,11 @@ use std::{
     fmt::Display,
     fs::metadata,
     path::{Path, PathBuf},
-    process::Command,
     str::Chars,
     time::SystemTime,
 };
 use strum::{EnumIter, IntoEnumIterator};
-use which::which;
+use super::new_git_command;
 
 #[derive(Debug, Hash, PartialEq, Eq, EnumIter)]
 pub enum EntryStatus {
@@ -418,10 +417,6 @@ impl Display for UpstreamInfo {
             self.name.cyan()
         )
     }
-}
-
-fn new_git_command() -> Command {
-    Command::new(which("git").expect("'git' not found"))
 }
 
 fn get_branches_pointing_at<S>(

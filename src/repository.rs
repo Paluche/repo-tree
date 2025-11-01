@@ -19,14 +19,18 @@ pub struct RepoId {
     pub name: String,
 }
 
+pub fn location(workspace_dir: &Path, host: &Host, name: &String) -> PathBuf {
+    let mut path = workspace_dir.to_path_buf();
+    path.push(&host.name);
+    path.push(name);
+    path
+}
+
 impl RepoId {
     pub fn expected_root(&self, workspace_dir: &Path) -> Option<PathBuf> {
-        self.host.clone().map(|host| {
-            let mut path = workspace_dir.to_path_buf();
-            path.push(host.name);
-            path.push(&self.name);
-            path
-        })
+        self.host
+            .clone()
+            .map(|host| location(workspace_dir, &host, &self.name))
     }
 }
 
