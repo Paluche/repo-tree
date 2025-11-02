@@ -3,6 +3,7 @@
 //! If `XDG_CONFIG_HOME` is not set, then we will use the value
 //! `${HOME}/.config` in place.
 
+use colored::Colorize;
 use std::{
     collections::HashMap,
     error::Error,
@@ -11,7 +12,6 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
 };
-use colored::Colorize;
 use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
 
 #[derive(Debug, Clone)]

@@ -1,6 +1,6 @@
 use crate::{
-    Config, Repository, UrlParser, get_workspace_dir, git, jujutsu, subversion,
-    version_control_system::VersionControlSystem,
+    Config, Repository, UrlParser, get_workspace_dir, git, jujutsu,
+    subversion, version_control_system::VersionControlSystem,
 };
 use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
 use std::{fmt::Display, path::PathBuf};

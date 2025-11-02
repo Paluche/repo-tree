@@ -6,12 +6,12 @@ use git2::Repository;
 use jj_lib::config::StackedConfig;
 use jj_lib::repo::{ReadonlyRepo, RepoLoader, StoreFactories};
 use jj_lib::settings::UserSettings;
+pub use prompt::prompt;
 use std::sync::Arc;
 use std::{
     error::Error,
     path::{Path, PathBuf},
 };
-pub use prompt::prompt;
 
 pub fn get_remote_url<P: AsRef<Path>>(
     repo_path: P,

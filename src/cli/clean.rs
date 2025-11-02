@@ -1,7 +1,9 @@
 //! Action to clean the workspace.
 //! Replace the repositories where they belong to.
 
-use crate::{Config, Repository, UrlParser, get_workspace_dir, load_workspace};
+use crate::{
+    Config, Repository, UrlParser, get_workspace_dir, load_workspace,
+};
 use std::fs::{create_dir_all, remove_dir, rename};
 
 pub fn clean(dry_run: bool) -> i32 {
@@ -11,7 +13,9 @@ pub fn clean(dry_run: bool) -> i32 {
     let repositories = load_workspace(&url_parser)
         .0
         .into_iter()
-        .filter(|r| r.expected_root(&workspace_dir).is_some_and(|p| p != r.root))
+        .filter(|r| {
+            r.expected_root(&workspace_dir).is_some_and(|p| p != r.root)
+        })
         .collect::<Vec<Repository>>();
 
     let mut ret = 0;
@@ -21,7 +25,8 @@ pub fn clean(dry_run: bool) -> i32 {
     } else {
         println!("Repositories to move:");
         for repository in repositories {
-            let expected_root = repository.expected_root(&workspace_dir).unwrap();
+            let expected_root =
+                repository.expected_root(&workspace_dir).unwrap();
             println!(
                 "- {}: {} => {}",
                 repository.id.name,

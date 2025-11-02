@@ -115,7 +115,8 @@ impl<'a> UrlParser<'a> {
             }
         };
 
-        let host_workspace_dir = self.get_host_workspace_dir(&remote_cap["host"]);
+        let host_workspace_dir =
+            self.get_host_workspace_dir(&remote_cap["host"]);
 
         if let HostWorkDir::Missing(host) = &host_workspace_dir
             && !self.missing_hosts.contains(host)
@@ -123,6 +124,9 @@ impl<'a> UrlParser<'a> {
             eprintln!("Missing host configuration for {host}");
         }
 
-        (host_workspace_dir.into_option(), remote_cap["path"].to_string())
+        (
+            host_workspace_dir.into_option(),
+            remote_cap["path"].to_string(),
+        )
     }
 }

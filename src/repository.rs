@@ -148,7 +148,8 @@ fn _search(
         empty_dir = false;
         let root = entry.path();
         if let Some(repo) =
-            Repository::try_new(workspace_dir, root.clone(), url_parser).unwrap()
+            Repository::try_new(workspace_dir, root.clone(), url_parser)
+                .unwrap()
         {
             repositories.push(repo);
         } else {

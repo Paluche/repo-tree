@@ -1,4 +1,6 @@
-use crate::{Config, Repository, UrlParser, get_workspace_dir, load_workspace};
+use crate::{
+    Config, Repository, UrlParser, get_workspace_dir, load_workspace,
+};
 use colored::Colorize;
 use std::{collections::HashMap, ffi::OsStr, fmt::Display, path::PathBuf};
 
