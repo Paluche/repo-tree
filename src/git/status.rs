@@ -491,7 +491,7 @@ impl HeadInfo {
     {
         let oid = branch_info
             .get("branch.oid")
-            .map_or("unknown".to_string(),|s| s.to_owned());
+            .map_or("unknown".to_string(), |s| s.to_owned());
 
         let branch = branch_info
             .get("branch.head")

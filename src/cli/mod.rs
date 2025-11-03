@@ -8,6 +8,7 @@ use std::{env, fs::canonicalize, io, path::PathBuf, process::exit};
 mod clean;
 mod fetch;
 mod git;
+mod list;
 mod prompt;
 mod repo;
 mod resolve;
@@ -16,6 +17,7 @@ mod tree;
 use clean::clean;
 use fetch::fetch;
 use git::{GitAction, run_git};
+use list::list;
 use prompt::prompt;
 use repo::{RepoAction, run_repo};
 use resolve::{resolve, resolve_completer};
@@ -40,6 +42,8 @@ enum Action {
         #[arg(add=ArgValueCompleter::new(resolve_completer))]
         repo_id: Option<String>,
     },
+    /// List all repositories in the workspace.
+    List,
     /// Display a tree of your workspace.
     Tree,
     /// Clean the workspace. Move the repositories where they belong and remove
@@ -105,6 +109,7 @@ pub fn run() -> i32 {
 
     match args.action {
         Action::Resolve { repo_id } => resolve(repo_id),
+        Action::List => list(),
         Action::Tree => tree(),
         Action::Clean { dry_run } => clean(dry_run),
         Action::Fetch {} => fetch(),

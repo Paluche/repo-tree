@@ -11,15 +11,13 @@ use jj_lib::{
 pub use prompt::prompt;
 use std::{
     error::Error,
-    io,
     fs::read_to_string,
+    io,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
-pub fn get_repo_dir<P: AsRef<Path>>(
-    repo_path: P,
-) -> io::Result<PathBuf> {
+pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
     let repo_dir = repo_path.as_ref().to_path_buf().join(".jj").join("repo");
 
     Ok(if repo_dir.is_file() {
