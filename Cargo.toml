@@ -4,16 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-chrono = "0.4.41"
-clap = { version = "4.5.38", features = ["derive"] }
-clap_complete = { version = "4.5.50", features = ["unstable-dynamic"] }
+chrono = "0.4.42"
+clap = { version = "4.5.51", features = ["derive"] }
+clap_complete = { version = "4.5.60", features = ["unstable-dynamic"] }
 colored = { git="https://github.com/colored-rs/colored.git", rev="ec013ae7da84e4a70d34f92334b01db458252e38"}
 fuzzy-matcher = "0.3.7"
 git2 = { version = "0.20.2", default-features=false }
 itertools = "0.14.0"
-jj-lib = "0.34.0"
+jj-lib = "0.35.0"
 regex = "1.12.2"
 strum = { version = "0.27.2", features = ["derive"] }
 url = "2.5.7"
 which = "8.0.0"
-yaml-rust2 = "0.10.2"
+yaml-rust2 = "0.10.4"
