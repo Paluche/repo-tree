@@ -6,6 +6,7 @@ use clap_complete::{
 use std::{env, fs::canonicalize, io, path::PathBuf, process::exit};
 
 mod clean;
+mod fetch;
 mod git;
 mod prompt;
 mod repo;
@@ -13,6 +14,7 @@ mod resolve;
 mod tree;
 
 use clean::clean;
+use fetch::fetch;
 use git::{GitAction, run_git};
 use prompt::prompt;
 use repo::{RepoAction, run_repo};
@@ -48,6 +50,8 @@ enum Action {
         #[arg(short, long)]
         dry_run: bool,
     },
+    /// Fetch all the repositories within the workspace.
+    Fetch {},
     /// Actions for any type of repository.
     Repo {
         #[command(subcommand)]
@@ -103,6 +107,7 @@ pub fn run() -> i32 {
         Action::Resolve { repo_id } => resolve(repo_id),
         Action::Tree => tree(),
         Action::Clean { dry_run } => clean(dry_run),
+        Action::Fetch {} => fetch(),
         Action::Repo { action } => run_repo(action),
         Action::Git { action } => run_git(action),
         Action::Prompt { repository } => prompt(cwd_default_path(repository)),
