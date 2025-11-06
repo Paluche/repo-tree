@@ -4,7 +4,7 @@ pub mod submodules;
 
 pub use prompt::prompt;
 pub use status::{GitStatus, SubmoduleStatus, status};
-use std::{path::Path, process::Command, ffi::OsStr};
+use std::{ffi::OsStr, path::Path, process::Command};
 pub use submodules::SubmoduleInfo;
 use which::which;
 
@@ -62,13 +62,13 @@ pub fn clone<P: AsRef<OsStr>>(remote_url: &str, location: P) -> i32 {
     res
 }
 
-pub fn svn_clone<P: AsRef<OsStr>>(remote_url: &str, location: P) -> i32 {
-    let mut cmd = new_git_command();
-    which("git-svn").expect("git-svn not installed");
-    cmd
-        .arg("clone")
-        .arg(remote_url)
+pub fn fetch<P: AsRef<OsStr>>(location: P) -> i32 {
+    new_git_command()
+        .arg("-C")
         .arg(location)
+        .arg("fetch")
+        .arg("--prune-tags")
+        .arg("--force")
         .status()
         .expect("Error executing command")
         .code()

@@ -1,7 +1,7 @@
 //! Clone a repository into the workspace.
 use crate::{
     Config, Host, UrlParser, VersionControlSystem, get_workspace_dir, git,
-    jujutsu, repository, subversion,
+    jujutsu, repository,
 };
 
 fn prompt_for_vcs() -> VersionControlSystem {
@@ -54,12 +54,6 @@ fn do_clone(
                 } else {
                     jujutsu::git::init_colocate(&location)
                 }
-            }
-            VersionControlSystem::Subversion => {
-                subversion::checkout(&remote_url, &location)
-            }
-            VersionControlSystem::GitSubversion => {
-                git::svn_clone(&remote_url, &location)
             }
             VersionControlSystem::Jujutsu => {
                 jujutsu::git::clone(&remote_url, &location)

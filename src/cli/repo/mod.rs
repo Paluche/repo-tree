@@ -18,7 +18,7 @@ pub enum RepoAction {
         parent: bool,
 
         /// Also display repository types. The output will then have 4 words:
-        /// <Root of the repository> <is_git> <is_jj> <is_subversion>
+        /// <Root of the repository> <is_git> <is_jj>
         #[arg(long)]
         print_type: bool,
     },

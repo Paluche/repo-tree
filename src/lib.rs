@@ -4,7 +4,6 @@ mod config;
 mod git;
 mod jujutsu;
 mod repository;
-mod subversion;
 mod url_parser;
 mod version_control_system;
 
@@ -14,8 +13,10 @@ pub use crate::{
     url_parser::UrlParser,
     version_control_system::VersionControlSystem,
 };
-
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 pub fn get_workspace_dir() -> PathBuf {
     let ret = PathBuf::from(
@@ -32,7 +33,8 @@ pub fn get_workspace_dir() -> PathBuf {
 }
 
 pub fn load_workspace(
+    workspace_dir: &Path,
     url_parser: &UrlParser,
 ) -> (Vec<Repository>, Vec<PathBuf>) {
-    repository::search(&get_workspace_dir(), url_parser)
+    repository::search(workspace_dir, url_parser)
 }

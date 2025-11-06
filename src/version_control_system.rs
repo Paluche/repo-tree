@@ -10,10 +10,6 @@ use std::{
 pub enum VersionControlSystem {
     /// git
     Git,
-    /// svn
-    Subversion,
-    /// git-svn
-    GitSubversion,
     /// jj
     Jujutsu,
     /// Jujutsu collocated with Git.
@@ -60,9 +56,6 @@ impl VersionControlSystem {
             }
         } else if is_jj {
             Some((Self::Jujutsu, false))
-        } else if exists(dir, ".svn").0 {
-            // XXX Subversion can have sub-modules.
-            Some((Self::Subversion, false))
         } else {
             None
         }
@@ -79,12 +72,6 @@ impl VersionControlSystem {
     pub fn short_display(&self) -> String {
         match self {
             Self::Git => "󰊢".ansi_color(166).to_string(),
-            Self::Subversion => "".blue().to_string(),
-            Self::GitSubversion => format!(
-                "{}{}",
-                Self::Git.short_display(),
-                Self::Subversion.short_display(),
-            ),
             Self::Jujutsu => "".blue().to_string(),
             Self::JujutsuGit => format!(
                 "{}{}",
@@ -102,8 +89,6 @@ impl Display for VersionControlSystem {
             "{}",
             match self {
                 Self::Git => "git",
-                Self::Subversion => "svn",
-                Self::GitSubversion => "git-svn",
                 Self::Jujutsu => "jj",
                 Self::JujutsuGit => "jj-git",
             }

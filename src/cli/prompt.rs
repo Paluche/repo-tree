@@ -1,6 +1,6 @@
 use crate::{
     Config, Repository, UrlParser, get_workspace_dir, git, jujutsu,
-    subversion, version_control_system::VersionControlSystem,
+    version_control_system::VersionControlSystem,
 };
 use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
 use std::{fmt::Display, path::PathBuf};
@@ -77,9 +77,7 @@ pub fn prompt(repo_path: PathBuf) -> i32 {
     let mut info = PromptBuilder::new(&repository);
 
     let ret = match repository.vcs {
-        VersionControlSystem::Git | VersionControlSystem::GitSubversion => {
-            git::prompt(&root, &mut info)
-        }
+        VersionControlSystem::Git => git::prompt(&root, &mut info),
         VersionControlSystem::JujutsuGit => {
             let ret = git::prompt(&root, &mut info);
             if ret != 0 {
@@ -88,9 +86,6 @@ pub fn prompt(repo_path: PathBuf) -> i32 {
             jujutsu::prompt(&root, &mut info)
         }
         VersionControlSystem::Jujutsu => jujutsu::prompt(&root, &mut info),
-        VersionControlSystem::Subversion => {
-            subversion::prompt(&root, &mut info)
-        }
     };
 
     if ret == 0 {

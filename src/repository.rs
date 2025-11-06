@@ -36,7 +36,17 @@ impl RepoId {
 
 impl Display for RepoId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?} {} {:?})", self.host, self.name, self.remote_url)
+        if let Some(host) = &self.host
+            && host.name != "."
+        {
+            write!(f, "{} ", host.name)?;
+        }
+        write!(f, "{}", self.name)?;
+        if let Some(remote_url) = &self.remote_url {
+            write!(f, " {remote_url}")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -85,9 +95,6 @@ impl Repository {
                 git::get_remote_url(&root)?
             }
             VersionControlSystem::Jujutsu => jujutsu::get_remote_url(&root)?,
-            //VersionControlSystem::Subversion => {
-            //}
-            _ => None,
         };
         let (host, name) = url_parser.parse_repo_url(
             workspace_dir,
