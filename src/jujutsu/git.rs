@@ -1,8 +1,7 @@
 //! Function to interact with a Jujutsu which uses a git backend.
-//!
 use std::{
-    ffi::OsStr,
     error::Error,
+    ffi::OsStr,
     fs::{canonicalize, read_to_string},
     path::{Path, PathBuf},
     process::Command,
@@ -55,6 +54,19 @@ pub fn init_colocate<P: AsRef<OsStr>>(location: P) -> i32 {
         .arg("init")
         .arg("--colocate")
         .arg(location)
+        .status()
+        .expect("Error executing command")
+        .code()
+        .unwrap()
+}
+
+pub fn fetch<P: AsRef<OsStr>>(location: P) -> i32 {
+    new_jj_command()
+        .arg("--repository")
+        .arg(location)
+        .arg("git")
+        .arg("fetch")
+        .arg("--all-remotes")
         .status()
         .expect("Error executing command")
         .code()

@@ -188,7 +188,11 @@ impl Display for RootDirectory {
 pub fn tree() -> i32 {
     let mut root = RootDirectory::new(get_workspace_dir());
 
-    let repositories = load_workspace(&UrlParser::new(&Config::default())).0;
+    let repositories = load_workspace(
+        &get_workspace_dir(),
+        &UrlParser::new(&Config::default()),
+    )
+    .0;
 
     for repository in repositories {
         root.insert(repository);

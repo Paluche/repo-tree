@@ -1,4 +1,5 @@
 //! Module for retrieving git information.
+use super::new_git_command;
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
 use std::{
@@ -12,7 +13,6 @@ use std::{
     time::SystemTime,
 };
 use strum::{EnumIter, IntoEnumIterator};
-use super::new_git_command;
 
 #[derive(Debug, Hash, PartialEq, Eq, EnumIter)]
 pub enum EntryStatus {

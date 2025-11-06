@@ -18,7 +18,9 @@
 //! ```
 //!
 //!
-use crate::{Config, Repository, UrlParser, load_workspace};
+use crate::{
+    Config, Repository, UrlParser, get_workspace_dir, load_workspace,
+};
 use clap::builder::StyledStr;
 use clap_complete::engine::CompletionCandidate;
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
@@ -90,8 +92,10 @@ fn reduce_repo_names(
 }
 
 fn get_repositories() -> HashMap<String, Repository> {
-    let (repositories, empty_dirs) =
-        load_workspace(&UrlParser::new(&Config::default()));
+    let (repositories, empty_dirs) = load_workspace(
+        &get_workspace_dir(),
+        &UrlParser::new(&Config::default()),
+    );
 
     for empty_dir in empty_dirs {
         eprintln!("Empty directory in WORKSPACE_DIR: {}", empty_dir.display());

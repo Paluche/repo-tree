@@ -10,7 +10,7 @@ pub fn clean(dry_run: bool) -> i32 {
     let workspace_dir = get_workspace_dir();
     let config = Config::default();
     let url_parser = UrlParser::new(&config);
-    let repositories = load_workspace(&url_parser)
+    let repositories = load_workspace(&workspace_dir, &url_parser)
         .0
         .into_iter()
         .filter(|r| {
@@ -56,7 +56,7 @@ pub fn clean(dry_run: bool) -> i32 {
 
     let mut first = true;
     loop {
-        let empty_dirs = load_workspace(&url_parser).1;
+        let empty_dirs = load_workspace(&workspace_dir, &url_parser).1;
 
         if empty_dirs.is_empty() {
             if first {
