@@ -1,3 +1,4 @@
+use git2::Oid;
 use regex::Regex;
 use std::{
     error::Error,
@@ -130,27 +131,78 @@ fn resolve_url_as_relpath<P: AsRef<Path>>(
     .map(|p| p.to_string_lossy().to_string())
 }
 
-pub type SubmoduleInfo = (PathBuf, Option<String>, Option<String>);
+pub struct SubmoduleInfo {
+    /// Path to the root of the main repository.
+    pub main_repo_root: PathBuf,
+    /// Relative path from the main repository to the submodule.
+    pub sub_path: PathBuf,
+    /// Head OID, commit at which the submodule is configured to be.
+    pub head: Option<Oid>,
+    pub actual_head: Option<Oid>,
+    pub ahead: Option<usize>,
+    pub behind: Option<usize>,
+    /// URL of the submodule remote as configured in the .gitmodules file.
+    pub config_url: Option<String>,
+    /// Resolved URL of the submodule.
+    pub url: Option<String>,
+}
+
+impl SubmoduleInfo {
+    pub fn abs_path(&self) -> PathBuf {
+        self.main_repo_root.join(&self.sub_path)
+    }
+}
 
 pub fn get<P: AsRef<Path>>(
-    repo_path: P,
-    repo_remote_url: Option<String>,
+    main_repo_root: P,
+    main_repo_remote_url: Option<String>,
 ) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
-    let repo_path = repo_path.as_ref();
-    let repo = git2::Repository::discover(repo_path)?;
+    let main_repo_root = main_repo_root.as_ref().to_path_buf();
+    let repo = git2::Repository::discover(&main_repo_root)?;
     let submodules = repo.submodules()?;
     let mut ret = Vec::new();
 
     for submodule in submodules {
-        let path = submodule.path().to_path_buf();
-        ret.push(if let Some(url) = submodule.url() {
-            (
-                path,
-                Some(url.to_string()),
-                resolve_url(repo_path, repo_remote_url.clone(), url)?,
-            )
+        let sub_path = submodule.path().to_path_buf();
+        ret.push(if let Some(conf_url) = submodule.url() {
+            let head = submodule.head_id();
+            let actual_head = submodule.index_id();
+            let (ahead, behind) =
+                if let (Some(head), Some(actual_head)) = (head, actual_head) {
+                    let head_obj = repo.find_commit(head)?;
+                    let actual_obj = repo.find_commit(actual_head)?;
+                    let (a, b) = repo
+                        .graph_ahead_behind(actual_obj.id(), head_obj.id())?;
+                    (Some(a), Some(b))
+                } else {
+                    (None, None)
+                };
+
+            SubmoduleInfo {
+                main_repo_root: main_repo_root.clone(),
+                sub_path,
+                head,
+                actual_head,
+                ahead,
+                behind,
+                config_url: Some(conf_url.to_string()),
+                url: resolve_url(
+                    &main_repo_root,
+                    main_repo_remote_url.clone(),
+                    conf_url,
+                )?,
+            }
         } else {
-            (path, None, None)
+            SubmoduleInfo {
+                main_repo_root: main_repo_root.clone(),
+                sub_path,
+                head: None,
+                actual_head: None,
+                ahead: None,
+                behind: None,
+                config_url: None,
+                url: None,
+            }
         })
     }
 

@@ -18,8 +18,8 @@ pub fn fetch_repo(
         return Ok(0);
     }
     println!("Fetching repository {}", repository.id);
-    for (submodule, _, _) in repository.submodules()? {
-        let root = repository.root.join(&submodule);
+    for submodule in repository.submodules()? {
+        let root = submodule.abs_path();
         if let Some(repo) =
             &Repository::try_new(workspace_dir, root.clone(), url_parser)?
         {

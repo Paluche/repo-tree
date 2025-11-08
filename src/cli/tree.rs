@@ -99,14 +99,20 @@ impl Directory {
                                 v.bright_black()
                             })
                         };
-                        let config_url = option_to_str(submodule.1.clone());
-                        let resolved_url = option_to_str(submodule.2.clone());
+                        let head_id = option_to_str(
+                            submodule.head.map(|o| o.to_string()),
+                        );
+                        let config_url =
+                            option_to_str(submodule.config_url.clone());
+                        let resolved_url =
+                            option_to_str(submodule.url.clone());
 
                         if config_url == resolved_url {
-                            format!("{}", config_url)
+                            format!("{} {}", head_id, config_url)
                         } else {
                             format!(
-                                "{:40} {} {}",
+                                "{} {:40} {} {}",
+                                head_id,
                                 config_url,
                                 "=>".bright_black(),
                                 resolved_url
@@ -123,7 +129,7 @@ impl Directory {
                             DirState::SubDir
                         }
                         .get_dir_prefix(),
-                        submodule.0.display(),
+                        submodule.sub_path.display(),
                         submodule_url
                     )?;
                 }
