@@ -3,7 +3,7 @@ use std::{
     error::Error,
     ffi::OsStr,
     fs::{canonicalize, read_to_string},
-    path::{Path, PathBuf},
+    path::Path,
     process::Command,
 };
 
@@ -11,14 +11,12 @@ use which::which;
 
 use crate::git;
 
+use super::get_repo_dir;
+
 pub fn get_git_backend_repo<P: AsRef<Path>>(
     repo_path: P,
 ) -> Result<git2::Repository, Box<dyn Error>> {
-    let mut store_dir = PathBuf::new();
-    store_dir.push(&repo_path);
-    store_dir.push(".jj");
-    store_dir.push("repo");
-    store_dir.push("store");
+    let store_dir = get_repo_dir(repo_path)?.join("store");
 
     Ok(git2::Repository::open(canonicalize(
         store_dir.join(read_to_string(store_dir.join("git_target"))?),

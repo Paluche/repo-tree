@@ -9,8 +9,26 @@ use jj_lib::{
     settings::UserSettings,
 };
 pub use prompt::prompt;
-use std::sync::Arc;
-use std::{error::Error, path::Path};
+use std::{
+    error::Error,
+    io,
+    fs::read_to_string,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
+pub fn get_repo_dir<P: AsRef<Path>>(
+    repo_path: P,
+) -> io::Result<PathBuf> {
+    let repo_dir = repo_path.as_ref().to_path_buf().join(".jj").join("repo");
+
+    Ok(if repo_dir.is_file() {
+        // jj workspace
+        PathBuf::from(read_to_string(repo_dir)?)
+    } else {
+        repo_dir
+    })
+}
 
 /// Load an existing jj repository.
 pub fn load<P: AsRef<Path>>(
@@ -23,7 +41,7 @@ pub fn load<P: AsRef<Path>>(
     // Use RepoLoader to open an existing repo
     let loader = RepoLoader::init_from_file_system(
         &user_settings,
-        repo_path.as_ref().join(".jj").join("repo").as_path(),
+        &get_repo_dir(repo_path)?,
         &store_factories,
     )?;
 
