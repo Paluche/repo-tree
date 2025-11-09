@@ -491,12 +491,11 @@ impl HeadInfo {
     {
         let oid = branch_info
             .get("branch.oid")
-            .expect("Missing oid key")
-            .clone();
+            .map_or("unknown".to_string(),|s| s.to_owned());
+
         let branch = branch_info
             .get("branch.head")
-            .expect("Missing head key")
-            .clone();
+            .map_or("unknown".to_string(), |s| s.to_owned());
         let upstream =
             if let Some(name) = branch_info.get("branch.upstream").cloned() {
                 let (ahead, behind, gone) = if let Some((ahead, behind)) =
