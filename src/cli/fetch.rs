@@ -29,20 +29,12 @@ pub fn fetch_repo(
         }
     }
 
-    let ret = match repository.vcs {
+    Ok(match repository.vcs {
         VersionControlSystem::Jujutsu | VersionControlSystem::JujutsuGit => {
             jujutsu::git::fetch(&repository.root)
         }
         VersionControlSystem::Git => git::fetch(&repository.root),
-    };
-
-    // Git delete-branch?
-
-    if repository.is_submodule {
-        return Ok(ret);
-    }
-
-    Ok(0)
+    })
 }
 
 pub fn fetch() -> i32 {
