@@ -81,7 +81,10 @@ impl Directory {
 
         if let Some(r) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
-            let submodules = r.submodules().unwrap();
+            let submodules = r
+                .submodules()
+                .inspect_err(|err| eprintln!("{err}"))
+                .unwrap();
             if let Some(remote_url) = r.id.remote_url.clone() {
                 writeln!(
                     f,

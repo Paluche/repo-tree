@@ -28,7 +28,7 @@ pub fn run(args: RootArgs) -> i32 {
         cwd = parent.to_path_buf()
     }
 
-    if let Some((root, vcs, _)) =
+    if let Some((root, vcs, _, _, _)) =
         VersionControlSystem::discover_root(cwd.clone())
     {
         print!("{}", root.display());

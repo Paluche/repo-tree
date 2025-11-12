@@ -3,7 +3,7 @@ use std::{
     error::Error,
     ffi::OsStr,
     fs::{canonicalize, read_to_string},
-    path::Path,
+    path::{Path, PathBuf},
     process::Command,
 };
 
@@ -12,14 +12,20 @@ use which::which;
 use super::get_repo_dir;
 use crate::git;
 
+pub fn get_git_backend_path<P: AsRef<Path>>(
+    repo_path: P,
+) -> Result<PathBuf, Box<dyn Error>> {
+    let store_dir = get_repo_dir(repo_path)?.join("store");
+
+    Ok(canonicalize(
+        store_dir.join(read_to_string(store_dir.join("git_target"))?),
+    )?)
+}
+
 pub fn get_git_backend_repo<P: AsRef<Path>>(
     repo_path: P,
 ) -> Result<git2::Repository, Box<dyn Error>> {
-    let store_dir = get_repo_dir(repo_path)?.join("store");
-
-    Ok(git2::Repository::open(canonicalize(
-        store_dir.join(read_to_string(store_dir.join("git_target"))?),
-    )?)?)
+    Ok(git2::Repository::open(get_git_backend_path(repo_path)?)?)
 }
 
 pub fn get_remote_url<P: AsRef<Path>>(

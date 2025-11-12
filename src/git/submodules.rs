@@ -28,7 +28,7 @@ use url::Url;
 /// - scp-style handling is implemented heuristically by converting the scp url
 ///   into an ssh:// URL for path joining.
 /// - This helper focuses on the common cases; for complete fidelity to `git`
-///   behaviour, call git itself or replicate git's source logic.
+///   behavior, call git itself or replicate git's source logic.
 ///
 /// Returns: resolved URL string (absolute).
 fn resolve_url<P: AsRef<Path>>(
@@ -154,16 +154,14 @@ impl SubmoduleInfo {
     }
 }
 
-pub fn get<P: AsRef<Path>>(
-    main_repo_root: P,
+pub fn get(
+    main_repo_root: &Path,
+    main_repo: &git2::Repository,
     main_repo_remote_url: Option<String>,
 ) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
-    let main_repo_root = main_repo_root.as_ref().to_path_buf();
-    let repo = git2::Repository::discover(&main_repo_root)?;
-    let submodules = repo.submodules()?;
     let mut ret = Vec::new();
 
-    for submodule in submodules {
+    for submodule in main_repo.submodules()? {
         let sub_path = submodule.path().to_path_buf();
         ret.push(if let Some(conf_url) = submodule.url() {
             let head = submodule.head_id();
@@ -171,11 +169,13 @@ pub fn get<P: AsRef<Path>>(
             let (ahead, behind) = if let (Some(head), Some(actual_head)) =
                 (head, actual_head)
             {
-                if let (Ok(head_obj), Ok(actual_obj)) =
-                    (repo.find_commit(head), repo.find_commit(actual_head))
+                let head_oid = main_repo.find_commit(head).ok().map(|c| c.id());
+                let index_oid =
+                    main_repo.find_commit(actual_head).ok().map(|c| c.id());
+                if let Some(i) = index_oid
+                    && let Some(h) = head_oid
                 {
-                    let (a, b) = repo
-                        .graph_ahead_behind(actual_obj.id(), head_obj.id())?;
+                    let (a, b) = main_repo.graph_ahead_behind(i, h).unwrap();
                     (Some(a), Some(b))
                 } else {
                     (None, None)
@@ -185,7 +185,7 @@ pub fn get<P: AsRef<Path>>(
             };
 
             SubmoduleInfo {
-                main_repo_root: main_repo_root.clone(),
+                main_repo_root: main_repo_root.to_path_buf(),
                 sub_path,
                 head,
                 actual_head,
@@ -193,14 +193,14 @@ pub fn get<P: AsRef<Path>>(
                 behind,
                 config_url: Some(conf_url.to_string()),
                 url: resolve_url(
-                    &main_repo_root,
+                    main_repo_root,
                     main_repo_remote_url.clone(),
                     conf_url,
                 )?,
             }
         } else {
             SubmoduleInfo {
-                main_repo_root: main_repo_root.clone(),
+                main_repo_root: main_repo_root.to_path_buf(),
                 sub_path,
                 head: None,
                 actual_head: None,

@@ -26,8 +26,17 @@ fn do_clone(
     let location = repository::location(repo_tree_dir, &host, &name);
 
     if location.exists() {
-        if let Some((current_vcs, _)) = VersionControlSystem::try_new(&location)
+        if let Some((current_vcs, is_git_submodule, is_jj_workspace, _)) =
+            VersionControlSystem::try_new(&location)
         {
+            assert!(
+                !is_jj_workspace,
+                "Unexpected jj workspace at the clone location"
+            );
+            assert!(
+                !is_git_submodule,
+                "Unexpected git submodule at the clone location"
+            );
             if current_vcs == vcs {
                 eprintln!("{vcs} repository already cloned");
                 println!("{}", location.display());

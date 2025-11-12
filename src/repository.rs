@@ -1,5 +1,6 @@
 //! Representation of a repository.
 use std::{
+    env,
     error::Error,
     fmt::Display,
     path::{Path, PathBuf},
@@ -20,15 +21,15 @@ pub struct RepoId {
     pub name: String,
 }
 
-pub fn location(repo_tree_dir: &Path, host: &Host, name: &String) -> PathBuf {
-    repo_tree_dir.to_path_buf().join(&host.dir_name).join(name)
+pub fn location(worktree_dir: &Path, host: &Host, name: &String) -> PathBuf {
+    worktree_dir.to_path_buf().join(&host.dir_name).join(name)
 }
 
 impl RepoId {
-    pub fn expected_root(&self, repo_tree_dir: &Path) -> Option<PathBuf> {
+    pub fn expected_root(&self, worktree_dir: &Path) -> Option<PathBuf> {
         self.host
             .clone()
-            .map(|host| location(repo_tree_dir, &host, &self.name))
+            .map(|host| location(worktree_dir, &host, &self.name))
     }
 }
 
@@ -51,14 +52,16 @@ impl Display for RepoId {
 #[derive(Debug, Clone)]
 pub struct Repository {
     pub vcs: VersionControlSystem,
-    pub is_submodule: bool,
+    pub is_git_submodule: bool,
+    pub is_jj_workspace: bool,
     pub root: PathBuf,
+    pub git_dir: Option<PathBuf>,
     pub id: RepoId,
 }
 
 impl Repository {
     pub fn discover(
-        repo_tree_dir: &Path,
+        worktree_dir: &Path,
         path: PathBuf,
         url_parser: &UrlParser,
     ) -> Result<Option<Self>, Box<dyn Error>> {
@@ -66,8 +69,7 @@ impl Repository {
 
         while current_path.is_some() {
             let root = current_path.clone().unwrap();
-            if let Some(repo) = Self::try_new(repo_tree_dir, root, url_parser)?
-            {
+            if let Some(repo) = Self::try_new(worktree_dir, root, url_parser)? {
                 return Ok(Some(repo));
             }
             current_path =
@@ -78,7 +80,7 @@ impl Repository {
     }
 
     pub fn try_new(
-        repo_tree_dir: &Path,
+        worktree_dir: &Path,
         root: PathBuf,
         url_parser: &UrlParser,
     ) -> Result<Option<Self>, Box<dyn Error>> {
@@ -86,18 +88,15 @@ impl Repository {
         if vcs.is_none() {
             return Ok(None);
         }
-        let (vcs, is_submodule) = vcs.unwrap();
+        let (vcs, is_git_submodule, is_jj_workspace, git_dir) = vcs.unwrap();
         let remote_url = match vcs {
             VersionControlSystem::Git | VersionControlSystem::JujutsuGit => {
                 git::get_remote_url(&root)?
             }
             VersionControlSystem::Jujutsu => jujutsu::get_remote_url(&root)?,
         };
-        let (host, name) = url_parser.parse_repo_url(
-            repo_tree_dir,
-            &root,
-            remote_url.as_ref(),
-        );
+        let (host, name) =
+            url_parser.parse_repo_url(worktree_dir, &root, remote_url.as_ref());
 
         let id = RepoId {
             remote_url,
@@ -107,23 +106,45 @@ impl Repository {
 
         Ok(Some(Self {
             vcs,
-            is_submodule,
+            is_git_submodule,
+            is_jj_workspace,
             root,
+            git_dir,
             id,
         }))
     }
 
-    pub fn expected_root(&self, repo_tree_dir: &Path) -> Option<PathBuf> {
-        if self.is_submodule {
+    pub fn expected_root(&self, worktree_dir: &Path) -> Option<PathBuf> {
+        if self.is_git_submodule || self.is_jj_workspace {
             None
         } else {
-            self.id.expected_root(repo_tree_dir)
+            self.id.expected_root(worktree_dir)
         }
+    }
+
+    pub fn get_git_repo(&self) -> Option<git2::Repository> {
+        let git_dir = &self.git_dir.clone()?;
+        unsafe {
+            env::set_var("GIT_DIR", git_dir);
+            env::set_var("GIT_WORK_TREE", &self.root);
+        }
+
+        let repo = git2::Repository::open_from_env().ok()?;
+
+        unsafe {
+            env::remove_var("GIT_DIR");
+            env::remove_var("GIT_WORK_TREE");
+        }
+        Some(repo)
     }
 
     pub fn submodules(&self) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
         Ok(if self.vcs.is_git() {
-            git::submodules::get(&self.root, self.id.remote_url.clone())?
+            git::submodules::get(
+                &self.root,
+                &self.get_git_repo().unwrap(),
+                self.id.remote_url.clone(),
+            )?
         } else {
             Vec::new()
         })
@@ -143,7 +164,7 @@ impl Display for Repository {
 }
 
 fn _search(
-    repo_tree_dir: &Path,
+    worktree_dir: &Path,
     dir: &Path,
     url_parser: &UrlParser,
 ) -> (Vec<Repository>, Vec<PathBuf>) {
@@ -159,12 +180,11 @@ fn _search(
         empty_dir = false;
         let root = entry.path();
         if let Some(repo) =
-            Repository::try_new(repo_tree_dir, root.clone(), url_parser)
-                .unwrap()
+            Repository::try_new(worktree_dir, root.clone(), url_parser).unwrap()
         {
             repositories.push(repo);
         } else {
-            let res = _search(repo_tree_dir, &root, url_parser);
+            let res = _search(worktree_dir, &root, url_parser);
             repositories.extend(res.0);
             empty_dirs.extend(res.1);
         }
@@ -178,8 +198,8 @@ fn _search(
 }
 
 pub fn search(
-    repo_tree_dir: &Path,
+    worktree_dir: &Path,
     url_parser: &UrlParser,
 ) -> (Vec<Repository>, Vec<PathBuf>) {
-    _search(repo_tree_dir, repo_tree_dir, url_parser)
+    _search(worktree_dir, worktree_dir, url_parser)
 }
