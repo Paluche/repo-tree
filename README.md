@@ -31,7 +31,7 @@ file `${HOME}/.config/repo-tree/config.yml`, for example:
 
 ```yaml
 hosts:
-  bitbucket: bitbucket
+  bitbucket.org: atlassian
   my_company.gitlab.org: my_company
 ```
 
