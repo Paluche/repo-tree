@@ -73,19 +73,19 @@ pub fn prompt(repo_path: PathBuf) -> i32 {
         return 0;
     }
 
-    let (root, repository) = repo.unwrap();
+    let repository = repo.unwrap();
     let mut info = PromptBuilder::new(&repository);
 
     let ret = match repository.vcs {
-        VersionControlSystem::Git => git::prompt(&root, &mut info),
+        VersionControlSystem::Git => git::prompt(&repository.root, &mut info),
         VersionControlSystem::JujutsuGit => {
-            let ret = git::prompt(&root, &mut info);
+            let ret = git::prompt(&repository.root, &mut info);
             if ret != 0 {
                 return ret;
             }
-            jujutsu::prompt(&root, &mut info)
+            jujutsu::prompt(&repository.root, &mut info)
         }
-        VersionControlSystem::Jujutsu => jujutsu::prompt(&root, &mut info),
+        VersionControlSystem::Jujutsu => jujutsu::prompt(&repository.root, &mut info),
     };
 
     if ret == 0 {

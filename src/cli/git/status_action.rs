@@ -96,7 +96,7 @@ fn format_repo_status(
 
 pub fn status(repo_path: PathBuf) -> i32 {
     let workspace_dir = get_workspace_dir();
-    let Some((root, repo)) = Repository::discover(
+    let Some(repository) = Repository::discover(
         &workspace_dir,
         repo_path,
         &UrlParser::new(&Config::default()),
@@ -106,31 +106,31 @@ pub fn status(repo_path: PathBuf) -> i32 {
         exit(1);
     };
 
-    let expected_root = repo.expected_root(&workspace_dir);
+    let expected_root = repository.expected_root(&workspace_dir);
 
     if let Some(expected_root) = expected_root
-        && root != expected_root
+        && repository.root != expected_root
     {
         eprintln!(
             "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
                 should be in \"{}\".",
-            repo.id.name,
-            root.display(),
+            repository.id.name,
+            repository.root.display(),
             expected_root.display(),
         );
     }
 
-    if !repo.vcs.is_git() {
-        eprintln!("Status not implemented for {}", repo.vcs);
+    if !repository.vcs.is_git() {
+        eprintln!("Status not implemented for {}", repository.vcs);
         return 1;
     }
 
     println!(
         "{}",
         format_repo_status(
-            &root,
+            &repository.root,
             None,
-            git::status(&root).expect("Error obtaining git status"),
+            git::status(&repository.root).expect("Error obtaining git status"),
             0
         )
     );
