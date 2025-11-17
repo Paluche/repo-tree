@@ -1,20 +1,20 @@
-//! Action to clean the workspace.
+//! Action to clean the repo_tree.
 //! Replace the repositories where they belong to.
 
 use crate::{
-    Config, Repository, UrlParser, get_workspace_dir, load_workspace,
+    Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree,
 };
 use std::fs::{create_dir_all, remove_dir, rename};
 
 pub fn clean(dry_run: bool) -> i32 {
-    let workspace_dir = get_workspace_dir();
+    let repo_tree_dir = get_repo_tree_dir();
     let config = Config::default();
     let url_parser = UrlParser::new(&config);
-    let repositories = load_workspace(&workspace_dir, &url_parser)
+    let repositories = load_repo_tree(&repo_tree_dir, &url_parser)
         .0
         .into_iter()
         .filter(|r| {
-            r.expected_root(&workspace_dir).is_some_and(|p| p != r.root)
+            r.expected_root(&repo_tree_dir).is_some_and(|p| p != r.root)
         })
         .collect::<Vec<Repository>>();
 
@@ -26,7 +26,7 @@ pub fn clean(dry_run: bool) -> i32 {
         println!("Repositories to move:");
         for repository in repositories {
             let expected_root =
-                repository.expected_root(&workspace_dir).unwrap();
+                repository.expected_root(&repo_tree_dir).unwrap();
             println!(
                 "- {}: {} => {}",
                 repository.id.name,
@@ -56,7 +56,7 @@ pub fn clean(dry_run: bool) -> i32 {
 
     let mut first = true;
     loop {
-        let empty_dirs = load_workspace(&workspace_dir, &url_parser).1;
+        let empty_dirs = load_repo_tree(&repo_tree_dir, &url_parser).1;
 
         if empty_dirs.is_empty() {
             if first {

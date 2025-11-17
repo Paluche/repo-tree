@@ -1,5 +1,5 @@
 use crate::{
-    Config, Repository, UrlParser, get_workspace_dir, git, jujutsu,
+    Config, Repository, UrlParser, get_repo_tree_dir, git, jujutsu,
     version_control_system::VersionControlSystem,
 };
 use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
@@ -63,7 +63,7 @@ pub fn prompt(repo_path: PathBuf) -> i32 {
     SHOULD_COLORIZE.set_override(true);
 
     let repo = Repository::discover(
-        &get_workspace_dir(),
+        &get_repo_tree_dir(),
         repo_path,
         &UrlParser::new(&Config::default()),
     )

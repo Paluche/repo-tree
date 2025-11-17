@@ -1,5 +1,5 @@
 use crate::{
-    Config, Repository, UrlParser, get_workspace_dir,
+    Config, Repository, UrlParser, get_repo_tree_dir,
     git::{self, GitStatus, SubmoduleStatus},
 };
 use colored::Colorize;
@@ -95,9 +95,9 @@ fn format_repo_status(
 }
 
 pub fn status(repo_path: PathBuf) -> i32 {
-    let workspace_dir = get_workspace_dir();
+    let repo_tree_dir = get_repo_tree_dir();
     let Some(repository) = Repository::discover(
-        &workspace_dir,
+        &repo_tree_dir,
         repo_path,
         &UrlParser::new(&Config::default()),
     )
@@ -106,7 +106,7 @@ pub fn status(repo_path: PathBuf) -> i32 {
         exit(1);
     };
 
-    let expected_root = repository.expected_root(&workspace_dir);
+    let expected_root = repository.expected_root(&repo_tree_dir);
 
     if let Some(expected_root) = expected_root
         && repository.root != expected_root

@@ -38,23 +38,23 @@ enum Action {
     /// Resolve the name of a repository into its path.
     Resolve {
         /// Repository identifier to resolve into the actual path within the
-        /// workspace.
+        /// repo_tree.
         #[arg(add=ArgValueCompleter::new(resolve_completer))]
         repo_id: Option<String>,
     },
-    /// List all repositories in the workspace.
+    /// List all repositories in the repo_tree.
     List,
-    /// Display a tree of your workspace.
+    /// Display a tree of your repo_tree.
     Tree,
-    /// Clean the workspace. Move the repositories where they belong and remove
+    /// Clean the repo_tree. Move the repositories where they belong and remove
     /// empty directories.
     Clean {
-        /// Do not perform any change on the workspace. Simply print what would
+        /// Do not perform any change on the repo_tree. Simply print what would
         /// be done.
         #[arg(short, long)]
         dry_run: bool,
     },
-    /// Fetch all the repositories within the workspace.
+    /// Fetch all the repositories within the repo_tree.
     Fetch {},
     /// Actions for any type of repository.
     Repo {

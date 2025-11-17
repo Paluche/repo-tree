@@ -1,6 +1,6 @@
-//! Clone a repository into the workspace.
+//! Clone a repository into the repo_tree.
 use crate::{
-    Config, Host, UrlParser, VersionControlSystem, get_workspace_dir, git,
+    Config, Host, UrlParser, VersionControlSystem, get_repo_tree_dir, git,
     jujutsu, repository,
 };
 
@@ -17,8 +17,8 @@ fn do_clone(
     name: String,
     vcs: VersionControlSystem,
 ) -> i32 {
-    let workspace_dir = &get_workspace_dir();
-    let location = repository::location(workspace_dir, &host, &name);
+    let repo_tree_dir = &get_repo_tree_dir();
+    let location = repository::location(repo_tree_dir, &host, &name);
 
     if location.exists() {
         if let Some((current_vcs, _)) =

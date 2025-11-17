@@ -11,7 +11,7 @@
 //! ```
 //!
 //! ``` bash
-//! # Clone a repository using jj at the correct location in the workspace.
+//! # Clone a repository using jj at the correct location in the repo tree.
 //! function jj_clone() {
 //!     // TODO
 //! }
@@ -19,7 +19,7 @@
 //!
 //!
 use crate::{
-    Config, Repository, UrlParser, get_workspace_dir, load_workspace,
+    Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree,
 };
 use clap::builder::StyledStr;
 use clap_complete::engine::CompletionCandidate;
@@ -92,13 +92,13 @@ fn reduce_repo_names(
 }
 
 fn get_repositories() -> HashMap<String, Repository> {
-    let (repositories, empty_dirs) = load_workspace(
-        &get_workspace_dir(),
+    let (repositories, empty_dirs) = load_repo_tree(
+        &get_repo_tree_dir(),
         &UrlParser::new(&Config::default()),
     );
 
     for empty_dir in empty_dirs {
-        eprintln!("Empty directory in WORKSPACE_DIR: {}", empty_dir.display());
+        eprintln!("Empty directory in REPO_TREE_DIR: {}", empty_dir.display());
     }
 
     let mut ret = reduce_repo_names(repositories.clone());

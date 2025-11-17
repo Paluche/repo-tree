@@ -17,14 +17,14 @@ impl HostWorkDir {
     }
 }
 
-/// Either the repository is within the ${WORKSPACE_DIR}/local directory
+/// Either the repository is within the ${REPO_TREE_DIR}/local directory
 /// allowing the user to organize as see fits this directory.
 /// Or take the directory name.
 fn compute_local_path<P: AsRef<Path>>(
-    workspace_dir: &Path,
+    repo_tree_dir: &Path,
     repo_path: &P,
 ) -> String {
-    let local_dir = workspace_dir.join("local");
+    let local_dir = repo_tree_dir.join("local");
     let repo_path = repo_path.as_ref();
     assert!(repo_path.is_absolute(), "repo_path is not absolute");
     assert!(local_dir.is_absolute(), "local_dir is not absolute");
@@ -54,7 +54,7 @@ impl<'a> UrlParser<'a> {
         }
     }
 
-    fn get_host_workspace_dir(&self, host_url: &str) -> HostWorkDir {
+    fn get_host_work_dir(&self, host_url: &str) -> HostWorkDir {
         self.config.get_host(host_url).cloned().map_or_else(
             || HostWorkDir::Missing(host_url.to_string()),
             HostWorkDir::Resolved,
@@ -103,24 +103,24 @@ impl<'a> UrlParser<'a> {
         remote_url: &str,
     ) -> Option<(Option<Host>, String)> {
         let remote_cap = Self::capture_url(remote_url)?;
-        let host_workspace_dir =
-            self.get_host_workspace_dir(&remote_cap["host"]);
+        let host_repo_tree_dir =
+            self.get_host_work_dir(&remote_cap["host"]);
 
-        if let HostWorkDir::Missing(host) = &host_workspace_dir
+        if let HostWorkDir::Missing(host) = &host_repo_tree_dir
             && !self.missing_hosts.contains(host)
         {
             eprintln!("Missing host configuration for {host}");
         }
 
         Some((
-            host_workspace_dir.into_option(),
+            host_repo_tree_dir.into_option(),
             remote_cap["path"].to_string(),
         ))
     }
 
     pub fn parse_repo_url<P: AsRef<Path>>(
         &self,
-        workspace_dir: &Path,
+        repo_tree_dir: &Path,
         repo_path: &P,
         remote_url: Option<&String>,
     ) -> (Option<Host>, String) {
@@ -129,7 +129,7 @@ impl<'a> UrlParser<'a> {
             .unwrap_or_else(|| {
                 (
                     Some(self.config.local.clone()),
-                    compute_local_path(workspace_dir, repo_path),
+                    compute_local_path(repo_tree_dir, repo_path),
                 )
             })
     }

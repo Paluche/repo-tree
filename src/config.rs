@@ -1,5 +1,5 @@
 //! Format of the configuration file.
-//! Should be located in `${XDG_CONFIG_HOME}/workspace/config.yml`.
+//! Should be located in `${XDG_CONFIG_HOME}/repo-tree/config.yml`.
 //! If `XDG_CONFIG_HOME` is not set, then we will use the value
 //! `${HOME}/.config` in place.
 
@@ -58,7 +58,7 @@ fn load_config(hosts: &mut Hosts) -> Result<(), Box<dyn Error>> {
         |x| Ok(PathBuf::from(x)),
     )?;
 
-    config_path.push("workspace");
+    config_path.push("repo-tree");
     config_path.push("config.yml");
 
     if !config_path.is_file() {

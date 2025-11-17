@@ -1,3 +1,3 @@
 fn main() {
-    std::process::exit(workspace::cli::run());
+    std::process::exit(repo_tree::cli::run());
 }

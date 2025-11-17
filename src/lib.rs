@@ -18,23 +18,23 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub fn get_workspace_dir() -> PathBuf {
+pub fn get_repo_tree_dir() -> PathBuf {
     let ret = PathBuf::from(
-        &env::var("WORKSPACE_DIR")
-            .expect("Missing WORKSPACE_DIR environment variable"),
+        &env::var("REPO_TREE_DIR")
+            .expect("Missing REPO_TREE_DIR environment variable"),
     );
 
     assert!(
         ret.is_absolute(),
-        "WORKSPACE_DIR value must be an absolute path"
+        "REPO_TREE_DIR value must be an absolute path"
     );
 
     ret
 }
 
-pub fn load_workspace(
-    workspace_dir: &Path,
+pub fn load_repo_tree(
+    repo_tree_dir: &Path,
     url_parser: &UrlParser,
 ) -> (Vec<Repository>, Vec<PathBuf>) {
-    repository::search(workspace_dir, url_parser)
+    repository::search(repo_tree_dir, url_parser)
 }
