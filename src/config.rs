@@ -83,7 +83,8 @@ fn parse_hosts(
         "Expecting \"hosts\" entries in the format
         \n<url (string)>:
         \n    name: <string>
-        \n    repr: <string>"
+        \n    repr: <string> (optional)
+        \n    expr_color: <u8> (ANSI color number, optional)"
             .to_string(),
     ));
 
@@ -113,6 +114,7 @@ fn parse_host(
 ) -> Result<(), ParseError> {
     let mut name: Option<String> = None;
     let mut repr: Option<String> = None;
+    let mut repr_color: Option<u8> = None;
 
     let error_msg_prefix = format!("Host \"{url}\": ");
     let format_error = Err(ParseError::new(
@@ -121,7 +123,8 @@ fn parse_host(
             "{error_msg_prefix}Expecting \"hosts\" entries in the format
         \n<string>:
         \n    name: <string>
-        \n    repr: <string>"
+        \n    repr: <string> (optional)
+        \n    expr_color: <int> (ANSI color number, optional)"
         ),
     ));
 
@@ -144,6 +147,12 @@ fn parse_host(
                     Some(v) => v.to_string(),
                 });
             }
+            "repr_color" => {
+                repr_color = Some(match value.as_i64().map(|v| v as u8) {
+                    None => return format_error,
+                    Some(v) => v,
+                });
+            }
             key => {
                 return Err(ParseError::new(
                     config_path,
@@ -160,10 +169,18 @@ fn parse_host(
                 config_path,
                 format!("{error_msg_prefix}Missing \"url\" entry"),
             ))?,
-            repr: repr.ok_or(ParseError::new(
-                config_path,
-                format!("{error_msg_prefix}Missing \"repr\" entry"),
-            ))?,
+            repr: repr.map_or(
+                Err(ParseError::new(
+                    config_path,
+                    format!("{error_msg_prefix}Missing \"repr\" entry"),
+                )),
+                |r| {
+                    Ok(repr_color.map_or_else(
+                        || r.clone(),
+                        |c| r.ansi_color(c).to_string(),
+                    ))
+                },
+            )?,
         },
     );
 
