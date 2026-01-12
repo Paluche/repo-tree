@@ -16,7 +16,7 @@ colored = "3.1.1"
 fuzzy-matcher = "0.3.7"
 git2 = { version = "0.20.4", default-features=false }
 itertools = "0.14.0"
-jj-lib = "0.37.0"
+jj-lib = "0.38.0"
 regex = "1.12.3"
 strum = { version = "0.27.2", features = ["derive"] }
 url = "2.5.8"
