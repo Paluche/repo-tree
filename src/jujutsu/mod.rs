@@ -19,11 +19,12 @@ use jj_lib::{
 pub use prompt::prompt;
 
 pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
-    let repo_dir = repo_path.as_ref().to_path_buf().join(".jj").join("repo");
+    let jj_dir = repo_path.as_ref().to_path_buf().join(".jj");
+    let repo_dir = jj_dir.join("repo");
 
     Ok(if repo_dir.is_file() {
         // jj workspace
-        PathBuf::from(read_to_string(repo_dir)?)
+        jj_dir.join(read_to_string(repo_dir)?).canonicalize()?
     } else {
         repo_dir
     })
