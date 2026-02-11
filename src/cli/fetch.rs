@@ -22,6 +22,7 @@ pub fn fetch_repo(
     url_parser: &UrlParser,
     quiet: bool,
     repository: &Repository,
+    is_submodule: bool,
 ) -> Result<(usize, usize), Box<dyn Error>> {
     let mut ok: usize = 0;
     let mut total: usize = 0;
@@ -40,19 +41,31 @@ pub fn fetch_repo(
             &Repository::try_new(repo_tree_dir, root.clone(), url_parser)?
         {
             let (_ok, _total) =
-                fetch_repo(repo_tree_dir, url_parser, quiet, repo)?;
+                fetch_repo(repo_tree_dir, url_parser, quiet, repo, true)?;
             ok += _ok;
             total += _total;
         } else {
-            eprintln!("No repository found in {}", root.display());
+            eprintln!("No submodule found in {}", root.display());
         }
     }
 
     ok += if match repository.vcs {
         VersionControlSystem::Jujutsu | VersionControlSystem::JujutsuGit => {
+            if !quiet {
+                println!(
+                    "Fetching jujutsu {}repository {}",
+                    if is_submodule { "submodule " } else { "" },
+                    repository.id
+                );
+            }
             jujutsu::git::fetch(&repository.root, quiet)
         }
-        VersionControlSystem::Git => git::fetch(&repository.root, quiet),
+        VersionControlSystem::Git => {
+            if !quiet {
+                println!("Fetching git repository {}", repository.id);
+            }
+            git::fetch(&repository.root, quiet)
+        }
     } == 0
     {
         1
@@ -74,7 +87,7 @@ pub fn run(args: FetchArgs) -> i32 {
     let (ok, total) = repositories
         .iter()
         .map(|r| {
-            fetch_repo(&repo_tree_dir, &url_parser, args.quiet, r)
+            fetch_repo(&repo_tree_dir, &url_parser, args.quiet, r, false)
                 .unwrap_or((0, 1))
         })
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
