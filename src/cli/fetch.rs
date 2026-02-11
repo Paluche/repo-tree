@@ -24,6 +24,7 @@ pub fn fetch_repo(
     config: &Config,
     quiet: bool,
     repository: &Repository,
+    is_submodule: bool,
 ) -> Result<(usize, usize), Box<dyn Error>> {
     let mut ok: usize = 0;
     let mut total: usize = 0;
@@ -39,16 +40,28 @@ pub fn fetch_repo(
         let root = submodule.abs_path();
         let repository = Repository::try_new(config, root.clone())?;
 
-        let (_ok, _total) = fetch_repo(config, quiet, &repository)?;
+        let (_ok, _total) = fetch_repo(config, quiet, &repository, true)?;
         ok += _ok;
         total += _total;
     }
 
     ok += if match repository.vcs {
         VersionControlSystem::Jujutsu | VersionControlSystem::JujutsuGit => {
+            if !quiet {
+                println!(
+                    "Fetching jujutsu {}repository {}",
+                    if is_submodule { "submodule " } else { "" },
+                    repository.id
+                );
+            }
             jujutsu::git::fetch(&repository.root, quiet)
         }
-        VersionControlSystem::Git => git::fetch(&repository.root, quiet),
+        VersionControlSystem::Git => {
+            if !quiet {
+                println!("Fetching git repository {}", repository.id);
+            }
+            git::fetch(&repository.root, quiet)
+        }
     } == 0
     {
         1
@@ -66,7 +79,7 @@ pub fn run(config: &Config, args: FetchArgs) -> i32 {
 
     let (ok, total) = repositories
         .iter()
-        .map(|r| fetch_repo(config, args.quiet, r).unwrap_or((0, 1)))
+        .map(|r| fetch_repo(config, args.quiet, r, false).unwrap_or((0, 1)))
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
         .unwrap_or((0, 0));
 
