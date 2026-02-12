@@ -53,54 +53,6 @@ pub struct Host {
 
 pub type Hosts = HashMap<String, Host>;
 
-fn load_config(hosts: &mut Hosts) -> Result<(), Box<dyn Error>> {
-    let mut config_path = std::env::var("XDG_CONFIG_HOME").map_or(
-        std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
-        |x| Ok(PathBuf::from(x)),
-    )?;
-
-    config_path.push("repo-tree");
-    config_path.push("config.yml");
-
-    if !config_path.is_file() {
-        // No configuration file present.
-        return Ok(());
-    }
-
-    let config = YamlLoader::load_from_str(&fs::read_to_string(&config_path)?)?;
-
-    parser_assert(
-        config.len() == 1,
-        ParseError::new(
-            &config_path,
-            "A: Expecting only entries in the format `string: string`"
-                .to_string(),
-        ),
-    )?;
-
-    let hash = config.first().unwrap().as_hash().ok_or(ParseError::new(
-        &config_path,
-        "B: Expecting only entries in the format `string: string`".to_string(),
-    ))?;
-
-    for (key, value) in hash {
-        let key = String::from(key.as_str().ok_or(ParseError::new(
-            &config_path,
-            "Expecting configuration keys to be strings".to_string(),
-        ))?);
-
-        match key.as_str() {
-            "hosts" => parse_hosts(&config_path, hosts, value),
-            key => Err(ParseError::new(
-                &config_path,
-                format!("Unknown key \"{key}\""),
-            )),
-        }?;
-    }
-
-    Ok(())
-}
-
 fn parse_hosts(
     config_path: &Path,
     hosts: &mut Hosts,
@@ -211,6 +163,60 @@ pub struct Config {
     pub local: Host,
 }
 
+impl Config {
+    fn load_config(hosts: Hosts, local: Host) -> Result<Self, Box<dyn Error>> {
+        let mut ret = Self { hosts, local };
+
+        let mut config_path = std::env::var("XDG_CONFIG_HOME").map_or(
+            std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
+            |x| Ok(PathBuf::from(x)),
+        )?;
+
+        config_path.push("repo-tree");
+        config_path.push("config.yml");
+
+        if !config_path.is_file() {
+            // No configuration file present.
+            return Ok(ret);
+        }
+
+        let config =
+            YamlLoader::load_from_str(&fs::read_to_string(&config_path)?)?;
+
+        parser_assert(
+            config.len() == 1,
+            ParseError::new(
+                &config_path,
+                "A: Expecting only entries in the format `string: string`"
+                    .to_string(),
+            ),
+        )?;
+
+        let hash = config.first().unwrap().as_hash().ok_or(ParseError::new(
+            &config_path,
+            "B: Expecting only entries in the format `string: string`"
+                .to_string(),
+        ))?;
+
+        for (key, value) in hash {
+            let key = String::from(key.as_str().ok_or(ParseError::new(
+                &config_path,
+                "Expecting configuration keys to be strings".to_string(),
+            ))?);
+
+            match key.as_str() {
+                "hosts" => parse_hosts(&config_path, &mut ret.hosts, value),
+                key => Err(ParseError::new(
+                    &config_path,
+                    format!("Unknown key \"{key}\""),
+                )),
+            }?;
+        }
+
+        Ok(ret)
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         let mut hosts = HashMap::new();
@@ -228,20 +234,17 @@ impl Default for Config {
             hosts.insert(url, Host { name, repr });
         });
 
-        load_config(&mut hosts)
+        let local = Host {
+            name: "local".to_string(),
+            repr: "󰋊".to_string(),
+        };
+
+        Self::load_config(hosts, local)
             .inspect_err(|e| {
                 eprintln!("{e}");
                 exit(1);
             })
-            .unwrap();
-
-        Self {
-            hosts,
-            local: Host {
-                name: "local".to_string(),
-                repr: "󰋊".to_string(),
-            },
-        }
+            .unwrap()
     }
 }
 
