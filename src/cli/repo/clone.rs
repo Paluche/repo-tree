@@ -4,13 +4,6 @@ use crate::{
     jujutsu, repository,
 };
 
-fn prompt_for_vcs() -> VersionControlSystem {
-    panic!(
-        "Not implemented yet: Prompt to select the clone method, with
-        JujutsuGit as default."
-    );
-}
-
 fn do_clone(
     remote_url: String,
     host: Host,
@@ -69,7 +62,7 @@ pub fn clone(remote_url: String, vcs: Option<VersionControlSystem>) -> i32 {
 
     if let Some((host, name)) = parsed_url {
         if let Some(host) = host {
-            do_clone(remote_url, host, name, vcs.unwrap_or_else(prompt_for_vcs))
+            do_clone(remote_url, host, name, vcs.unwrap_or(config.vcs))
         } else {
             eprintln!("Unknown host");
             1
