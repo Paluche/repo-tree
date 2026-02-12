@@ -14,7 +14,7 @@ pub fn root(parent: bool, print_type: bool) -> i32 {
     {
         print!("{}", root.display());
         if print_type {
-            println!(" {} {}", vcs.is_git(), vcs.is_jujutsu(),);
+            println!("\n{}\n{}", vcs.is_git(), vcs.is_jujutsu(),);
         } else {
             println!();
         }
