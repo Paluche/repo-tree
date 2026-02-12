@@ -71,7 +71,7 @@ impl Directory {
             f,
             "{prefix}{}{}",
             dir_state.get_dir_prefix(),
-            current_dir.to_string().blue()
+            current_dir.to_string().blue(),
         )?;
 
         if let Some(r) = &current.repository {
@@ -80,14 +80,15 @@ impl Directory {
             if let Some(remote_url) = r.id.remote_url.clone() {
                 writeln!(
                     f,
-                    "{prefix}{}{}",
+                    "{prefix}{}{} {}",
                     if submodules.is_empty() {
                         DirState::FinalSubDir
                     } else {
                         DirState::SubDir
                     }
                     .get_subdir_prefix(),
-                    remote_url.green()
+                    remote_url.green(),
+                    r.vcs.short_display(),
                 )?;
             }
             if !submodules.is_empty() {
