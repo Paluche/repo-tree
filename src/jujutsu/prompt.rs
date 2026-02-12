@@ -1,3 +1,6 @@
+use std::path::Path;
+
+use colored::Colorize;
 use itertools::Itertools;
 use jj_lib::{
     backend::{BackendResult, CommitId},
@@ -8,8 +11,6 @@ use jj_lib::{
 
 use super::load;
 use crate::cli::PromptBuilder;
-use colored::Colorize;
-use std::path::Path;
 
 fn commit_descendants(
     repo: &dyn Repo,
@@ -35,8 +36,7 @@ pub fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
         Some(c) => c,
     };
 
-    let Ok(descendants) = commit_descendants(repo.as_ref(), commit.id())
-    else {
+    let Ok(descendants) = commit_descendants(repo.as_ref(), commit.id()) else {
         return 1;
     };
 

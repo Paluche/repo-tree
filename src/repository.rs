@@ -1,15 +1,16 @@
 //! Representation of a repository.
+use std::{
+    error::Error,
+    fmt::Display,
+    path::{Path, PathBuf},
+};
+
 use crate::{
     UrlParser,
     config::Host,
     git::{self, SubmoduleInfo},
     jujutsu,
     version_control_system::VersionControlSystem,
-};
-use std::{
-    error::Error,
-    fmt::Display,
-    path::{Path, PathBuf},
 };
 
 #[derive(Debug, Clone, Hash)]
@@ -68,8 +69,7 @@ impl Repository {
 
         while current_path.is_some() {
             let root = current_path.clone().unwrap();
-            if let Some(repo) =
-                Self::try_new(repo_tree_dir, root, url_parser)?
+            if let Some(repo) = Self::try_new(repo_tree_dir, root, url_parser)?
             {
                 return Ok(Some(repo));
             }

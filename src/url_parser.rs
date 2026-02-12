@@ -1,7 +1,9 @@
 //! Tools around parsing of repositories URL.
-use crate::config::{Config, Host};
-use regex::Regex;
 use std::path::{Path, PathBuf};
+
+use regex::Regex;
+
+use crate::config::{Config, Host};
 
 enum HostWorkDir {
     Missing(String),
@@ -103,8 +105,7 @@ impl<'a> UrlParser<'a> {
         remote_url: &str,
     ) -> Option<(Option<Host>, String)> {
         let remote_cap = Self::capture_url(remote_url)?;
-        let host_repo_tree_dir =
-            self.get_host_work_dir(&remote_cap["host"]);
+        let host_repo_tree_dir = self.get_host_work_dir(&remote_cap["host"]);
 
         if let HostWorkDir::Missing(host) = &host_repo_tree_dir
             && !self.missing_hosts.contains(host)

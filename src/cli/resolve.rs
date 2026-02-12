@@ -16,22 +16,20 @@
 //!     // TODO
 //! }
 //! ```
-//!
-//!
-use crate::{
-    Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree,
-};
-use clap::builder::StyledStr;
-use clap_complete::engine::CompletionCandidate;
-use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
-use itertools::Itertools;
 use std::{
     collections::HashMap,
     io::Write,
     iter::zip,
     process::{Command, Stdio},
 };
+
+use clap::builder::StyledStr;
+use clap_complete::engine::CompletionCandidate;
+use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
+use itertools::Itertools;
 use which::which;
+
+use crate::{Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree};
 
 /// Find the shortest end-path to identify two
 fn reduce(path_a: String, path_b: String) -> Option<(String, String)> {
@@ -213,9 +211,7 @@ pub fn resolve_completer(
                             .clone()
                             .map(|h| StyledStr::from(h.name)),
                     )
-                    .help(
-                        repository.id.remote_url.clone().map(StyledStr::from),
-                    )
+                    .help(repository.id.remote_url.clone().map(StyledStr::from))
             })
         })
         .collect()

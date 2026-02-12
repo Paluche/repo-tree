@@ -1,8 +1,8 @@
-use crate::{
-    Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree,
-};
-use colored::Colorize;
 use std::{collections::HashMap, ffi::OsStr, fmt::Display, path::PathBuf};
+
+use colored::Colorize;
+
+use crate::{Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree};
 
 enum DirState {
     Root,
@@ -104,8 +104,7 @@ impl Directory {
                         );
                         let config_url =
                             option_to_str(submodule.config_url.clone());
-                        let resolved_url =
-                            option_to_str(submodule.url.clone());
+                        let resolved_url = option_to_str(submodule.url.clone());
 
                         if config_url == resolved_url {
                             format!("{} {}", head_id, config_url)

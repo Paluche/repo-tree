@@ -21,8 +21,7 @@ fn do_clone(
     let location = repository::location(repo_tree_dir, &host, &name);
 
     if location.exists() {
-        if let Some((current_vcs, _)) =
-            VersionControlSystem::try_new(&location)
+        if let Some((current_vcs, _)) = VersionControlSystem::try_new(&location)
         {
             if current_vcs == vcs {
                 eprintln!("{vcs} repository already cloned");
@@ -35,7 +34,8 @@ fn do_clone(
                 jujutsu::git::init_colocate(&location)
             } else {
                 eprintln!(
-                    "{vcs} repository already cloned but is a {current_vcs} repository"
+                    "{vcs} repository already cloned but is a {current_vcs} \
+                     repository"
                 );
                 println!("{}", location.display());
                 0
@@ -69,12 +69,7 @@ pub fn clone(remote_url: String, vcs: Option<VersionControlSystem>) -> i32 {
 
     if let Some((host, name)) = parsed_url {
         if let Some(host) = host {
-            do_clone(
-                remote_url,
-                host,
-                name,
-                vcs.unwrap_or_else(prompt_for_vcs),
-            )
+            do_clone(remote_url, host, name, vcs.unwrap_or_else(prompt_for_vcs))
         } else {
             eprintln!("Unknown host");
             1

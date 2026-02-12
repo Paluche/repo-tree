@@ -1,9 +1,11 @@
+use std::{fmt::Display, path::PathBuf};
+
+use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
+
 use crate::{
     Config, Repository, UrlParser, get_repo_tree_dir, git, jujutsu,
     version_control_system::VersionControlSystem,
 };
-use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
-use std::{fmt::Display, path::PathBuf};
 
 pub struct PromptBuilder {
     prompt: String,
@@ -85,7 +87,9 @@ pub fn prompt(repo_path: PathBuf) -> i32 {
             }
             jujutsu::prompt(&repository.root, &mut info)
         }
-        VersionControlSystem::Jujutsu => jujutsu::prompt(&repository.root, &mut info),
+        VersionControlSystem::Jujutsu => {
+            jujutsu::prompt(&repository.root, &mut info)
+        }
     };
 
     if ret == 0 {

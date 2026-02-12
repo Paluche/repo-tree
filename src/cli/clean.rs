@@ -1,10 +1,9 @@
 //! Action to clean the repo_tree.
 //! Replace the repositories where they belong to.
 
-use crate::{
-    Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree,
-};
 use std::fs::{create_dir_all, remove_dir, rename};
+
+use crate::{Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree};
 
 pub fn clean(dry_run: bool) -> i32 {
     let repo_tree_dir = get_repo_tree_dir();

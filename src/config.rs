@@ -3,7 +3,6 @@
 //! If `XDG_CONFIG_HOME` is not set, then we will use the value
 //! `${HOME}/.config` in place.
 
-use colored::Colorize;
 use std::{
     collections::HashMap,
     error::Error,
@@ -12,6 +11,8 @@ use std::{
     path::{Path, PathBuf},
     process::exit,
 };
+
+use colored::Colorize;
 use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
 
 #[derive(Debug, Clone)]
@@ -66,8 +67,7 @@ fn load_config(hosts: &mut Hosts) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let config =
-        YamlLoader::load_from_str(&fs::read_to_string(&config_path)?)?;
+    let config = YamlLoader::load_from_str(&fs::read_to_string(&config_path)?)?;
 
     parser_assert(
         config.len() == 1,
