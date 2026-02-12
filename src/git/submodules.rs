@@ -167,16 +167,21 @@ pub fn get<P: AsRef<Path>>(
         ret.push(if let Some(conf_url) = submodule.url() {
             let head = submodule.head_id();
             let actual_head = submodule.index_id();
-            let (ahead, behind) =
-                if let (Some(head), Some(actual_head)) = (head, actual_head) {
-                    let head_obj = repo.find_commit(head)?;
-                    let actual_obj = repo.find_commit(actual_head)?;
+            let (ahead, behind) = if let (Some(head), Some(actual_head)) =
+                (head, actual_head)
+            {
+                if let (Ok(head_obj), Ok(actual_obj)) =
+                    (repo.find_commit(head), repo.find_commit(actual_head))
+                {
                     let (a, b) = repo
                         .graph_ahead_behind(actual_obj.id(), head_obj.id())?;
                     (Some(a), Some(b))
                 } else {
                     (None, None)
-                };
+                }
+            } else {
+                (None, None)
+            };
 
             SubmoduleInfo {
                 main_repo_root: main_repo_root.clone(),
