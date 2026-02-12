@@ -12,8 +12,11 @@ use std::{
     process::exit,
 };
 
+use clap::ValueEnum;
 use colored::Colorize;
 use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
+
+use crate::VersionControlSystem;
 
 #[derive(Debug, Clone)]
 struct ParseError {
@@ -158,14 +161,38 @@ fn parse_host(
     Ok(())
 }
 
+fn parse_vcs(
+    config_path: &Path,
+    value: &Yaml,
+) -> Result<VersionControlSystem, ParseError> {
+    VersionControlSystem::from_str(
+        value.as_str().ok_or(ParseError::new(
+            config_path,
+            "Invalid value for \"vcs\" key".to_string(),
+        ))?,
+        true,
+    )
+    .map_err(|e| {
+        ParseError::new(
+            config_path,
+            format!("Invalid value for \"vcs\" key: {e}"),
+        )
+    })
+}
+
 pub struct Config {
     pub hosts: Hosts,
     pub local: Host,
+    pub vcs: VersionControlSystem,
 }
 
 impl Config {
-    fn load_config(hosts: Hosts, local: Host) -> Result<Self, Box<dyn Error>> {
-        let mut ret = Self { hosts, local };
+    fn load_config(
+        hosts: Hosts,
+        local: Host,
+        vcs: VersionControlSystem,
+    ) -> Result<Self, Box<dyn Error>> {
+        let mut ret = Self { hosts, local, vcs };
 
         let mut config_path = std::env::var("XDG_CONFIG_HOME").map_or(
             std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
@@ -205,12 +232,13 @@ impl Config {
             ))?);
 
             match key.as_str() {
-                "hosts" => parse_hosts(&config_path, &mut ret.hosts, value),
+                "hosts" => parse_hosts(&config_path, &mut ret.hosts, value)?,
+                "vcs" => ret.vcs = parse_vcs(&config_path, value)?,
                 key => Err(ParseError::new(
                     &config_path,
                     format!("Unknown key \"{key}\""),
-                )),
-            }?;
+                ))?,
+            };
         }
 
         Ok(ret)
@@ -239,7 +267,7 @@ impl Default for Config {
             repr: "󰋊".to_string(),
         };
 
-        Self::load_config(hosts, local)
+        Self::load_config(hosts, local, VersionControlSystem::JujutsuGit)
             .inspect_err(|e| {
                 eprintln!("{e}");
                 exit(1);
