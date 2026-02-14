@@ -7,11 +7,11 @@ The repositories are organized in the Repository Tree root directory specified
 by the `REPO_TREE_DIR` environment variable.
 
 Features:
+
 - Keep the Repo Tree organized, with feature to clean.
 - Repository resolution, from name to an actual location. The util shell
   function `rcd` provides that feature.
-specifying
-
+  specifying
 
 ## Configuration
 
@@ -20,10 +20,22 @@ name:
 
 ```yaml
 hosts:
-  github.com: github
-  gitlab.com: gitlab
-  bitbucket.org: bitbucket
-  git.kernel.org: kernel
+  github.com:
+    name: github
+    repr: 
+    repr_color: 15 # White
+  gitlab.com:
+    name: gitlab
+    repr: 󰮠
+    repr_color: 166 # Orange
+  bitbucket.org:
+    name: bitbucket
+    repr: 
+    repr_color: 12 # Blue
+  git.kernel.org:
+    name: kernel
+    repr: 
+    repr_color: 15 # White
 ```
 
 You can override or extend this configuration with editing the configuration
@@ -31,8 +43,10 @@ file `${HOME}/.config/repo-tree/config.yml`, for example:
 
 ```yaml
 hosts:
-  bitbucket.org: atlassian
-  my_company.gitlab.org: my_company
+  bitbucket.org:
+    name: atlassian
+  my_company.gitlab.org:
+    name: my_company
 ```
 
 ## Completion
@@ -75,3 +89,7 @@ Remove-Item Env:\COMPLETE
 ```
 
 To disable completions, you can set COMPLETE= or COMPLETE=0
+
+## Jumping from one repository to another
+
+TODO

@@ -2,6 +2,15 @@
 //! Should be located in `${XDG_CONFIG_HOME}/repo-tree/config.yml`.
 //! If `XDG_CONFIG_HOME` is not set, then we will use the value
 //! `${HOME}/.config` in place.
+//!
+//! Configuration Yaml file has the following syntax:
+//! ```yaml
+//! vcs: <VCS>  # Default VCS used to clone repositories
+//! hosts:
+//!    <URL>:
+//!       name: <DIR_NAME>
+//!       repr: <PROMPT REPRESENTATION>
+//! ```
 
 use std::{
     collections::HashMap,
