@@ -38,7 +38,7 @@ fn do_clone(
             1
         }
     } else {
-        match vcs {
+        let res = match vcs {
             VersionControlSystem::Git => git::clone(&remote_url, &location),
             VersionControlSystem::JujutsuGit => {
                 let res = git::clone(&remote_url, &location);
@@ -51,7 +51,11 @@ fn do_clone(
             VersionControlSystem::Jujutsu => {
                 jujutsu::git::clone(&remote_url, &location)
             }
+        };
+        if res == 0 {
+            println!("{}", location.display());
         }
+        res
     }
 }
 
