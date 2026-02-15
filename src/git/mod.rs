@@ -2,9 +2,10 @@ mod prompt;
 mod status;
 pub mod submodules;
 
+use std::{ffi::OsStr, path::Path, process::Command};
+
 pub use prompt::prompt;
 pub use status::{GitStatus, SubmoduleStatus, status};
-use std::{ffi::OsStr, path::Path, process::Command};
 pub use submodules::SubmoduleInfo;
 use which::which;
 
@@ -62,14 +63,20 @@ pub fn clone<P: AsRef<OsStr>>(remote_url: &str, location: P) -> i32 {
     res
 }
 
-pub fn fetch<P: AsRef<OsStr>>(location: P) -> i32 {
-    new_git_command()
-        .arg("-C")
+pub fn fetch<P: AsRef<OsStr>>(location: P, quiet: bool) -> i32 {
+    let mut cmd = new_git_command();
+
+    cmd.arg("-C")
         .arg(location)
         .arg("fetch")
         .arg("--prune-tags")
-        .arg("--force")
-        .status()
+        .arg("--force");
+
+    if quiet {
+        cmd.arg("--quiet");
+    }
+
+    cmd.status()
         .expect("Error executing command")
         .code()
         .unwrap()

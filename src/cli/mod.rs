@@ -1,9 +1,10 @@
+use std::{env, fs::canonicalize, io, path::PathBuf, process::exit};
+
 use clap::{Command, CommandFactory, Parser, Subcommand};
 use clap_complete::{
     CompleteEnv, Generator, PathCompleter, Shell, engine::ArgValueCompleter,
     generate,
 };
-use std::{env, fs::canonicalize, io, path::PathBuf, process::exit};
 
 mod clean;
 mod fetch;
@@ -18,12 +19,11 @@ use clean::clean;
 use fetch::fetch;
 use git::{GitAction, run_git};
 use list::list;
+pub use prompt::PromptBuilder;
 use prompt::prompt;
 use repo::{RepoAction, run_repo};
 use resolve::{resolve, resolve_completer};
 use tree::tree;
-
-pub use prompt::PromptBuilder;
 
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
@@ -55,7 +55,12 @@ enum Action {
         dry_run: bool,
     },
     /// Fetch all the repositories within the repo_tree.
-    Fetch {},
+    Fetch {
+        /// Suppress output to the minimum, only the final summary will be
+        /// printed.
+        #[arg(short, long)]
+        quiet: bool,
+    },
     /// Actions for any type of repository.
     Repo {
         #[command(subcommand)]
@@ -112,7 +117,7 @@ pub fn run() -> i32 {
         Action::List => list(),
         Action::Tree => tree(),
         Action::Clean { dry_run } => clean(dry_run),
-        Action::Fetch {} => fetch(),
+        Action::Fetch { quiet } => fetch(quiet),
         Action::Repo { action } => run_repo(action),
         Action::Git { action } => run_git(action),
         Action::Prompt { repository } => prompt(cwd_default_path(repository)),

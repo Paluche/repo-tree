@@ -1,51 +1,75 @@
 //! Fetch and update the whole repo_tree.
 
+use std::{error::Error, path::Path};
+
 use crate::{
     Config, Repository, UrlParser, VersionControlSystem, get_repo_tree_dir,
     git, jujutsu, load_repo_tree,
 };
-use std::{error::Error, path::Path};
 
 pub fn fetch_repo(
     repo_tree_dir: &Path,
     url_parser: &UrlParser,
+    quiet: bool,
     repository: &Repository,
-) -> Result<i32, Box<dyn Error>> {
+) -> Result<(usize, usize), Box<dyn Error>> {
+    let mut ok: usize = 0;
+    let mut total: usize = 0;
     if let Some(host) = &repository.id.host
         && host.name == "local"
     {
-        println!("Skipping local repository {}", repository.id);
-        return Ok(0);
+        eprintln!("Skipping local repository {}", repository.id);
+        return Ok((0, 0));
     }
-    println!("Fetching repository {}", repository.id);
+    if !quiet {
+        println!("Fetching repository {}", repository.id);
+    }
     for submodule in repository.submodules()? {
         let root = submodule.abs_path();
         if let Some(repo) =
             &Repository::try_new(repo_tree_dir, root.clone(), url_parser)?
         {
-            fetch_repo(repo_tree_dir, url_parser, repo)?;
+            let (_ok, _total) =
+                fetch_repo(repo_tree_dir, url_parser, quiet, repo)?;
+            ok += _ok;
+            total += _total;
         } else {
             eprintln!("No repository found in {}", root.display());
         }
     }
 
-    Ok(match repository.vcs {
+    ok += if match repository.vcs {
         VersionControlSystem::Jujutsu | VersionControlSystem::JujutsuGit => {
-            jujutsu::git::fetch(&repository.root)
+            jujutsu::git::fetch(&repository.root, quiet)
         }
-        VersionControlSystem::Git => git::fetch(&repository.root),
-    })
+        VersionControlSystem::Git => git::fetch(&repository.root, quiet),
+    } == 0
+    {
+        1
+    } else {
+        0
+    };
+    total += 1;
+
+    Ok((ok, total))
 }
 
-pub fn fetch() -> i32 {
+pub fn fetch(quiet: bool) -> i32 {
     let repo_tree_dir = get_repo_tree_dir();
     let config = Config::default();
     let url_parser = UrlParser::new(&config);
     let (repositories, _) =
         load_repo_tree(&repo_tree_dir, &UrlParser::new(&Config::default()));
 
-    repositories
+    let (ok, total) = repositories
         .iter()
-        .map(|r| fetch_repo(&repo_tree_dir, &url_parser, r).unwrap_or(1))
-        .sum()
+        .map(|r| {
+            fetch_repo(&repo_tree_dir, &url_parser, quiet, r).unwrap_or((0, 1))
+        })
+        .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
+        .unwrap_or((0, 0));
+
+    println!("{ok}/{total} repository fetched");
+
+    if ok == total { 0 } else { 1 }
 }

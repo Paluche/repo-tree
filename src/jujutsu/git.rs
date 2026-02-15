@@ -9,9 +9,8 @@ use std::{
 
 use which::which;
 
-use crate::git;
-
 use super::get_repo_dir;
+use crate::git;
 
 pub fn get_git_backend_repo<P: AsRef<Path>>(
     repo_path: P,
@@ -58,14 +57,19 @@ pub fn init_colocate<P: AsRef<OsStr>>(location: P) -> i32 {
         .unwrap()
 }
 
-pub fn fetch<P: AsRef<OsStr>>(location: P) -> i32 {
-    new_jj_command()
-        .arg("--repository")
+pub fn fetch<P: AsRef<OsStr>>(location: P, quiet: bool) -> i32 {
+    let mut cmd = new_jj_command();
+    cmd.arg("--repository")
         .arg(location)
         .arg("git")
         .arg("fetch")
-        .arg("--all-remotes")
-        .status()
+        .arg("--all-remotes");
+
+    if quiet {
+        cmd.arg("--quiet");
+    }
+
+    cmd.status()
         .expect("Error executing command")
         .code()
         .unwrap()
