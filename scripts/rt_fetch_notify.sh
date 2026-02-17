@@ -6,9 +6,9 @@ export XDG_RUNTIME_DIR="/run/user/${USER}"
 
 notify-send "Fetching repositories" --expire-time 10000
 
-SUMMARY=$(rt fetch --quiet 2> /dev/null)
+SUMMARY=$(rt fetch --quiet 2>/dev/null)
 
 notify-send \
-  "Fetching done" \
-  "${SUMMARY}" \
-  --expire-time 10000
+	"Fetching done" \
+	"${SUMMARY}" \
+	--expire-time 10000

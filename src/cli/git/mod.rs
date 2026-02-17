@@ -1,6 +1,7 @@
-use crate::cli::cwd_default_path;
 use clap::Subcommand;
 use clap_complete::{PathCompleter, engine::ArgValueCompleter};
+
+use crate::cli::cwd_default_path;
 
 mod status_action;
 

@@ -1,10 +1,11 @@
 //! Enumeration listing the different type of Version Control System we support.
-use clap::ValueEnum;
-use colored::Colorize;
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
 };
+
+use clap::ValueEnum;
+use colored::Colorize;
 
 #[derive(Debug, Copy, Clone, ValueEnum, PartialEq)]
 pub enum VersionControlSystem {
@@ -32,10 +33,10 @@ impl VersionControlSystem {
         None
     }
 
-    /// Try to load the current version control system used by the current repository.
-    /// The path must correspond to the root of the repository.
-    /// Return a new instance of VersionControlSystem and a boolean to indicate if the repository
-    /// is a submodule or not.
+    /// Try to load the current version control system used by the current
+    /// repository. The path must correspond to the root of the repository.
+    /// Return a new instance of VersionControlSystem and a boolean to indicate
+    /// if the repository is a submodule or not.
     pub fn try_new(dir: &Path) -> Option<(Self, bool)> {
         fn exists(search_dir: &Path, dir: &str) -> (bool, bool) {
             let mut search_dir = search_dir.to_path_buf().clone();

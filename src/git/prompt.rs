@@ -1,6 +1,8 @@
-use crate::{cli::PromptBuilder, git};
-use colored::Colorize;
 use std::path::Path;
+
+use colored::Colorize;
+
+use crate::{cli::PromptBuilder, git};
 
 pub fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
     let git_status = git::status(&root.to_path_buf()).unwrap();

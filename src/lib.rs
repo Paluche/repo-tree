@@ -7,15 +7,16 @@ mod repository;
 mod url_parser;
 mod version_control_system;
 
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
+
 pub use crate::{
     config::{Config, Host},
     repository::Repository,
     url_parser::UrlParser,
     version_control_system::VersionControlSystem,
-};
-use std::{
-    env,
-    path::{Path, PathBuf},
 };
 
 pub fn get_repo_tree_dir() -> PathBuf {

@@ -1,10 +1,11 @@
-use git2::Oid;
-use regex::Regex;
 use std::{
     error::Error,
     fs::canonicalize,
     path::{Path, PathBuf},
 };
+
+use git2::Oid;
+use regex::Regex;
 use url::Url;
 
 /// Resolve a submodule URL that may be relative into an absolute URL,
@@ -15,12 +16,11 @@ use url::Url;
 ///   returned as-is
 /// - scp-style urls (git@host:owner/repo.git). If `submodule_url` is relative
 ///   (starts with ./ or ../), it is resolved against the base scp path.
-/// - relative pathlike urls (../foo/bar) resolved against the base remote
-///   path.
+/// - relative pathlike urls (../foo/bar) resolved against the base remote path.
 ///
 /// Notes / caveats:
-/// - Mirrors typical git behavior but is not an exact implementation of
-///   all git heuristics, the remote being deduced in order as:
+/// - Mirrors typical git behavior but is not an exact implementation of all git
+///   heuristics, the remote being deduced in order as:
 ///     1) "origin"
 ///     2) the first remote defined
 /// - Git has more subtle behavior (e.g. remote used for the branch you fetch
@@ -94,7 +94,8 @@ fn resolve_url<P: AsRef<Path>>(
                 .map(|p| p.to_string_lossy())
                 .unwrap_or_else(|| "".into());
             if !base_parent.is_empty() {
-                // note: url::Url::join works with trailing slashes; ensure one exists
+                // note: url::Url::join works with trailing slashes; ensure one
+                // exists
                 base_ssh.push_str(&format!("{}/", base_parent));
             }
 

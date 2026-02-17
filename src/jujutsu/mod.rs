@@ -2,13 +2,6 @@
 pub mod git;
 mod prompt;
 
-pub use git::get_remote_url;
-use jj_lib::{
-    config::StackedConfig,
-    repo::{ReadonlyRepo, RepoLoader, StoreFactories},
-    settings::UserSettings,
-};
-pub use prompt::prompt;
 use std::{
     error::Error,
     fs::read_to_string,
@@ -16,6 +9,14 @@ use std::{
     path::{Path, PathBuf},
     sync::Arc,
 };
+
+pub use git::get_remote_url;
+use jj_lib::{
+    config::StackedConfig,
+    repo::{ReadonlyRepo, RepoLoader, StoreFactories},
+    settings::UserSettings,
+};
+pub use prompt::prompt;
 
 pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
     let repo_dir = repo_path.as_ref().to_path_buf().join(".jj").join("repo");

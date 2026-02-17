@@ -1,11 +1,13 @@
-use crate::{
-    Config, Repository, UrlParser, get_repo_tree_dir,
-    git::{self, GitStatus, SubmoduleStatus},
-};
-use colored::Colorize;
 use std::{
     path::{Path, PathBuf},
     process::exit,
+};
+
+use colored::Colorize;
+
+use crate::{
+    Config, Repository, UrlParser, get_repo_tree_dir,
+    git::{self, GitStatus, SubmoduleStatus},
 };
 
 fn format_repo_status(
@@ -113,7 +115,7 @@ pub fn status(repo_path: PathBuf) -> i32 {
     {
         eprintln!(
             "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
-                should be in \"{}\".",
+             should be in \"{}\".",
             repository.id.name,
             repository.root.display(),
             expected_root.display(),
