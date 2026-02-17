@@ -99,7 +99,6 @@ To disable completions, you can set COMPLETE= or COMPLETE=0
 The following ZSH function allows you to easily jump from one repository to
 another, with auto-completion.
 
-
 If no argument are provided, then `rt` will ask you which repository to jump to
 interactively using `fzf` if installed.
 
