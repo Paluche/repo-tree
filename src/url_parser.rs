@@ -66,13 +66,14 @@ impl<'a> UrlParser<'a> {
     fn capture_url<'b>(url: &'b str) -> Option<regex::Captures<'b>> {
         // scheme-based URLs, e.g.:
         //   https://github.com/owner/repo.git
+        //   https://oauth2:<token>@github.com/owner/repo.git
         //   ssh://user@host:2222/owner/repo.git
         //   git://host/owner/repo
         //   file:///path/to/repo.git
         // Captures: scheme, user (optional), host, port (optional), path
         let re_scheme = Regex::new(concat!(
             r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
-            r"://(?:(?P<user>[^@/:]+)@)?(?P<host>[^/:]+)",
+            r"://(?:(?P<user>[^@]+)@)?(?P<host>[^/:]+)",
             r"(?::(?P<port>\d+))?/(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
         ))
         .unwrap();
