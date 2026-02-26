@@ -9,14 +9,13 @@ by the `REPO_TREE_DIR` environment variable.
 Features:
 
 - Keep the Repo Tree organized, with feature to clean.
-- Repository resolution, from name to an actual location. The util shell
+- Repository resolution, from a name to an actual location. The util shell
   function `rcd` provides that feature.
-  specifying
 
 ## Configuration
 
 The tool has the following defaults values to associate an URL host to a folder
-name:
+name and prompt representation:
 
 ```yaml
 hosts:
@@ -47,6 +46,8 @@ hosts:
     name: atlassian
   my_company.gitlab.org:
     name: my_company
+    repr: 󰮠
+    repr_color: 40  # Green
 ```
 
 ## Completion
@@ -135,7 +136,7 @@ function _rcd() {
 compdef _rcd rcd
 ```
 
-# Go To repository Root
+### Go To repository Root
 
 This function allow you to jump to the root of the current repository. If you
 are in a submodule, and already at the root it will jump to the root of the
@@ -154,7 +155,7 @@ function gtr()
 }
 ```
 
-# Clone a repository then jump at its root
+### Clone a repository then jump at its root
 
 ```zsh
 function repo_clone()
@@ -196,7 +197,7 @@ function _repo_clone() {
 compdef _repo_clone repo_clone
 ```
 
-# Having a cron to periodically fetch all your repositories
+### Having a cron to periodically fetch all your repositories
 
 The following script, will call `rt fetch` to have all your repositories
 fetched. It will print some information as desktop notification.
