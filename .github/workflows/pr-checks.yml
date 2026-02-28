@@ -1,0 +1,413 @@
+name: Validate pull request
+
+on:
+  pull_request:
+
+concurrency:
+  group: >-
+    ${{ github.workflow }}-${{
+      github.event.pull_request.number
+      || github.event.merge_group.head_ref
+    }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-gitlint:
+    # Do not run this check if the PR has been created by dependabot.
+    if: contains(github.event.pull_request.user.login , 'dependabot[bot]') == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: pip install gitlint
+      - name: Validate commits messages
+        uses: actions/github-script@450193c5abd4cdb17ba9f3ffcfe8f635c4bb6c2a # v8.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const debugEnabled = process.env.ACTIONS_STEP_DEBUG === 'true';
+            const pullRequestParams = {
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            };
+
+            const { data: commits } = await github.rest.pulls.listCommits(
+              pullRequestParams
+            );
+
+            // Start building the summary
+            core.summary
+              .addHeading('Gitlint Validation Report', 1)
+              .addEOL()
+              .addRaw(`**Total commits:** ${commits.length}`, true)
+              .addEOL();
+
+            let failedCount = 0;
+
+            for (const data of commits) {
+              const commitId = data.sha;
+              const commitMessage = data.commit.message;
+              const commitTitle = commitMessage.split('\n')[0];
+
+              console.log(`Validating: ${commitId} - ${commitTitle}`);
+
+              // Use temp file for gitlint to handle special characters safely.
+              const tempDir = process.env.RUNNER_TEMP || '/tmp';
+              const tempFile = path.join(
+                tempDir,
+                `commit-msg-${Math.random().toString(36).slice(2)}`
+              );
+              fs.writeFileSync(tempFile, commitMessage);
+
+              const {
+                exitCode,
+                stderr
+              } = await exec.getExecOutput(
+                `gitlint`,
+                [`--msg-filename`, `${tempFile}`],
+                { silent: !debugEnabled, ignoreReturnCode: true }
+              );
+
+              if (exitCode === 0) {
+                console.log(`✅ PASS`);
+                core.summary.addRaw(
+                  `- ✅ \`${commitId}\`: ${commitTitle}`,
+                  true
+                );
+              } else {
+                console.log(`❌ Failed`);
+                console.log(stderr);
+                core.summary
+                  .addRaw(`- ❌ \`${commitId}\`: ${commitTitle}`, true)
+                  .addEOL()
+                  .addRaw(`\`\`\``, true)
+                  .addRaw(stderr)
+                  .addRaw(`\`\`\``, true);
+                failedCount++;
+              }
+            }
+
+            if (failedCount > 0) {
+              core.setFailed(
+                `Gitlint validation failed for ${failedCount} commit(s).`
+              );
+            } else {
+              core.summary
+                .addEOL()
+                .addRaw(`All commits passed gitlint validation! 🎉`, true);
+            }
+
+            await core.summary.write();
+
+  check-rustfmt:
+    name: check (rustfmt)
+    runs-on: ubuntu-24.04
+    steps:
+      - &pr-details
+        name: Get PR details
+        uses: actions/github-script@450193c5abd4cdb17ba9f3ffcfe8f635c4bb6c2a # v8.0.0
+        id: pr-details
+        with:
+          script: |
+            const pullRequestParams = {
+              pull_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            };
+
+            const { data: commits } = await github.rest.pulls.listCommits(
+              pullRequestParams
+            );
+
+            core.setOutput('pr-depth', commits.length + 1);
+
+      - &checkout-pr
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: ${{ steps.pr-details.outputs.pr-depth }}
+
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+
+      - uses: actions/github-script@450193c5abd4cdb17ba9f3ffcfe8f635c4bb6c2a # v8.0.0
+        with:
+          script: |
+            const debugEnabled = process.env.ACTIONS_STEP_DEBUG === 'true';
+            const pullRequestParams = {
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            };
+
+            const { data: commits } = await github.rest.pulls.listCommits(
+              pullRequestParams
+            );
+
+            // Start building the summary
+            core.summary
+              .addHeading('Rustfmt Validation Report', 1)
+              .addEOL()
+              .addRaw(`**Total commits:** ${commits.length}`, true)
+              .addEOL();
+
+            let failedCount = 0;
+
+            for (const data of commits) {
+              const commitId = data.sha;
+              const commitTitle = data.commit.message.split('\n')[0];
+
+              console.log(`Validating: ${commitId} - ${commitTitle}`);
+              await exec.exec(
+                'git',
+                ['checkout', commitId],
+                {silent: !debugEnabled}
+              );
+              const {
+                exitCode,
+                stdout,
+              } = await exec.getExecOutput(
+                `cargo`,
+                [`+nightly`, `fmt`, `--all`, `--`, `--check`],
+                { silent: !debugEnabled, ignoreReturnCode: true }
+              );
+
+              if (exitCode === 0) {
+                console.log(`✅ PASS`);
+                core.summary.addRaw(
+                  `- ✅ \`${commitId}\`: ${commitTitle}`,
+                  true
+                );
+              } else {
+                console.log(`❌ Failed`);
+                console.log(stdout);
+                core.summary
+                  .addRaw(`- ❌ \`${commitId}\`: ${commitTitle}`, true)
+                  .addEOL()
+                  .addDetails(`Details`, `\n\n\`\`\`diff\n${stdout}\`\`\`\n`)
+                  .addEOL();
+                failedCount++;
+              }
+            }
+
+            if (failedCount > 0) {
+              core.setFailed(
+                `Rustfmt validation failed for ${failedCount} commit(s).`
+              );
+            } else {
+              core.summary
+                .addEOL()
+                .addRaw(`All commits passed rustfmt validation! 🎉`, true);
+            }
+
+            await core.summary.write();
+
+  check-clippy:
+    name: check (clippy)
+    permissions:
+      checks: write
+    runs-on: ubuntu-24.04
+    steps:
+      - *pr-details
+      - *checkout-pr
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+          components: clippy
+      - uses: actions/github-script@450193c5abd4cdb17ba9f3ffcfe8f635c4bb6c2a # v8.0.0
+        with:
+          script: |
+            const debugEnabled = process.env.ACTIONS_STEP_DEBUG === 'true';
+            const pullRequestParams = {
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            };
+
+            const { data: commits } = await github.rest.pulls.listCommits(
+              pullRequestParams
+            );
+
+            // Start building the summary
+            core.summary
+              .addHeading('Clippy Validation Report', 1)
+              .addEOL()
+              .addRaw(`**Total commits:** ${commits.length}`, true)
+              .addEOL();
+
+            let failedCount = 0;
+
+            for (const data of commits) {
+              const commitId = data.sha;
+              const commitTitle = data.commit.message.split('\n')[0];
+
+              console.log(`Validating: ${commitId} - ${commitTitle}`);
+              await exec.exec(
+                'git',
+                ['checkout', commitId],
+                {silent: !debugEnabled}
+              );
+              const {
+                exitCode,
+                stderr,
+              } = await exec.getExecOutput(
+                `cargo`,
+                [
+                  `+stable`,
+                  `clippy`,
+                  `--all-features`,
+                  `--color`, `never`,
+                  `--workspace`,
+                  `--all-targets`,
+                  `--`,
+                  `-D`,
+                  `warnings`,
+                ],
+                { silent: !debugEnabled, ignoreReturnCode: true }
+              );
+
+              if (exitCode === 0) {
+                console.log(`✅ PASS`);
+                core.summary.addRaw(
+                  `- ✅ \`${commitId}\`: ${commitTitle}`,
+                  true
+                );
+              } else {
+                console.log(`❌ Failed`);
+                console.log(stderr);
+                core.summary
+                  .addRaw(`- ❌ \`${commitId}\`: ${commitTitle}`, true)
+                  .addEOL()
+                  .addDetails(`Details`, `\n\n\`\`\`\n${stderr}\`\`\`\n`)
+                  .addEOL();
+                failedCount++;
+              }
+            }
+
+            if (failedCount > 0) {
+              core.setFailed(
+                `Clippy validation failed for ${failedCount} commit(s).`
+              );
+            } else {
+              core.summary
+                .addEOL()
+                .addRaw(`All commits passed clippy validation! 🎉`, true);
+            }
+
+            await core.summary.write();
+
+  check-prettier:
+    name: check (prettier)
+    permissions:
+      checks: write
+    runs-on: ubuntu-24.04
+    steps:
+      - *pr-details
+      - *checkout-pr
+      - run: npm -g install prettier
+      - uses: actions/github-script@450193c5abd4cdb17ba9f3ffcfe8f635c4bb6c2a # v8.0.0
+        with:
+          script: |
+            const debugEnabled = process.env.ACTIONS_STEP_DEBUG === 'true';
+            const pullRequestParams = {
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            };
+
+            const { data: commits } = await github.rest.pulls.listCommits(
+              pullRequestParams
+            );
+
+            // Start building the summary
+            core.summary
+              .addHeading('Prettier Validation Report', 1)
+              .addEOL()
+              .addRaw(`**Total commits:** ${commits.length}`, true)
+              .addEOL();
+
+            let failedCount = 0;
+
+            for (const data of commits) {
+              const commitId = data.sha;
+              const commitTitle = data.commit.message.split('\n')[0];
+
+              console.log(`Validating: ${commitId} - ${commitTitle}`);
+              await exec.exec(
+                'git',
+                ['checkout', commitId],
+                {silent: !debugEnabled}
+              );
+              const {
+                exitCode,
+                stdout,
+              } = await exec.getExecOutput(
+                `prettier`,
+                [
+                  `--list-different`,
+                  `--no-error-on-unmatched-pattern`,
+                  `**/*.yml`, `**/*.yaml`,
+                  `**/*.md`, `**/*.markdown`,
+                  `**/*.json`,
+                ],
+                { silent: !debugEnabled, ignoreReturnCode: true }
+              );
+
+              if (exitCode === 0) {
+                console.log(`✅ PASS`);
+                core.summary.addRaw(
+                  `- ✅ \`${commitId}\`: ${commitTitle}`,
+                  true
+                );
+              } else {
+                console.log(`❌ Failed`);
+                console.log(stdout);
+                core.summary
+                  .addRaw(`- ❌ \`${commitId}\`: ${commitTitle}`, true)
+                  .addEOL()
+                  .addDetails(
+                    `Files with bad formatting`,
+                    `\n\n\`\`\`\n${stdout}\`\`\`\n`
+                    )
+                  .addEOL();
+                failedCount++;
+              }
+            }
+
+            if (failedCount > 0) {
+              core.setFailed(
+                `Prettier validation failed for ${failedCount} commit(s).`
+              );
+            } else {
+              core.summary
+                .addEOL()
+                .addRaw(`All commits passed prettier validation! 🎉`, true);
+            }
+
+            await core.summary.write();
+
+  merge-checks:
+    name: Merge checks
+    if: always()
+    needs:
+      - check-gitlint
+      - check-rustfmt
+      - check-clippy
+      - check-prettier
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block merge if required checks fail
+        if: >-
+          ${{
+            contains(needs.*.result, 'failure')
+            || contains(needs.*.result, 'cancelled')
+          }}
+        run: exit 1
