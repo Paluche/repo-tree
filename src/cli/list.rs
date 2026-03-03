@@ -2,7 +2,7 @@ use clap_complete::engine::CompletionCandidate;
 
 use crate::{Config, UrlParser, get_repo_tree_dir, load_repo_tree};
 
-pub fn list(host: Option<String>) -> i32 {
+pub fn list(host: Option<String>, name: Option<String>) -> i32 {
     let repositories = load_repo_tree(
         &get_repo_tree_dir(),
         &UrlParser::new(&Config::default()),
@@ -18,6 +18,12 @@ pub fn list(host: Option<String>) -> i32 {
             } else if host != "local" {
                 continue;
             }
+        }
+
+        if let Some(name) = &name
+            && !repository.id.name.starts_with(name)
+        {
+            continue;
         }
         println!("{}", repository.root.display());
     }
