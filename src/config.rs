@@ -21,7 +21,8 @@ use std::{
     process::exit,
 };
 
-use clap::ValueEnum;
+use clap::{ValueEnum, builder::StyledStr};
+use clap_complete::engine::CompletionCandidate;
 use colored::Colorize;
 use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
 
@@ -268,6 +269,30 @@ impl Config {
         }
 
         Ok(ret)
+    }
+
+    pub fn host_completer(
+        &self,
+        current: &std::ffi::OsStr,
+    ) -> Vec<CompletionCandidate> {
+        let mut ret: Vec<CompletionCandidate> = self
+            .hosts
+            .iter()
+            .filter(|(host, _)| {
+                host.starts_with(current.to_str().unwrap_or(""))
+            })
+            .map(|(host, data)| {
+                CompletionCandidate::new(data.name.clone())
+                    .help(Some(StyledStr::from(host)))
+            })
+            .collect();
+
+        ret.push(
+            CompletionCandidate::new(self.local.name.clone())
+                .help(Some(StyledStr::from("Local repositories"))),
+        );
+
+        ret
     }
 }
 
