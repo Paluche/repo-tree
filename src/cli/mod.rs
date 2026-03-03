@@ -18,7 +18,7 @@ mod tree;
 use clean::clean;
 use fetch::fetch;
 use git::{GitAction, run_git};
-use list::list;
+use list::{list, list_host_completer};
 pub use prompt::PromptBuilder;
 use prompt::prompt;
 use repo::{RepoAction, run_repo};
@@ -43,7 +43,12 @@ enum Action {
         repo_id: Option<String>,
     },
     /// List all repositories in the repo_tree.
-    List,
+    List {
+        /// Filter the repositories to list by their host. For example,
+        /// "github" or "local".
+        #[arg(short='H', long, add=ArgValueCompleter::new(list_host_completer))]
+        host: Option<String>,
+    },
     /// Display a tree of your repo_tree.
     Tree,
     /// Clean the repo_tree. Move the repositories where they belong and remove
@@ -114,7 +119,7 @@ pub fn run() -> i32 {
 
     match args.action {
         Action::Resolve { repo_id } => resolve(repo_id),
-        Action::List => list(),
+        Action::List { host } => list(host),
         Action::Tree => tree(),
         Action::Clean { dry_run } => clean(dry_run),
         Action::Fetch { quiet } => fetch(quiet),
