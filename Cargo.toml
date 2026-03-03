@@ -9,8 +9,8 @@ name = "rt"
 path = "src/main.rs"
 
 [dependencies]
-chrono = "0.4.43"
-clap = { version = "4.5.58", features = ["derive"] }
+chrono = "0.4.44"
+clap = { version = "4.5.60", features = ["derive"] }
 clap_complete = { version = "4.5.66", features = ["unstable-dynamic"] }
 colored = "3.1.1"
 fuzzy-matcher = "0.3.7"
@@ -18,7 +18,7 @@ git2 = { version = "0.20.4", default-features=false }
 itertools = "0.14.0"
 jj-lib = "0.38.0"
 regex = "1.12.3"
-strum = { version = "0.27.2", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }
 url = "2.5.8"
 which = "8.0.0"
 yaml-rust2 = "0.11.0"
