@@ -48,6 +48,13 @@ enum Action {
         /// "github" or "local".
         #[arg(short='H', long, add=ArgValueCompleter::new(list_host_completer))]
         host: Option<String>,
+        /// Filter the repositories to by their name, within its forge. All
+        /// repositories which name starts with the provided value will be
+        /// listed. For example to filter only GitHub repositories from a
+        /// certain organization, you could use the organization name as value
+        /// for this argument, and "github" as value of the --host argument.
+        #[arg(short = 'N', long)]
+        name: Option<String>,
     },
     /// Display a tree of your repo_tree.
     Tree,
@@ -119,7 +126,7 @@ pub fn run() -> i32 {
 
     match args.action {
         Action::Resolve { repo_id } => resolve(repo_id),
-        Action::List { host } => list(host),
+        Action::List { host, name } => list(host, name),
         Action::Tree => tree(),
         Action::Clean { dry_run } => clean(dry_run),
         Action::Fetch { quiet } => fetch(quiet),
