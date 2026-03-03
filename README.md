@@ -47,7 +47,7 @@ hosts:
   my_company.gitlab.org:
     name: my_company
     repr: 󰮠
-    repr_color: 40  # Green
+    repr_color: 40 # Green
 ```
 
 ## Completion
