@@ -11,6 +11,7 @@ use crate::{
 };
 
 fn format_repo_status(
+    cwd: &Path,
     main_repo_path: &Path,
     rel_path: Option<&str>,
     status: GitStatus,
@@ -73,7 +74,11 @@ fn format_repo_status(
     };
 
     for item in status.status {
-        ret.push_str(&format!("┊ {}{}\n", prefix, item.display(rel_path)));
+        ret.push_str(&format!(
+            "┊ {}{}\n",
+            prefix,
+            item.display(cwd, main_repo_path, rel_path)
+        ));
         if matches!(item.submodule_status, SubmoduleStatus::Submodule { .. }) {
             let mut repo_path = main_repo_path.to_path_buf();
             if let Some(rel_path) = rel_path {
@@ -85,6 +90,7 @@ fn format_repo_status(
             let status = git::status(&repo_path).unwrap();
 
             ret.push_str(&format_repo_status(
+                cwd,
                 main_repo_path,
                 Some(&rel_path),
                 status,
@@ -96,11 +102,11 @@ fn format_repo_status(
     ret
 }
 
-pub fn status(repo_path: PathBuf) -> i32 {
+pub fn status(repo_path: PathBuf, no_relative_path: bool) -> i32 {
     let repo_tree_dir = get_repo_tree_dir();
     let Some(repository) = Repository::discover(
         &repo_tree_dir,
-        repo_path,
+        repo_path.clone(),
         &UrlParser::new(&Config::default()),
     )
     .expect("Error loading the repository") else {
@@ -130,6 +136,11 @@ pub fn status(repo_path: PathBuf) -> i32 {
     println!(
         "{}",
         format_repo_status(
+            if no_relative_path {
+                &repository.root
+            } else {
+                repo_path.as_path()
+            },
             &repository.root,
             None,
             git::status(&repository.root).expect("Error obtaining git status"),

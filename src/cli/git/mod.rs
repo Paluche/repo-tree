@@ -1,4 +1,4 @@
-use clap::Subcommand;
+use clap::{ArgAction, Subcommand};
 use clap_complete::{PathCompleter, engine::ArgValueCompleter};
 
 use crate::cli::cwd_default_path;
@@ -12,13 +12,22 @@ pub enum GitAction {
         /// Path to within the git repository to work with.
         #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
         repository: Option<String>,
+
+        /// Print path relative to the root of the repository and not the
+        /// current working directory.
+        #[arg(long, action=ArgAction::SetTrue)]
+        no_relative_path: bool,
     },
 }
 
 pub fn run_git(action: GitAction) -> i32 {
     match action {
-        GitAction::Status { repository } => {
-            status_action::status(cwd_default_path(repository))
-        }
+        GitAction::Status {
+            repository,
+            no_relative_path,
+        } => status_action::status(
+            cwd_default_path(repository),
+            no_relative_path,
+        ),
     }
 }
