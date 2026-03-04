@@ -12,6 +12,7 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use colored::{ColoredString, Colorize};
+use pathdiff::diff_paths;
 use strum::{EnumIter, IntoEnumIterator};
 
 use super::new_git_command;
@@ -197,7 +198,12 @@ pub struct ItemStatus {
 }
 
 impl ItemStatus {
-    pub fn display(&self, rel_path: Option<&str>) -> String {
+    pub fn display(
+        &self,
+        cwd: &Path,
+        repo_root: &Path,
+        rel_path: Option<&str>,
+    ) -> String {
         let mut ret = format!(
             "{}{} {} ",
             self.staged.to_colored_string(true),
@@ -205,19 +211,26 @@ impl ItemStatus {
             self.submodule_status.to_colored_string(),
         );
 
-        fn format_path(rel_path: Option<&str>, path: &String) -> String {
+        fn format_path(
+            cwd: &Path,
+            repo_root: &Path,
+            rel_path: Option<&str>,
+            path: &String,
+        ) -> String {
+            let mut ret = PathBuf::from(repo_root);
             if let Some(rel_path) = rel_path {
-                format!("{rel_path}/{path}")
-            } else {
-                path.to_string()
+                ret.push(rel_path);
             }
+            ret.push(path);
+
+            diff_paths(ret, cwd).unwrap().display().to_string()
         }
 
         if let Some(orig_path) = &self.orig_path {
-            ret.push_str(&format_path(rel_path, orig_path));
+            ret.push_str(&format_path(cwd, repo_root, rel_path, orig_path));
             ret.push_str(" -> ");
         }
-        ret.push_str(&format_path(rel_path, &self.path));
+        ret.push_str(&format_path(cwd, repo_root, rel_path, &self.path));
         ret
     }
 }
