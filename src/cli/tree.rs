@@ -1,6 +1,6 @@
 use std::{collections::HashMap, ffi::OsStr, fmt::Display, path::PathBuf};
 
-use colored::Colorize;
+use colored::{ColoredString, Colorize};
 
 use crate::{Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree};
 
@@ -94,44 +94,54 @@ impl Directory {
             if !submodules.is_empty() {
                 let final_i = submodules.len() - 1;
                 for (i, submodule) in submodules.iter().enumerate() {
+                    let dir_state = if i == final_i {
+                        DirState::FinalSubDir
+                    } else {
+                        DirState::SubDir
+                    };
+                    writeln!(
+                        f,
+                        "{prefix}{}{}",
+                        dir_state.get_dir_prefix(),
+                        submodule.sub_path.display()
+                    )?;
+
+                    let prefix = format!(
+                        "{prefix}{}{}",
+                        dir_state.get_subdir_prefix(),
+                        DirState::FinalSubDir.get_subdir_prefix()
+                    );
+
+                    fn option_to_str(
+                        o: Option<String>,
+                        color: u8,
+                    ) -> ColoredString {
+                        o.map_or("None".to_string().red(), |v| {
+                            v.ansi_color(color)
+                        })
+                    }
+
+                    let head_id = option_to_str(
+                        submodule.head.map(|o| o.to_string()),
+                        88,
+                    );
+                    writeln!(f, "{prefix}{head_id}")?;
                     let submodule_url = {
-                        let option_to_str = |o: Option<String>| {
-                            o.map_or("None".to_string().red(), |v| {
-                                v.bright_black()
-                            })
-                        };
-                        let head_id = option_to_str(
-                            submodule.head.map(|o| o.to_string()),
-                        );
-                        let config_url =
-                            option_to_str(submodule.config_url.clone());
-                        let resolved_url = option_to_str(submodule.url.clone());
+                        let config_url = submodule.config_url.clone();
+                        let resolved_url = submodule.url.clone();
 
                         if config_url == resolved_url {
-                            format!("{} {}", head_id, config_url)
+                            option_to_str(config_url, 2).to_string()
                         } else {
                             format!(
-                                "{} {:40} {} {}",
-                                head_id,
-                                config_url,
+                                "{} {} {}",
+                                option_to_str(config_url, 8),
                                 "=>".bright_black(),
-                                resolved_url
+                                option_to_str(resolved_url, 2),
                             )
                         }
                     };
-
-                    writeln!(
-                        f,
-                        "{prefix}{}{:40} {} ",
-                        if i == final_i {
-                            DirState::FinalSubDir
-                        } else {
-                            DirState::SubDir
-                        }
-                        .get_dir_prefix(),
-                        submodule.sub_path.display(),
-                        submodule_url
-                    )?;
+                    writeln!(f, "{prefix}{submodule_url}",)?;
                 }
             }
         }
