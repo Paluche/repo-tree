@@ -3,14 +3,70 @@
 This repository provides a series of tool to organize the repositories you
 clone within a single executable `rt`.
 
+## Organized your repositories
+
 The repositories are organized in the Repository Tree root directory specified
 by the `REPO_TREE_DIR` environment variable.
 
-Features:
+The path where the repositories are stored is computed based on the remote URL
+of the repository. The repositories are then organized by host.
 
-- Keep the Repo Tree organized, with feature to clean.
-- Repository resolution, from a name to an actual location. The util shell
-  function `rcd` provides that feature.
+Raw example of output of `rt tree`
+
+```
+/home/user/work
+├── github
+│   ├── Paluche/repo-tree
+│   │       git@github.com:Paluche/repo-tree.git 󰊢
+│   └── jj-vcs/jj
+│           git@github.com:jj-vcs/jj.git 
+├── gitlab/hpaluche/configort
+│   │   git@gitlab.com:hpaluche/configort.git 󰊢
+│   ├── home/dot_config/awesome/external_awesome-wm-widgets
+│   │       c257e22ccbc1536de46e8ae83935d173926fd9ec
+│   │       https://github.com/streetturtle/awesome-wm-widgets.git
+│   └── home/dot_config/zsh/external_zsh-syntax-highlighting
+│           1d85c692615a25fe2293bdd44b34c217d5d2bf04
+│           https://github.com/zsh-users/zsh-syntax-highlighting.git
+└── my-company
+    ├── project-Z
+    │   ├── system-A
+    │   │   ├── sub-system-0
+    │   │   │       git@my-company.com:project-Z/system-A/sub-system-0.git 󰊢
+    │   │   └── sub-system-1
+    │   │           git@my-company.com:project-Z/system-A/sub-system-1.git 󰊢
+    │   └── system-B
+    │       ├── sub-system-0
+    │       │       git@my-company.com:project-Z/system-B/sub-system-0.git 󰊢
+    │       └── sub-system-1
+    │               git@my-company.com:project-Z/system-B/sub-system-1.git 󰊢
+    └── ...
+```
+
+Main features:
+
+- Keep the Repo Tree organized:
+  - [x] Clone a repository directly at the correct location
+        (`rt clone`).
+  - [x] Repository resolution, from a name to an actual location
+        (`rt resolve`).
+  - [x] Check and re-organize the Repo Tree (`rt clean`).
+- [x] Able to list all repositories within your configured directory (`rt
+list`).
+- Offer a way to interact globally with different types of repositories.
+  - [x] [`git`](https://git-scm.com/) (`󰊢`)
+  - [x] [`jujutsu`](https://docs.jj-vcs.dev) (``) (with `git` backend)
+  - [ ] [`mercurial`](https://www.mercurial-scm.org/) (``)
+  - [ ] [`subversion`](https://subversion.apache.org/) (``)
+- Local interaction with the current repository, no matter its type:
+  - [x] Get the root of the current repository (`rt repo root`).
+  - [x] Generate a prompt (`rt prompt`). _Still some work todo_.
+- [ ] Manage all submodule as `jj` workspaces. Reduce risk of desynchronization
+      from one repository and the copies as submodules.
+- [x] Fetch all your repositories (`rt fetch`)
+- [ ] Get a status of your repositories. The main idea is to find out if there
+      is user required action to be done on some repositories to keep them
+      updated (`rt todo`)
 
 ## Configuration
 
@@ -22,20 +78,27 @@ hosts:
   github.com:
     name: github
     repr: 
-    repr_color: 15 # White
+    repr_color: white
   gitlab.com:
     name: gitlab
     repr: 󰮠
     repr_color: 166 # Orange
-  bitbucket.org:
-    name: bitbucket
-    repr: 
-    repr_color: 12 # Blue
   git.kernel.org:
     name: kernel
     repr: 
-    repr_color: 15 # White
+    repr_color: white
+  bitbucket.org:
+    name: bitbucket
+    repr: 
+    repr_color: blue
+  codeberg.org:
+    name: codeberg
+    repr: 
+    repr_color: blue
 ```
+
+The special characters comes from the [NerdFonts](https://www.nerdfonts.com/)
+extra characters.
 
 You can override or extend this configuration with editing the configuration
 file `${HOME}/.config/repo-tree/config.yml`, for example:
