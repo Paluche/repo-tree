@@ -25,6 +25,7 @@ use std::{
 use clap::{ValueEnum, builder::StyledStr};
 use clap_complete::engine::CompletionCandidate;
 use colored::{Color, Colorize};
+use indoc::indoc;
 use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
 
 use crate::VersionControlSystem;
@@ -67,6 +68,14 @@ pub struct Host {
 
 pub type Hosts = HashMap<String, Host>;
 
+const HOST_FORMAT_HELP: &str = indoc! {r#"
+Expecting "hosts" entries in the format
+<url (string)>:
+    name: <string>
+    repr: <string> (optional)
+    expr_color: <u8> (color as text or ANSI color number, optional)
+"#};
+
 fn parse_hosts(
     config_path: &Path,
     hosts: &mut Hosts,
@@ -75,20 +84,13 @@ fn parse_hosts(
     let hash = value.as_hash().ok_or_else(|| {
         ParseError::new(
             config_path,
-            "B: Expecting only entries in the format `string: string`"
+            "B: Expecting only entries in the format: `string: string`"
                 .to_string(),
         )
     })?;
 
-    let format_error = Err(ParseError::new(
-        config_path,
-        "Expecting \"hosts\" entries in the format
-        \n<url (string)>:
-        \n    name: <string>
-        \n    repr: <string> (optional)
-        \n    expr_color: <u8> (ANSI color number, optional)"
-            .to_string(),
-    ));
+    let format_error =
+        Err(ParseError::new(config_path, HOST_FORMAT_HELP.to_string()));
 
     for (key, value) in hash {
         parse_host(
@@ -119,50 +121,69 @@ fn parse_host(
     let mut repr_color: Option<Color> = None;
 
     let error_msg_prefix = format!("Host \"{url}\": ");
-    let format_error = Err(ParseError::new(
-        config_path,
-        format!(
-            "{error_msg_prefix}Expecting \"hosts\" entries in the format
-        \n<string>:
-        \n    name: <string>
-        \n    repr: <string> (optional)
-        \n    expr_color: <int> (ANSI color number, optional)"
-        ),
-    ));
+    let format_error = |s: &str| {
+        Err(ParseError::new(
+            config_path,
+            format!("{error_msg_prefix}{s}.\n{HOST_FORMAT_HELP}"),
+        ))
+    };
 
     for (key, value) in value {
         let key = match key.as_str() {
-            None => return format_error,
+            None => return format_error("Invalid non-str key"),
             Some(key) => key,
         };
 
         match key {
             "name" => {
                 name = Some(match value.as_str() {
-                    None => return format_error,
+                    None => {
+                        return format_error("Invalid value for \"name\" key");
+                    }
                     Some(v) => v.to_string(),
                 });
             }
             "repr" => {
                 repr = Some(match value.as_str() {
-                    None => return format_error,
+                    None => {
+                        return format_error("Invalid value for \"repr\" key");
+                    }
                     Some(v) => v.to_string(),
                 });
             }
             "repr_color" => {
-                repr_color = Some(
-                    match value
-                        .as_i64()
-                        .and_then(|v| TryInto::<u8>::try_into(v).ok())
+                repr_color = Some(match value.as_i64() {
+                    Some(v) => match TryInto::<u8>::try_into(v)
+                        .ok()
                         .map(Color::AnsiColor)
-                        .or(value
-                            .as_str()
-                            .and_then(|v| Color::from_str(v).ok()))
                     {
-                        Some(v) => v,
-                        None => return format_error,
+                        Some(c) => c,
+                        None => {
+                            return format_error(&format!(
+                                "Invalid value \"{v}\" for \"repr_color\" key \
+                                 as integer, must be between 0 and 255 \
+                                 included."
+                            ));
+                        }
                     },
-                );
+                    None => match value.as_str() {
+                        Some(v) => match Color::from_str(v).ok() {
+                            Some(c) => c,
+                            None => {
+                                return format_error(&format!(
+                                    "Invalid value \"{v}\" for \"repr_color\" \
+                                     key as string"
+                                ));
+                            }
+                        },
+                        None => {
+                            return format_error(
+                                "Invalid value for \"repr_color\" key being \
+                                 not an integer nor string",
+                            );
+                        }
+                    },
+                });
             }
             key => {
                 return Err(ParseError::new(
