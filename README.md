@@ -105,6 +105,10 @@ hosts:
     repr: 
     repr_color: blue
 
+local:
+  name: local
+  repr: 󰋊
+
 vcs: jujutsu-git
 ```
 
@@ -118,6 +122,7 @@ file `${HOME}/.config/repo-tree/config.yml`, for example:
 hosts:
   bitbucket.org:
     name: atlassian
+    dir_name: bitbucket
   my_company.gitlab.org:
     name: my_company
     repr: 󰮠
