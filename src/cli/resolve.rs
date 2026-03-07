@@ -209,7 +209,7 @@ pub fn resolve_completer(
                             .id
                             .host
                             .clone()
-                            .map(|h| StyledStr::from(h.name)),
+                            .map(|h| StyledStr::from(h.dir_name)),
                     )
                     .help(repository.id.remote_url.clone().map(StyledStr::from))
             })

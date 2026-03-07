@@ -63,7 +63,24 @@ fn parser_assert(
 #[derive(Clone, Hash, Debug)]
 pub struct Host {
     pub name: String,
+    pub dir_name: String,
     pub repr: String,
+}
+
+impl Host {
+    fn new(
+        name: String,
+        dir_name: Option<String>,
+        repr: Option<String>,
+    ) -> Self {
+        let dir_name = dir_name.unwrap_or(name.clone());
+        let repr = repr.unwrap_or(name.clone());
+        Host {
+            name,
+            dir_name,
+            repr,
+        }
+    }
 }
 
 pub type Hosts = HashMap<String, Host>;
@@ -72,6 +89,7 @@ const HOST_FORMAT_HELP: &str = indoc! {r#"
 Expecting "hosts" entries in the format
 <url (string)>:
     name: <string>
+    dir_name: <string> (optional defaults to name)
     repr: <string> (optional)
     expr_color: <u8> (color as text or ANSI color number, optional)
 "#};
@@ -117,6 +135,7 @@ fn parse_host(
     value: &Hash,
 ) -> Result<(), ParseError> {
     let mut name: Option<String> = None;
+    let mut dir_name: Option<String> = None;
     let mut repr: Option<String> = None;
     let mut repr_color: Option<Color> = None;
 
@@ -139,6 +158,16 @@ fn parse_host(
                 name = Some(match value.as_str() {
                     None => {
                         return format_error("Invalid value for \"name\" key");
+                    }
+                    Some(v) => v.to_string(),
+                });
+            }
+            "dir_name" => {
+                dir_name = Some(match value.as_str() {
+                    None => {
+                        return format_error(
+                            "Invalid value for \"dir_name\" key",
+                        );
                     }
                     Some(v) => v.to_string(),
                 });
@@ -194,25 +223,15 @@ fn parse_host(
         }
     }
 
-    hosts.insert(
-        url.to_string(),
-        Host {
-            name: name.ok_or(ParseError::new(
-                config_path,
-                format!("{error_msg_prefix}Missing \"url\" entry"),
-            ))?,
-            repr: repr.map_or(
-                Err(ParseError::new(
-                    config_path,
-                    format!("{error_msg_prefix}Missing \"repr\" entry"),
-                )),
-                |r| {
-                    Ok(repr_color
-                        .map_or_else(|| r.clone(), |c| r.color(c).to_string()))
-                },
-            )?,
-        },
-    );
+    let name = name.ok_or(ParseError::new(
+        config_path,
+        format!("{error_msg_prefix}Missing \"url\" entry"),
+    ))?;
+    let repr = repr.map(|r| {
+        repr_color.map_or_else(|| r.clone(), |c| r.color(c).to_string())
+    });
+
+    hosts.insert(url.to_string(), Host::new(name, dir_name, repr));
 
     Ok(())
 }
@@ -339,13 +358,10 @@ impl Default for Config {
         .iter()
         .map(|(u, n, r)| (u.to_string(), n.to_string(), r.to_string()))
         .for_each(|(url, name, repr)| {
-            hosts.insert(url, Host { name, repr });
+            hosts.insert(url, Host::new(name, None, Some(repr)));
         });
 
-        let local = Host {
-            name: "local".to_string(),
-            repr: "󰋊".to_string(),
-        };
+        let local = Host::new("local".to_string(), None, Some("󰋊".to_string()));
 
         Self::load_config(hosts, local, VersionControlSystem::JujutsuGit)
             .inspect_err(|e| {
