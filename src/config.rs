@@ -12,6 +12,11 @@
 //!       dir_name: <HOST DIR NAME IN TREE>
 //!       repr: <PROMPT REPRESENTATION>
 //!       repr_COLOR: <COLOR FOR PROMPT REPRESENTATION>
+//! local:
+//!   name: <LOCAL REPOS PRETTY NAME>
+//!   dir_name: <LOCAL REPOS DIR NAME IN TREE>
+//!   repr: <PROMPT REPRESENTATION>
+//!   repr_COLOR: <COLOR FOR PROMPT REPRESENTATION>
 //! vcs: <DEFAULT VCS TO USE>
 //! ```
 
@@ -63,6 +68,10 @@ impl ParseError {
 
     fn hosts_error(path: &Path) -> Self {
         Self::new(path, get_host_format_help("hosts", "<host URL (string)>"))
+    }
+
+    fn local_host_error(path: &Path) -> Self {
+        Self::new(path, get_host_format_help("local", "local"))
     }
 }
 
@@ -119,14 +128,12 @@ fn parse_hosts(
         )
     })?;
 
-    let parse_error = Err(ParseError::hosts_error(config_path));
-
     for (key, value) in hash {
         let Some(url) = key.as_str() else {
-            return parse_error;
+            return Err(ParseError::hosts_error(config_path));
         };
         let Some(value) = value.as_hash() else {
-            return parse_error;
+            return Err(ParseError::hosts_error(config_path));
         };
         let host = parse_host(value, |s: &str| {
             ParseError::new(
@@ -141,6 +148,27 @@ fn parse_hosts(
         hosts.insert(url.to_string(), host);
     }
 
+    Ok(())
+}
+
+fn parse_local_host(
+    config_path: &Path,
+    local: &mut Host,
+    value: &Yaml,
+) -> Result<(), ParseError> {
+    let Some(value) = value.as_hash() else {
+        return Err(ParseError::local_host_error(config_path));
+    };
+
+    *local = parse_host(value, |s: &str| {
+        ParseError::new(
+            config_path,
+            format!(
+                "\"local\" host configuration: {s}.\n{}",
+                get_host_format_help("local", "local")
+            ),
+        )
+    })?;
     Ok(())
 }
 
@@ -311,6 +339,9 @@ impl Config {
 
             match key.as_str() {
                 "hosts" => parse_hosts(&config_path, &mut ret.hosts, value)?,
+                "local" => {
+                    parse_local_host(&config_path, &mut ret.local, value)?
+                }
                 "vcs" => ret.vcs = parse_vcs(&config_path, value)?,
                 key => Err(ParseError::new(
                     &config_path,
