@@ -4,6 +4,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::CompleteEnv;
 
 mod clean;
+mod clone;
 mod completion;
 mod fetch;
 mod git;
@@ -26,6 +27,7 @@ struct Args {
 #[derive(Subcommand, Debug, PartialEq)]
 enum Action {
     Resolve(resolve::ResolveArgs),
+    Clone(clone::CloneArgs),
     List(list::ListArgs),
     Tree(tree::TreeArgs),
     Clean(clean::CleanArgs),
@@ -75,5 +77,6 @@ pub fn run() -> i32 {
         Action::Git(args) => git::run(args),
         Action::Prompt(args) => prompt::run(args),
         Action::Completion(args) => completion::run(&mut Args::command(), args),
+        Action::Clone(args) => clone::run(args),
     }
 }
