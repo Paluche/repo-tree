@@ -12,6 +12,7 @@
 //!       repr: <PROMPT REPRESENTATION>
 //! ```
 
+use core::str::FromStr;
 use std::{
     collections::HashMap,
     error::Error,
@@ -23,7 +24,7 @@ use std::{
 
 use clap::{ValueEnum, builder::StyledStr};
 use clap_complete::engine::CompletionCandidate;
-use colored::Colorize;
+use colored::{Color, Colorize};
 use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
 
 use crate::VersionControlSystem;
@@ -115,7 +116,7 @@ fn parse_host(
 ) -> Result<(), ParseError> {
     let mut name: Option<String> = None;
     let mut repr: Option<String> = None;
-    let mut repr_color: Option<u8> = None;
+    let mut repr_color: Option<Color> = None;
 
     let error_msg_prefix = format!("Host \"{url}\": ");
     let format_error = Err(ParseError::new(
@@ -149,10 +150,19 @@ fn parse_host(
                 });
             }
             "repr_color" => {
-                repr_color = Some(match value.as_i64().map(|v| v as u8) {
-                    None => return format_error,
-                    Some(v) => v,
-                });
+                repr_color = Some(
+                    match value
+                        .as_i64()
+                        .and_then(|v| TryInto::<u8>::try_into(v).ok())
+                        .map(Color::AnsiColor)
+                        .or(value
+                            .as_str()
+                            .and_then(|v| Color::from_str(v).ok()))
+                    {
+                        Some(v) => v,
+                        None => return format_error,
+                    },
+                );
             }
             key => {
                 return Err(ParseError::new(
@@ -176,10 +186,8 @@ fn parse_host(
                     format!("{error_msg_prefix}Missing \"repr\" entry"),
                 )),
                 |r| {
-                    Ok(repr_color.map_or_else(
-                        || r.clone(),
-                        |c| r.ansi_color(c).to_string(),
-                    ))
+                    Ok(repr_color
+                        .map_or_else(|| r.clone(), |c| r.color(c).to_string()))
                 },
             )?,
         },
