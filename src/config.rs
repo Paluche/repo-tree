@@ -33,6 +33,20 @@ use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
 
 use crate::VersionControlSystem;
 
+fn get_host_format_help(key: &str, host_key: &str) -> String {
+    format!(
+        indoc! {r#"
+            Expecting "{}" entries in the format
+            {}:
+                name: <string>
+                dir_name: <string> (optional defaults to name)
+                repr: <string> (optional)
+                expr_color: <u8> (color as text or ANSI color number, optional)
+            "#},
+        key, host_key
+    )
+}
+
 #[derive(Debug, Clone)]
 struct ParseError {
     path: PathBuf,
@@ -45,6 +59,10 @@ impl ParseError {
             path: path.to_path_buf(),
             msg,
         }
+    }
+
+    fn hosts_error(path: &Path) -> Self {
+        Self::new(path, get_host_format_help("hosts", "<host URL (string)>"))
     }
 }
 
@@ -88,15 +106,6 @@ impl Host {
 
 pub type Hosts = HashMap<String, Host>;
 
-const HOST_FORMAT_HELP: &str = indoc! {r#"
-Expecting "hosts" entries in the format
-<url (string)>:
-    name: <string>
-    dir_name: <string> (optional defaults to name)
-    repr: <string> (optional)
-    expr_color: <u8> (color as text or ANSI color number, optional)
-"#};
-
 fn parse_hosts(
     config_path: &Path,
     hosts: &mut Hosts,
@@ -110,49 +119,43 @@ fn parse_hosts(
         )
     })?;
 
-    let format_error =
-        Err(ParseError::new(config_path, HOST_FORMAT_HELP.to_string()));
+    let parse_error = Err(ParseError::hosts_error(config_path));
 
     for (key, value) in hash {
-        parse_host(
-            config_path,
-            hosts,
-            match key.as_str() {
-                None => return format_error,
-                Some(v) => v,
-            },
-            match value.as_hash() {
-                None => return format_error,
-                Some(v) => v,
-            },
-        )?;
+        let Some(url) = key.as_str() else {
+            return parse_error;
+        };
+        let Some(value) = value.as_hash() else {
+            return parse_error;
+        };
+        let host = parse_host(value, |s: &str| {
+            ParseError::new(
+                config_path,
+                format!(
+                    "Host \"{url}\": {s}.\n{}",
+                    get_host_format_help("hosts", "<host URL (string)>")
+                ),
+            )
+        })?;
+
+        hosts.insert(url.to_string(), host);
     }
 
     Ok(())
 }
 
-fn parse_host(
-    config_path: &Path,
-    hosts: &mut Hosts,
-    url: &str,
+fn parse_host<F: Fn(&str) -> ParseError>(
     value: &Hash,
-) -> Result<(), ParseError> {
+    parse_error: F,
+) -> Result<Host, ParseError> {
     let mut name: Option<String> = None;
     let mut dir_name: Option<String> = None;
     let mut repr: Option<String> = None;
     let mut repr_color: Option<Color> = None;
 
-    let error_msg_prefix = format!("Host \"{url}\": ");
-    let format_error = |s: &str| {
-        Err(ParseError::new(
-            config_path,
-            format!("{error_msg_prefix}{s}.\n{HOST_FORMAT_HELP}"),
-        ))
-    };
-
     for (key, value) in value {
         let key = match key.as_str() {
-            None => return format_error("Invalid non-str key"),
+            None => return Err(parse_error("Invalid non-str key")),
             Some(key) => key,
         };
 
@@ -160,7 +163,9 @@ fn parse_host(
             "name" => {
                 name = Some(match value.as_str() {
                     None => {
-                        return format_error("Invalid value for \"name\" key");
+                        return Err(parse_error(
+                            "Invalid value for \"name\" key",
+                        ));
                     }
                     Some(v) => v.to_string(),
                 });
@@ -168,9 +173,9 @@ fn parse_host(
             "dir_name" => {
                 dir_name = Some(match value.as_str() {
                     None => {
-                        return format_error(
+                        return Err(parse_error(
                             "Invalid value for \"dir_name\" key",
-                        );
+                        ));
                     }
                     Some(v) => v.to_string(),
                 });
@@ -178,7 +183,9 @@ fn parse_host(
             "repr" => {
                 repr = Some(match value.as_str() {
                     None => {
-                        return format_error("Invalid value for \"repr\" key");
+                        return Err(parse_error(
+                            "Invalid value for \"repr\" key",
+                        ));
                     }
                     Some(v) => v.to_string(),
                 });
@@ -191,52 +198,45 @@ fn parse_host(
                     {
                         Some(c) => c,
                         None => {
-                            return format_error(&format!(
+                            return Err(parse_error(&format!(
                                 "Invalid value \"{v}\" for \"repr_color\" key \
                                  as integer, must be between 0 and 255 \
                                  included."
-                            ));
+                            )));
                         }
                     },
                     None => match value.as_str() {
                         Some(v) => match Color::from_str(v).ok() {
                             Some(c) => c,
                             None => {
-                                return format_error(&format!(
+                                return Err(parse_error(&format!(
                                     "Invalid value \"{v}\" for \"repr_color\" \
                                      key as string"
-                                ));
+                                )));
                             }
                         },
                         None => {
-                            return format_error(
+                            return Err(parse_error(
                                 "Invalid value for \"repr_color\" key being \
                                  not an integer nor string",
-                            );
+                            ));
                         }
                     },
                 });
             }
             key => {
-                return Err(ParseError::new(
-                    config_path,
-                    format!("{error_msg_prefix}Unknown key \"{key}\""),
-                ));
+                return Err(parse_error(&format!("Unknown key \"{key}\"")));
             }
         }
     }
 
-    let name = name.ok_or(ParseError::new(
-        config_path,
-        format!("{error_msg_prefix}Missing \"url\" entry"),
-    ))?;
-    let repr = repr.map(|r| {
-        repr_color.map_or_else(|| r.clone(), |c| r.color(c).to_string())
-    });
-
-    hosts.insert(url.to_string(), Host::new(name, dir_name, repr));
-
-    Ok(())
+    Ok(Host::new(
+        name.ok_or(parse_error("Missing \"name\" entry"))?,
+        dir_name,
+        repr.map(|r| {
+            repr_color.map_or_else(|| r.clone(), |c| r.color(c).to_string())
+        }),
+    ))
 }
 
 fn parse_vcs(
