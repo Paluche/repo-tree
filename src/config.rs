@@ -304,7 +304,6 @@ impl Default for Config {
             ("github.com", "github", "".white()),
             ("gitlab.com", "gitlab", "󰮠".ansi_color(166)),
             ("git.kernel.org", "kernel", "".white()),
-            ("git.buildroot.net", ".", "󰥯".yellow()),
             ("bitbucket.org", "bitbucket", "".blue()),
             ("codeberg.org", "codeberg", "".blue()),
         ]
