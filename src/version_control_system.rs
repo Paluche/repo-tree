@@ -39,8 +39,7 @@ impl VersionControlSystem {
     /// if the repository is a submodule or not.
     pub fn try_new(dir: &Path) -> Option<(Self, bool)> {
         fn exists(search_dir: &Path, dir: &str) -> (bool, bool) {
-            let mut search_dir = search_dir.to_path_buf().clone();
-            search_dir.push(dir);
+            let search_dir = search_dir.join(dir);
 
             (search_dir.is_dir(), search_dir.is_file())
         }

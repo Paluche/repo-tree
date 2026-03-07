@@ -111,9 +111,7 @@ fn cwd_default_path(path: Option<String>) -> PathBuf {
     }
 
     if !ret.is_absolute() {
-        let mut abs = env::current_dir().unwrap();
-        abs.push(ret);
-        canonicalize(abs).unwrap()
+        canonicalize(env::current_dir().unwrap().join(ret)).unwrap()
     } else {
         ret
     }
