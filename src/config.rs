@@ -306,6 +306,7 @@ impl Default for Config {
             ("git.kernel.org", "kernel", "".white()),
             ("git.buildroot.net", ".", "󰥯".yellow()),
             ("bitbucket.org", "bitbucket", "".blue()),
+            ("codeberg.org", "codeberg", "".blue()),
         ]
         .iter()
         .map(|(u, n, r)| (u.to_string(), n.to_string(), r.to_string()))
