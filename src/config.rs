@@ -8,8 +8,10 @@
 //! vcs: <VCS>  # Default VCS used to clone repositories
 //! hosts:
 //!    <URL>:
-//!       name: <DIR_NAME>
+//!       name: <HOST PRETTY NAME>
+//!       dir_name: <HOST DIR NAME IN TREE>
 //!       repr: <PROMPT REPRESENTATION>
+//!       repr_COLOR: <COLOR FOR PROMPT REPRESENTATION>
 //! ```
 
 use core::str::FromStr;
