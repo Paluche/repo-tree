@@ -1,38 +1,24 @@
 mod clone;
 mod root;
 
-use clap::Subcommand;
-use clone::clone;
-use root::root;
+use clap::{Args, Subcommand};
 
-use crate::VersionControlSystem;
-
-#[derive(Subcommand, Debug, PartialEq)]
-pub enum RepoAction {
-    /// Get the root and type of the repository the working directory or its
-    /// parent is into.
-    Root {
-        /// Get the root of the repository the parent directory of the current
-        /// working directory is in.
-        #[arg(long, short)]
-        parent: bool,
-
-        /// Also display repository types. The output will then have 4 words:
-        /// <Root of the repository> <is_git> <is_jj>
-        #[arg(long)]
-        print_type: bool,
-    },
-    Clone {
-        /// Url of the repository to clone.
-        url: String,
-        #[arg(long, short)]
-        vcs: Option<VersionControlSystem>,
-    },
+/// Actions for any type of repository.
+#[derive(Args, Debug, PartialEq)]
+pub struct RepoArgs {
+    #[command(subcommand)]
+    action: RepoAction,
 }
 
-pub fn run_repo(action: RepoAction) -> i32 {
-    match action {
-        RepoAction::Root { parent, print_type } => root(parent, print_type),
-        RepoAction::Clone { url, vcs } => clone(url, vcs),
+#[derive(Subcommand, Debug, PartialEq)]
+enum RepoAction {
+    Root(root::RootArgs),
+    Clone(clone::CloneArgs),
+}
+
+pub fn run(args: RepoArgs) -> i32 {
+    match args.action {
+        RepoAction::Root(args) => root::run(args),
+        RepoAction::Clone(args) => clone::run(args),
     }
 }

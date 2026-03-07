@@ -1,14 +1,28 @@
-use std::{
-    path::{Path, PathBuf},
-    process::exit,
-};
+use std::{path::Path, process::exit};
 
+use clap::{ArgAction, Args};
+use clap_complete::{PathCompleter, engine::ArgValueCompleter};
 use colored::Colorize;
 
 use crate::{
-    Config, Repository, UrlParser, get_repo_tree_dir,
+    Config, Repository, UrlParser,
+    cli::cwd_default_path,
+    get_repo_tree_dir,
     git::{self, GitStatus, SubmoduleStatus},
 };
+
+/// Custom git status. Concise, with all the data and without help text.
+#[derive(Args, Debug, PartialEq)]
+pub struct StatusArgs {
+    /// Path to within the git repository to work with.
+    #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
+    repository: Option<String>,
+
+    /// Print path relative to the root of the repository and not the
+    /// current working directory.
+    #[arg(long, action=ArgAction::SetTrue)]
+    no_relative_path: bool,
+}
 
 fn format_repo_status(
     cwd: &Path,
@@ -102,7 +116,8 @@ fn format_repo_status(
     ret
 }
 
-pub fn status(repo_path: PathBuf, no_relative_path: bool) -> i32 {
+pub fn run(args: StatusArgs) -> i32 {
+    let repo_path = cwd_default_path(args.repository);
     let repo_tree_dir = get_repo_tree_dir();
     let Some(repository) = Repository::discover(
         &repo_tree_dir,
@@ -136,7 +151,7 @@ pub fn status(repo_path: PathBuf, no_relative_path: bool) -> i32 {
     println!(
         "{}",
         format_repo_status(
-            if no_relative_path {
+            if args.no_relative_path {
                 &repository.root
             } else {
                 repo_path.as_path()
