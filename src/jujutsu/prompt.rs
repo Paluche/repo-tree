@@ -22,8 +22,8 @@ fn commit_descendants(
     Ok(ids)
 }
 
-pub fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
-    let repo = load(root).unwrap();
+pub async fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
+    let repo = load(root).await.unwrap();
     let repo_view = repo.view();
     let workspace_name = WorkspaceName::DEFAULT;
 

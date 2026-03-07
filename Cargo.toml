@@ -17,10 +17,11 @@ fuzzy-matcher = "0.3.7"
 git2 = { version = "0.20.4", default-features=false }
 indoc = "2.0.7"
 itertools = "0.14.0"
-jj-lib = "0.38.0"
+jj-lib = "0.39.0"
 pathdiff = "0.2.3"
 regex = "1.12.3"
 strum = { version = "0.28.0", features = ["derive"] }
+tokio = { version = "1.50.0", features = ["full"] }
 url = "2.5.8"
 which = "8.0.0"
 yaml-rust2 = "0.11.0"
