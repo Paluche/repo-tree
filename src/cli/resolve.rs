@@ -1,21 +1,4 @@
 //! Action to resolve the path to a repository.
-//!
-//! This is typically to implement shell functions just as:
-//!
-//! ```bash
-//! # Repository Change Directory, jump to the specified repository using its
-//! # short name.
-//! function rcd() {
-//!    // TODO
-//! }
-//! ```
-//!
-//! ``` bash
-//! # Clone a repository using jj at the correct location in the repo tree.
-//! function jj_clone() {
-//!     // TODO
-//! }
-//! ```
 use std::{
     collections::HashMap,
     io::Write,
@@ -23,13 +6,22 @@ use std::{
     process::{Command, Stdio},
 };
 
-use clap::builder::StyledStr;
-use clap_complete::engine::CompletionCandidate;
+use clap::{Args, builder::StyledStr};
+use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use itertools::Itertools;
 use which::which;
 
 use crate::{Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree};
+
+/// Resolve the name of a repository into its path.
+#[derive(Args, Debug, PartialEq)]
+pub struct ResolveArgs {
+    /// Repository identifier to resolve into the actual path within the
+    /// repo_tree.
+    #[arg(add=ArgValueCompleter::new(resolve_completer))]
+    repo_id: Option<String>,
+}
 
 /// Find the shortest end-path to identify two
 fn reduce(path_a: String, path_b: String) -> Option<(String, String)> {
@@ -137,10 +129,10 @@ fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
     })
 }
 
-pub fn resolve(query: Option<String>) -> i32 {
+pub fn run(args: ResolveArgs) -> i32 {
     let repositories = get_repositories();
 
-    let Some(query) = query.or_else(|| fzf_ask(&repositories)) else {
+    let Some(query) = args.repo_id.or_else(|| fzf_ask(&repositories)) else {
         eprintln!("No repository selected");
         return 2;
     };
@@ -188,9 +180,7 @@ pub fn resolve(query: Option<String>) -> i32 {
     }
 }
 
-pub fn resolve_completer(
-    current: &std::ffi::OsStr,
-) -> Vec<CompletionCandidate> {
+fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
     let Some(current) = current.to_str() else {
         return vec![];
     };

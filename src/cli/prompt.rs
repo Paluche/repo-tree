@@ -1,11 +1,21 @@
-use std::{fmt::Display, path::PathBuf};
+use std::fmt::Display;
 
+use clap::Args;
+use clap_complete::{ArgValueCompleter, PathCompleter};
 use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
 
 use crate::{
-    Config, Repository, UrlParser, get_repo_tree_dir, git, jujutsu,
-    version_control_system::VersionControlSystem,
+    Config, Repository, UrlParser, cli::cwd_default_path, get_repo_tree_dir,
+    git, jujutsu, version_control_system::VersionControlSystem,
 };
+
+/// Generate the prompt for your shell.
+#[derive(Args, Debug, PartialEq)]
+pub struct PromptArgs {
+    /// Path to within the repository to work with.
+    #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
+    repository: Option<String>,
+}
 
 pub struct PromptBuilder {
     prompt: String,
@@ -61,7 +71,8 @@ impl Display for PromptBuilder {
     }
 }
 
-pub fn prompt(repo_path: PathBuf) -> i32 {
+pub fn run(args: PromptArgs) -> i32 {
+    let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);
 
     let repo = Repository::discover(

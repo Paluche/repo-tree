@@ -3,9 +3,21 @@
 
 use std::fs::{create_dir_all, remove_dir, rename};
 
+use clap::Args;
+
 use crate::{Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree};
 
-pub fn clean(dry_run: bool) -> i32 {
+/// Clean the repo_tree. Move the repositories where they belong and remove
+/// empty directories.
+#[derive(Args, Debug, PartialEq)]
+pub struct CleanArgs {
+    /// Do not perform any change on the repo_tree. Simply print what would be
+    /// done.
+    #[arg(short, long)]
+    dry_run: bool,
+}
+
+pub fn run(args: CleanArgs) -> i32 {
     let repo_tree_dir = get_repo_tree_dir();
     let config = Config::default();
     let url_parser = UrlParser::new(&config);
@@ -33,7 +45,7 @@ pub fn clean(dry_run: bool) -> i32 {
                 expected_root.display(),
             );
 
-            if dry_run {
+            if args.dry_run {
                 continue;
             }
 
@@ -67,7 +79,9 @@ pub fn clean(dry_run: bool) -> i32 {
 
         for empty_dir in empty_dirs {
             println!("Removing empty directory: {}", empty_dir.display());
-            if !dry_run && let Err(err) = remove_dir(empty_dir) {
+            if !args.dry_run
+                && let Err(err) = remove_dir(empty_dir)
+            {
                 eprintln!("{err}");
                 ret = 1;
                 break;

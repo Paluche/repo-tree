@@ -2,10 +2,20 @@
 
 use std::{error::Error, path::Path};
 
+use clap::Args;
+
 use crate::{
     Config, Repository, UrlParser, VersionControlSystem, get_repo_tree_dir,
     git, jujutsu, load_repo_tree,
 };
+
+/// Fetch all the repositories within the repo_tree.
+#[derive(Args, Debug, PartialEq)]
+pub struct FetchArgs {
+    /// Suppress output to the minimum, only the final summary will be printed.
+    #[arg(short, long)]
+    quiet: bool,
+}
 
 pub fn fetch_repo(
     repo_tree_dir: &Path,
@@ -54,7 +64,7 @@ pub fn fetch_repo(
     Ok((ok, total))
 }
 
-pub fn fetch(quiet: bool) -> i32 {
+pub fn run(args: FetchArgs) -> i32 {
     let repo_tree_dir = get_repo_tree_dir();
     let config = Config::default();
     let url_parser = UrlParser::new(&config);
@@ -64,7 +74,8 @@ pub fn fetch(quiet: bool) -> i32 {
     let (ok, total) = repositories
         .iter()
         .map(|r| {
-            fetch_repo(&repo_tree_dir, &url_parser, quiet, r).unwrap_or((0, 1))
+            fetch_repo(&repo_tree_dir, &url_parser, args.quiet, r)
+                .unwrap_or((0, 1))
         })
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
         .unwrap_or((0, 0));
