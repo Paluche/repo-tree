@@ -104,6 +104,8 @@ hosts:
     name: codeberg
     repr: 
     repr_color: blue
+
+vcs: jujutsu-git
 ```
 
 The special characters comes from the [NerdFonts](https://www.nerdfonts.com/)

@@ -12,6 +12,7 @@
 //!       dir_name: <HOST DIR NAME IN TREE>
 //!       repr: <PROMPT REPRESENTATION>
 //!       repr_COLOR: <COLOR FOR PROMPT REPRESENTATION>
+//! vcs: <DEFAULT VCS TO USE>
 //! ```
 
 use core::str::FromStr;
