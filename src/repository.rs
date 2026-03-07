@@ -21,10 +21,7 @@ pub struct RepoId {
 }
 
 pub fn location(repo_tree_dir: &Path, host: &Host, name: &String) -> PathBuf {
-    let mut path = repo_tree_dir.to_path_buf();
-    path.push(&host.name);
-    path.push(name);
-    path
+    repo_tree_dir.to_path_buf().join(&host.name).join(name)
 }
 
 impl RepoId {

@@ -221,13 +221,13 @@ impl Config {
     ) -> Result<Self, Box<dyn Error>> {
         let mut ret = Self { hosts, local, vcs };
 
-        let mut config_path = std::env::var("XDG_CONFIG_HOME").map_or(
-            std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
-            |x| Ok(PathBuf::from(x)),
-        )?;
-
-        config_path.push("repo-tree");
-        config_path.push("config.yml");
+        let config_path = std::env::var("XDG_CONFIG_HOME")
+            .map_or(
+                std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
+                |x| Ok(PathBuf::from(x)),
+            )?
+            .join("repo-tree")
+            .join("config.yml");
 
         if !config_path.is_file() {
             // No configuration file present.
