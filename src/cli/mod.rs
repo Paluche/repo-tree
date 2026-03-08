@@ -62,7 +62,7 @@ fn cwd_default_path(path: Option<String>) -> PathBuf {
     }
 }
 
-pub async fn run() -> i32 {
+pub fn run() -> i32 {
     CompleteEnv::with_factory(Args::command).complete();
 
     let args = Args::parse();
@@ -75,7 +75,7 @@ pub async fn run() -> i32 {
         Action::Fetch(args) => fetch::run(args),
         Action::Repo(args) => repo::run(args),
         Action::Git(args) => git::run(args),
-        Action::Prompt(args) => prompt::run(args).await,
+        Action::Prompt(args) => prompt::run(args),
         Action::Completion(args) => completion::run(&mut Args::command(), args),
         Action::Clone(args) => clone::run(args),
     }

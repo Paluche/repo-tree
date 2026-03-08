@@ -71,7 +71,7 @@ impl Display for PromptBuilder {
     }
 }
 
-pub async fn run(args: PromptArgs) -> i32 {
+pub fn run(args: PromptArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);
 
@@ -96,10 +96,10 @@ pub async fn run(args: PromptArgs) -> i32 {
             if ret != 0 {
                 return ret;
             }
-            jujutsu::prompt(&repository.root, &mut info).await
+            jujutsu::prompt(&repository.root, &mut info)
         }
         VersionControlSystem::Jujutsu => {
-            jujutsu::prompt(&repository.root, &mut info).await
+            jujutsu::prompt(&repository.root, &mut info)
         }
     };
 
