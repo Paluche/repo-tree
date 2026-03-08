@@ -1,6 +1,6 @@
 use clap::{Args, CommandFactory, Subcommand};
 
-mod completion;
+pub mod completion;
 
 /// Actions for git repositories.
 #[derive(Args, Debug, PartialEq)]
