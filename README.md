@@ -68,6 +68,15 @@ list`).
       is user required action to be done on some repositories to keep them
       updated (`rt todo`)
 
+> [!NOTE]
+> This tool is my own at the moment, so I am prioritizing stuff for my usage.
+> This means that the features will mostly resolve around interaction with:
+>
+> - zsh as shell
+> - Nerdfont modified fonts
+> - jujutsu as main vcs. My respositories are usually jj colocated with git.
+>   But I'll favored interaction through jj by default.
+
 ## Configuration
 
 The tool has the following defaults values to associate an URL host to a folder
