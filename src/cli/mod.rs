@@ -5,7 +5,6 @@ use clap_complete::CompleteEnv;
 
 mod clean;
 mod clone;
-mod completion;
 mod fetch;
 mod git;
 mod list;
@@ -13,6 +12,7 @@ mod prompt;
 mod repo;
 mod resolve;
 mod tree;
+mod util;
 
 pub use prompt::PromptBuilder;
 
@@ -35,7 +35,7 @@ enum Action {
     Repo(repo::RepoArgs),
     Git(git::GitArgs),
     Prompt(prompt::PromptArgs),
-    Completion(completion::CompletionArgs),
+    Util(util::UtilArgs),
 }
 
 fn get_cwd() -> PathBuf {
@@ -76,7 +76,7 @@ pub fn run() -> i32 {
         Action::Repo(args) => repo::run(args),
         Action::Git(args) => git::run(args),
         Action::Prompt(args) => prompt::run(args),
-        Action::Completion(args) => completion::run(&mut Args::command(), args),
         Action::Clone(args) => clone::run(args),
+        Action::Util(args) => util::run(args),
     }
 }
