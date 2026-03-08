@@ -16,6 +16,7 @@ use jj_lib::{
     repo::{ReadonlyRepo, RepoLoader, StoreFactories},
     settings::UserSettings,
 };
+use pollster::FutureExt as _;
 pub use prompt::prompt;
 
 pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
@@ -31,7 +32,7 @@ pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
 }
 
 /// Load an existing jj repository.
-pub async fn load<P: AsRef<Path>>(
+pub fn load<P: AsRef<Path>>(
     repo_path: P,
 ) -> Result<Arc<ReadonlyRepo>, Box<dyn Error>> {
     let config = StackedConfig::with_defaults();
@@ -46,5 +47,5 @@ pub async fn load<P: AsRef<Path>>(
     )?;
 
     // This gives you a loader. You can then load the repo at head:
-    Ok(loader.load_at_head().await?)
+    Ok(loader.load_at_head().block_on()?)
 }
