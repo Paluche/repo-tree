@@ -1,10 +1,10 @@
 use std::{env, fs::canonicalize, path::PathBuf, process::exit};
 
-use clap::{CommandFactory, Parser, Subcommand};
-use clap_complete::CompleteEnv;
+use clap::{Parser, Subcommand};
 
 mod clean;
 mod clone;
+mod complete_env;
 mod fetch;
 mod git;
 mod list;
@@ -63,7 +63,7 @@ fn cwd_default_path(path: Option<String>) -> PathBuf {
 }
 
 pub fn run() -> i32 {
-    CompleteEnv::with_factory(Args::command).complete();
+    complete_env::complete();
 
     let args = Args::parse();
 
