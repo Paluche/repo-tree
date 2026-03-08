@@ -1,6 +1,6 @@
 use clap::{Args, Subcommand};
 
-mod status_action;
+mod status;
 
 /// Actions for git repositories.
 #[derive(Args, Debug, PartialEq)]
@@ -11,11 +11,11 @@ pub struct GitArgs {
 
 #[derive(Subcommand, Debug, PartialEq)]
 enum GitAction {
-    Status(status_action::StatusArgs),
+    Status(status::StatusArgs),
 }
 
 pub fn run(args: GitArgs) -> i32 {
     match args.action {
-        GitAction::Status(args) => status_action::run(args),
+        GitAction::Status(args) => status::run(args),
     }
 }
