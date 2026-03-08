@@ -1,0 +1,274 @@
+---
+source: tests/test_completion.rs
+expression: "String::from_utf8(output).unwrap()"
+---
+#compdef rt
+function _clap_dynamic_completer_repo_tree() {
+    local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
+    local _CLAP_IFS=$'\n'
+
+    local completions=("${(@f)$( \
+        _CLAP_IFS="$_CLAP_IFS" \
+        _CLAP_COMPLETE_INDEX="$_CLAP_COMPLETE_INDEX" \
+        COMPLETE="zsh" \
+        rt -- "${words[@]}" 2>/dev/null \
+    )}")
+
+    if [[ -n $completions ]]; then
+        local -a dirs=()
+        local -a other=()
+        local completion
+        for completion in $completions; do
+            local value="${completion%%:*}"
+            if [[ "$value" == */ ]]; then
+                local dir_no_slash="${value%/}"
+                if [[ "$completion" == *:* ]]; then
+                    local desc="${completion#*:}"
+                    dirs+=("$dir_no_slash:$desc")
+                else
+                    dirs+=("$dir_no_slash")
+                fi
+            else
+                other+=("$completion")
+            fi
+        done
+        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe 'values' other
+    fi
+}
+
+compdef _clap_dynamic_completer_repo_tree rt
+function _update_repo_root()
+{
+    unset __GIT_REPO
+    unset __JJ_REPO
+
+    if res=("${(@f)$(rt repo root --print-type 2> /dev/null)}")
+    then
+        repo_root="${res[1]}"
+        git_repo="${res[2]}"
+        jj_repo="${res[3]}"
+
+        if [ -n "${repo_root}" ] && [[ "${__REPO_ROOT}" != "${repo_root}" ]]
+        then
+            export __PREVIOUS_REPO_ROOT=${__REPO_ROOT}
+            export __REPO_ROOT=${repo_root}
+        fi
+
+        if [ "${git_repo}" = "true" ]
+        then
+            export __GIT_REPO=1
+        fi
+
+        if [ "${jj_repo}" = "true" ]
+        then
+            export __JJ_REPO=1
+        fi
+    else
+        unset __REPO_ROOT
+    fi
+}
+
+precmd_functions+='update_repo_root'
+
+function rcd()
+{
+    if [[ "$@" == *-h* ]] || [[ "$@" == *--help* ]]
+    then
+        echo "Resolve the name of a repository and cd in its location"
+        echo ""
+        echo "Usage: rcd [REPO_ID]"
+        echo ""
+        echo "Arguments:"
+        echo "  [REPO_ID]  Repository identifier to resolve, if not provided, and"
+        echo "             fzf is installed, you will be asked using fzf to select"
+        echo "             the repository. If you provide the - as repository"
+        echo "             identifier then we will cd to the previous repository you"
+        echo "             were in if there is one."
+        echo ""
+        echo "Note: For support of - as REPO_ID value, you need to have "
+        echo "'typeset -ga precmd_functions' in your .zshrc."
+        return 0
+    fi
+
+    if [ "${*}" = '-' ]
+    then
+        if [ -n "${__PREVIOUS_REPO_ROOT}" ]
+        then
+            p=${__PREVIOUS_REPO_ROOT}
+            a=0
+        else
+            echo "No previous repository"
+            return 1
+        fi
+    else
+        p=$(rt resolve $@)
+        a=$?
+    fi
+
+    if [[ $a -ne 0 ]]
+    then
+        echo $p
+        return $a
+    fi
+
+    cd $p
+}
+
+
+#compdef rcd
+function _rcd() {
+    local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
+    local _CLAP_IFS=$'\n'
+
+    local words=("${words[1]}" "resolve" "${words[@]:2}")
+
+    local completions=("${(@f)$( \
+        _CLAP_IFS="$_CLAP_IFS" \
+        _CLAP_COMPLETE_INDEX="$((_CLAP_COMPLETE_INDEX + 1))" \
+        COMPLETE="zsh" \
+        rt -- "${words[@]}" 2>/dev/null \
+    )}")
+
+    if [[ -n $completions ]]; then
+        local -a dirs=()
+        local -a other=()
+        local completion
+        for completion in $completions; do
+            local value="${completion%%:*}"
+            if [[ "$value" == */ ]]; then
+                local dir_no_slash="${value%/}"
+                if [[ "$completion" == *:* ]]; then
+                    local desc="${completion#*:}"
+                    dirs+=("$dir_no_slash:$desc")
+                else
+                    dirs+=("$dir_no_slash")
+                fi
+            else
+                other+=("$completion")
+            fi
+        done
+        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe 'values' other
+    fi
+}
+
+compdef _rcd rcd
+
+function repo-clone()
+{
+    # Upon success, rt prints the location where the repository has been
+    # cloned to.
+    if output=$(rt clone "$@" | tee /dev/tty)
+    then
+        local last_line=$(echo "$output" | tail -n 1)
+        if [ ! -d "${last_line}" ]
+        then
+            echo "`rt clone` did not return new repository location as last line" > /dev/stderr
+        fi
+        if ! cd "$last_line"
+        then
+            echo "Unable to go to \"${repo_root}\"" > /dev/stderr
+            return 1
+        fi
+    else
+        return $?
+    fi
+}
+
+
+#compdef repo-clone
+function _repo-clone() {
+    local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
+    local _CLAP_IFS=$'\n'
+
+    local words=("${words[1]}" "clone" "${words[@]:2}")
+
+    local completions=("${(@f)$( \
+        _CLAP_IFS="$_CLAP_IFS" \
+        _CLAP_COMPLETE_INDEX="$((_CLAP_COMPLETE_INDEX + 1))" \
+        COMPLETE="zsh" \
+        rt -- "${words[@]}" 2>/dev/null \
+    )}")
+
+    if [[ -n $completions ]]; then
+        local -a dirs=()
+        local -a other=()
+        local completion
+        for completion in $completions; do
+            local value="${completion%%:*}"
+            if [[ "$value" == */ ]]; then
+                local dir_no_slash="${value%/}"
+                if [[ "$completion" == *:* ]]; then
+                    local desc="${completion#*:}"
+                    dirs+=("$dir_no_slash:$desc")
+                else
+                    dirs+=("$dir_no_slash")
+                fi
+            else
+                other+=("$completion")
+            fi
+        done
+        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe 'values' other
+    fi
+}
+
+compdef _repo-clone repo-clone
+
+function gtr()
+{
+    if repo_root=$(rt repo root --parent) && [ "${repo_root}" != "${PWD}" ]
+    then
+        if ! cd "${repo_root}"
+        then
+            echo "Unable to go to \"${repo_root}\"" > /dev/stderr
+            return 1
+        fi
+    else
+        echo -e "Nowhere to go" > /dev/stderr
+        return 1
+    fi
+}
+
+
+alias gs='rt git status'
+
+#compdef gs
+function _gs() {
+    local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
+    local _CLAP_IFS=$'\n'
+
+    local words=("${words[1]}" "git" "status" "${words[@]:2}")
+
+    local completions=("${(@f)$( \
+        _CLAP_IFS="$_CLAP_IFS" \
+        _CLAP_COMPLETE_INDEX="$((_CLAP_COMPLETE_INDEX + 2))" \
+        COMPLETE="zsh" \
+        rt -- "${words[@]}" 2>/dev/null \
+    )}")
+
+    if [[ -n $completions ]]; then
+        local -a dirs=()
+        local -a other=()
+        local completion
+        for completion in $completions; do
+            local value="${completion%%:*}"
+            if [[ "$value" == */ ]]; then
+                local dir_no_slash="${value%/}"
+                if [[ "$completion" == *:* ]]; then
+                    local desc="${completion#*:}"
+                    dirs+=("$dir_no_slash:$desc")
+                else
+                    dirs+=("$dir_no_slash")
+                fi
+            else
+                other+=("$completion")
+            fi
+        done
+        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe 'values' other
+    fi
+}
+
+compdef _gs gs

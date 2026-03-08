@@ -1,5 +1,6 @@
 [package]
 name = "repo_tree"
+description = "Repo-tree - Local Repository manager"
 default-run="rt"
 version = "0.1.0"
 edition = "2024"
@@ -16,6 +17,7 @@ colored = "3.1.1"
 fuzzy-matcher = "0.3.7"
 git2 = { version = "0.20.4", default-features=false }
 indoc = "2.0.7"
+insta = "1.46.3"
 itertools = "0.14.0"
 jj-lib = "0.39.0"
 pathdiff = "0.2.3"
@@ -25,3 +27,6 @@ strum = { version = "0.28.0", features = ["derive"] }
 url = "2.5.8"
 which = "8.0.1"
 yaml-rust2 = "0.11.0"
+
+[dev-dependencies]
+assert_cmd = "2.1.2"
