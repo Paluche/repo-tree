@@ -122,23 +122,42 @@ hosts:
     repr_color: 40 # Green
 ```
 
-## Completion
+## Completion and utils
 
-We are using clap_complete with the unstable feature for dynamic completion.
-This could change at any moment.
+We are using [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/index.html)
+with the unstable feature for dynamic completion.
 
-To enable it, configure your shell based on the following command lines:
+The completion will also generate some shell utils with their autocompletion:
 
-Bash
+- `rcd`: Jumping from one repository to another by referencing the repository
+  name. Build on top of `rt resolve` command, use it as `rcd [REPO_ID]`.
+  `REPO_ID` could either be:
+  - Not specified, and if `fzf` is installed ask for the user to select the
+    repository through `fzf` interface.
+  - A valid repository identifier.
+  - The value `-` which will let you go to the previous repository you were
+    into if there is one. For that feature to work you need to enable the
+    `precmd_functions`.
+- `gtr`: Go To repository Root. This function allow you to jump to the root of
+  the current repository. If you are in a submodule, and already at the root
+  it will jump to the root of the repository containing the submodule.
+- `repo-clone`: Clone a repository then `cd` to its root
 
-```bash
-echo "source <(COMPLETE=bash rt)" >> ~/.bashrc
-```
+To obtain the completion and utils, configure your shell based on the following
+command lines:
 
 Zsh
 
-```
+```bash
 echo "source <(COMPLETE=zsh rt)" >> ~/.zshrc
+```
+
+> [!NOTE]
+> For the following shells, the utils are not generated yet.
+> Bash
+
+```bash
+echo "source <(COMPLETE=bash rt)" >> ~/.bashrc
 ```
 
 Elvish
@@ -161,113 +180,7 @@ echo "rt | Out-String | Invoke-Expression" >> $PROFILE
 Remove-Item Env:\COMPLETE
 ```
 
-To disable completions, you can set COMPLETE= or COMPLETE=0
-
-## Shell functions using rt
-
-> I am using zsh so all function are zsh syntax and compatible.
-
-### Jumping from one repository to another
-
-The following ZSH function allows you to easily jump from one repository to
-another, with auto-completion.
-
-If no argument are provided, then `rt` will ask you which repository to jump to
-interactively using `fzf` if installed.
-
-```zsh
-function rcd()
-{
-    if p=$(rt resolve $1)
-    then
-        cd $p
-    fi
-}
-
-function _rcd() {
-    local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
-    local _CLAP_IFS=$'\n'
-
-    # Insert "resolve" as the subcommand as rcd() arguments forwards its
-    # arguments "rt resolve ..." so we need to adjust for that to obtain
-    # the correct completions.
-    # _CLAP_COMPLETE_INDEX is also adjusted accordingly below.
-    local words=("${words[1]}" "resolve" "${words[@]:2}")
-
-    local completions=("${(@f)$( \
-        _CLAP_IFS="$_CLAP_IFS" \
-        _CLAP_COMPLETE_INDEX="$((_CLAP_COMPLETE_INDEX + 1))" \
-        COMPLETE="zsh" \
-        rt -- "${words[@]}" 2>/dev/null \
-    )}")
-
-    if [[ -n $completions ]]; then
-        _describe 'values' completions
-    fi
-}
-compdef _rcd rcd
-```
-
-### Go To repository Root
-
-This function allow you to jump to the root of the current repository. If you
-are in a submodule, and already at the root it will jump to the root of the
-repository containing the submodule.
-
-```zsh
-function gtr()
-{
-    if repo_root=$(rt repo root --parent) && [ "${repo_root}" != "${PWD}" ]
-    then
-        cd ${repo_root}
-    else
-        echo "Nowhere to go"
-        return 1
-    fi
-}
-```
-
-### Clone a repository then jump at its root
-
-```zsh
-function repo_clone()
-{
-    # Upon success, rt prints the location where the repository has been
-    # cloned to.
-    output=$(rt repo clone "$@" | tee /dev/tty)
-
-    if [[ $? -eq 0 ]]
-    then
-        local last_line=$(echo "$output" | tail -n 1)
-        cd "$last_line" || return 1
-    else
-        return $?
-    fi
-}
-
-function _repo_clone() {
-    local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
-    local _CLAP_IFS=$'\n'
-
-    # Insert "repo" a "clone" as the subcommand as repo_clone() arguments
-    # forwards its arguments "rt repo lone..." so we need to adjust for that to
-    # obtain # the correct completions.
-    # _CLAP_COMPLETE_INDEX is also adjusted accordingly below.
-    local words=("${words[1]}" "repo" "clone" "${words[@]:2}")
-
-    local completions=("${(@f)$( \
-        _CLAP_IFS="$_CLAP_IFS" \
-        _CLAP_COMPLETE_INDEX="$((_CLAP_COMPLETE_INDEX + 2))" \
-        COMPLETE="zsh" \
-        rt -- "${words[@]}" 2>/dev/null \
-    )}")
-
-    if [[ -n $completions ]]; then
-        _describe 'values' completions
-    fi
-}
-compdef _repo_clone repo_clone
-```
+To disable completions, you can set `COMPLETE=` or `COMPLETE=0`
 
 ### Having a cron to periodically fetch all your repositories
 
