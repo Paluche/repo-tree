@@ -18,6 +18,8 @@
 //!   repr: <PROMPT REPRESENTATION>
 //!   repr_COLOR: <COLOR FOR PROMPT REPRESENTATION>
 //! vcs: <DEFAULT VCS TO USE>
+//! repo_aliases:
+//!       <alias>: <repo_name>
 //! ```
 
 use core::str::FromStr;
@@ -182,9 +184,8 @@ fn parse_host<F: Fn(&str) -> ParseError>(
     let mut repr_color: Option<Color> = None;
 
     for (key, value) in value {
-        let key = match key.as_str() {
-            None => return Err(parse_error("Invalid non-str key")),
-            Some(key) => key,
+        let Some(key) = key.as_str() else {
+            return Err(parse_error("Invalid non-str key"));
         };
 
         match key {
@@ -286,10 +287,49 @@ fn parse_vcs(
     })
 }
 
+pub type RepoAliases = HashMap<String, String>;
+
+fn parse_repo_aliases(
+    config_path: &Path,
+    repo_aliases: &mut RepoAliases,
+    value: &Yaml,
+) -> Result<(), ParseError> {
+    let hash = value.as_hash().ok_or_else(|| {
+        ParseError::new(
+            config_path,
+            "\"repo_aliases\": Expecting only entries in the format: `string: \
+             string`"
+                .to_string(),
+        )
+    })?;
+
+    for (key, value) in hash {
+        let Some(key) = key.as_str() else {
+            return Err(ParseError::new(
+                config_path,
+                "\"repo_aliases\": Unexpected non-string key".to_string(),
+            ));
+        };
+        let Some(value) = value.as_str() else {
+            return Err(ParseError::new(
+                config_path,
+                format!(
+                    "\"repo_aliases\": Unexepected non-string value for key \
+                     \"{key}\""
+                ),
+            ));
+        };
+
+        repo_aliases.insert(key.to_string(), value.to_string());
+    }
+    Ok(())
+}
+
 pub struct Config {
     pub hosts: Hosts,
     pub local: Host,
     pub vcs: VersionControlSystem,
+    pub repo_aliases: RepoAliases,
 }
 
 impl Config {
@@ -298,7 +338,12 @@ impl Config {
         local: Host,
         vcs: VersionControlSystem,
     ) -> Result<Self, Box<dyn Error>> {
-        let mut ret = Self { hosts, local, vcs };
+        let mut ret = Self {
+            hosts,
+            local,
+            vcs,
+            repo_aliases: HashMap::new(),
+        };
 
         let config_path = std::env::var("XDG_CONFIG_HOME")
             .map_or(
@@ -343,6 +388,11 @@ impl Config {
                     parse_local_host(&config_path, &mut ret.local, value)?
                 }
                 "vcs" => ret.vcs = parse_vcs(&config_path, value)?,
+                "repo_aliases" => parse_repo_aliases(
+                    &config_path,
+                    &mut ret.repo_aliases,
+                    value,
+                )?,
                 key => Err(ParseError::new(
                     &config_path,
                     format!("Unknown key \"{key}\""),

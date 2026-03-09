@@ -82,10 +82,9 @@ fn reduce_repo_names(
 }
 
 fn get_repositories() -> HashMap<String, Repository> {
-    let (repositories, empty_dirs) = load_repo_tree(
-        &get_repo_tree_dir(),
-        &UrlParser::new(&Config::default()),
-    );
+    let config = Config::default();
+    let (repositories, empty_dirs) =
+        load_repo_tree(&get_repo_tree_dir(), &UrlParser::new(&config));
 
     for empty_dir in empty_dirs {
         eprintln!("Empty directory in REPO_TREE_DIR: {}", empty_dir.display());
@@ -94,6 +93,17 @@ fn get_repositories() -> HashMap<String, Repository> {
     let mut ret = reduce_repo_names(repositories.clone());
 
     ret.extend(repositories.iter().map(|r| (r.id.name.clone(), r.clone())));
+
+    for (alias, repo_name) in config.repo_aliases {
+        if let Some(repo) = ret.get(&repo_name) {
+            ret.insert(alias, repo.clone());
+        } else {
+            eprintln!(
+                "Configured alias \"{alias}\" => \"{repo_name}\", does not \
+                 correspond to any existing repository."
+            );
+        }
+    }
 
     ret
 }
