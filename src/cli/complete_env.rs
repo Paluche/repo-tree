@@ -114,7 +114,7 @@ fn generate_rcd_zsh(
             fi
         }
 
-        precmd_functions+='update_repo_root'
+        precmd_functions+='_update_repo_root'
 
         function rcd()
         {
