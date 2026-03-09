@@ -129,6 +129,17 @@ hosts:
     repr_color: 40 # Green
 ```
 
+You can also configure repository aliases, allowing to set other names to
+reference a specific repository. For example:
+
+```yaml
+repo_aliases:
+  rt: repo-tree
+```
+
+Which will allow you to do `rt resolve rt` instead of `rt resolve repo-tree`,
+which obviously applies for utils using `rt resolve` such as `rcd`.
+
 ## Completion and utils
 
 We are using [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/index.html)
