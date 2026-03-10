@@ -1,4 +1,4 @@
-use clap::Args;
+use clap::{ArgAction, Args};
 use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
 
 use crate::{Config, UrlParser, get_repo_tree_dir, load_repo_tree};
@@ -15,8 +15,8 @@ pub struct ListArgs {
     /// listed. For example to filter only GitHub repositories from a
     /// certain organization, you could use the organization name as value
     /// for this argument, and "github" as value of the --host argument.
-    #[arg(short = 'N', long)]
-    name: Option<String>,
+    #[arg(short = 'N', long = "name", action=ArgAction::Append)]
+    names: Vec<String>,
 }
 
 pub fn run(args: ListArgs) -> i32 {
@@ -37,11 +37,15 @@ pub fn run(args: ListArgs) -> i32 {
             }
         }
 
-        if let Some(name) = &args.name
-            && !repository.id.name.starts_with(name)
+        if !args.names.is_empty()
+            && !args
+                .names
+                .iter()
+                .any(|name| repository.id.name.starts_with(name))
         {
             continue;
         }
+
         println!("{}", repository.root.display());
     }
     0
