@@ -424,6 +424,7 @@ jobs:
       - check-rustfmt
       - check-clippy
       - check-prettier
+      - check-tests
     runs-on: ubuntu-latest
     steps:
       - name: Block merge if required checks fail
