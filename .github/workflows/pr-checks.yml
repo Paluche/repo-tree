@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   check-gitlint:
+    name: check (gitlint)
     # Do not run this check if the PR has been created by dependabot.
     if: contains(github.event.pull_request.user.login , 'dependabot[bot]') == false
     runs-on: ubuntu-latest
@@ -394,7 +395,8 @@ jobs:
 
             await core.summary.write();
 
-  tests:
+  check-tests:
+    name: check (cargo test)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
