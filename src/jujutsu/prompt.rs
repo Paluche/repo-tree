@@ -53,17 +53,6 @@ pub fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
         })
         .collect();
 
-    // Unneeded information in prompt. I know I am at @
-    // let change_id = commit.change_id();
-    // let len = repo.shortest_unique_change_id_prefix_len(change_id);
-    // let change_id = change_id.to_string();
-
-    // info.push_string(&format!(
-    //     "{}{}",
-    //     change_id[0..len].purple(),
-    //     change_id[len..8.max(len + 1)].bright_black(),
-    // ));
-
     let mut bookmarks = String::new();
     let mut print_other = false;
     for commit_bookmark in commit_bookmarks {
