@@ -70,6 +70,22 @@ impl Ref {
         }
         .to_string()
     }
+
+    fn get_tag_repr(&self) -> String {
+        if let Some(remote) = &self.remote_only {
+            format!("{}@{}", self.name.as_str(), remote)
+        } else if self.local_only {
+            self.name.as_str().to_string()
+        } else {
+            format!(
+                "{}{}",
+                self.name.as_str(),
+                if self.modified { "*" } else { "" }
+            )
+        }
+        .yellow()
+        .to_string()
+    }
 }
 
 enum BookmarkCategory {
@@ -141,6 +157,40 @@ fn list_bookmarks(
     Ok(())
 }
 
+fn list_tags(
+    repo: &dyn Repo,
+    current_commit: &CommitId,
+    buffer: &mut String,
+) -> BackendResult<()> {
+    let mut tags = RevsetExpression::commits(vec![current_commit.to_owned()])
+        .parents()
+        .evaluate(repo)
+        .map_err(|e| e.into_backend_error())?
+        .iter()
+        .flat_map(|r| {
+            let commit = r.unwrap();
+            repo.view().tags().filter_map(move |(name, lrrt)| {
+                Ref::try_new(name, &lrrt, &commit)
+            })
+        });
+
+    if let Some(tag) = tags.next() {
+        if !buffer.is_empty() {
+            buffer.push(' ');
+        }
+
+        buffer.push_str(&"".yellow());
+        buffer.push_str(&tag.get_tag_repr());
+
+        for tag in tags {
+            buffer.push_str(&"🞍".bright_blue());
+            buffer.push_str(&tag.get_tag_repr());
+        }
+    }
+
+    Ok(())
+}
+
 fn prompt_internal(
     repo: &dyn Repo,
     current_commit: &CommitId,
@@ -166,6 +216,7 @@ fn prompt_internal(
         current_commit,
         &mut buffer,
     )?;
+    list_tags(repo, current_commit, &mut buffer)?;
 
     info.push_string(&if buffer.is_empty() {
         "󰫌".bright_black().to_string()
