@@ -90,9 +90,11 @@ pub fn run(args: PromptArgs) -> i32 {
     let mut info = PromptBuilder::new(&repository);
 
     let ret = match repository.vcs {
-        VersionControlSystem::Git => git::prompt(&repository.root, &mut info),
+        VersionControlSystem::Git => {
+            git::prompt(&repository.root, false, &mut info)
+        }
         VersionControlSystem::JujutsuGit => {
-            let ret = git::prompt(&repository.root, &mut info);
+            let ret = git::prompt(&repository.root, true, &mut info);
             if ret != 0 {
                 return ret;
             }
