@@ -1,6 +1,8 @@
 //! Module for retrieving JuJutsu information.
 pub mod git;
 mod prompt;
+mod repo_state;
+mod revsets;
 
 use std::{
     error::Error,
@@ -17,6 +19,8 @@ use jj_lib::{
     settings::UserSettings,
 };
 pub use prompt::prompt;
+#[expect(unused_imports)]
+pub use repo_state::get_repo_state;
 
 pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
     let jj_dir = repo_path.as_ref().to_path_buf().join(".jj");
