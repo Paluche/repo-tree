@@ -227,8 +227,8 @@ fn prompt_internal(
     Ok(())
 }
 
-pub fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
-    let repo = load(root).unwrap();
+pub async fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
+    let repo = load(root).await.unwrap();
     let Some(current_commit) =
         repo.view().get_wc_commit_id(WorkspaceName::DEFAULT)
     else {
