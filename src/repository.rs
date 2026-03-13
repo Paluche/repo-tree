@@ -183,3 +183,41 @@ pub fn search(
 ) -> (Vec<Repository>, Vec<PathBuf>) {
     _search(repo_tree_dir, repo_tree_dir, url_parser)
 }
+
+pub struct RepoState {
+    pub unpushed_commits: bool,
+    pub needs_restack: bool,
+    pub has_conflicts: bool,
+}
+
+impl Display for RepoState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut empty = true;
+        if self.unpushed_commits {
+            write!(f, "unpushed commits")?;
+            empty = false;
+        }
+
+        if self.needs_restack {
+            if !empty {
+                write!(f, ", ")?;
+            }
+            write!(f, "needs restack")?;
+            empty = false;
+        }
+
+        if self.has_conflicts {
+            if !empty {
+                write!(f, ", ")?;
+            }
+            write!(f, "has_conflicts")?;
+            empty = false;
+        }
+
+        if empty {
+            write!(f, "OK")?;
+        }
+
+        Ok(())
+    }
+}

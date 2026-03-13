@@ -1,6 +1,15 @@
 //! Module for retrieving JuJutsu information.
+//! Note: The implementation of the different functions aims at using the jj_lib
+//! crate and avoiding directly calling the jj process. While some operation
+//! might be simplier done using directly the jj command line. The goal here is
+//! to get familiar with the jj_lib, which is supposed to be the interact
+//! library to use when we implement a tool that interacts with a jj repository.
+//! Although my experiment is that this is not obvious and, this experiment
+//! could lead to some improvements on jj-lib crate side.
 pub mod git;
 mod prompt;
+mod repo_state;
+mod revsets;
 
 use std::{
     error::Error,
@@ -17,6 +26,7 @@ use jj_lib::{
     settings::UserSettings,
 };
 pub use prompt::prompt;
+pub use repo_state::get_repo_state;
 
 pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
     let jj_dir = repo_path.as_ref().to_path_buf().join(".jj");
