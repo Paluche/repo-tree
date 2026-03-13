@@ -3,6 +3,7 @@ use std::fmt::Display;
 use clap::Args;
 use clap_complete::{ArgValueCompleter, PathCompleter};
 use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
+use pollster::FutureExt;
 
 use crate::{
     Config, Repository, UrlParser, cli::cwd_default_path, get_repo_tree_dir,
@@ -98,10 +99,10 @@ pub fn run(args: PromptArgs) -> i32 {
             if ret != 0 {
                 return ret;
             }
-            jujutsu::prompt(&repository.root, &mut info)
+            jujutsu::prompt(&repository.root, &mut info).block_on()
         }
         VersionControlSystem::Jujutsu => {
-            jujutsu::prompt(&repository.root, &mut info)
+            jujutsu::prompt(&repository.root, &mut info).block_on()
         }
     };
 
