@@ -1,5 +1,6 @@
 mod remote;
 mod root;
+mod state;
 
 use clap::{Args, Subcommand};
 
@@ -14,11 +15,13 @@ pub struct RepoArgs {
 enum RepoAction {
     Root(root::RootArgs),
     Remote(remote::RemoteArgs),
+    State(state::StateArgs),
 }
 
 pub fn run(args: RepoArgs) -> i32 {
     match args.action {
         RepoAction::Root(args) => root::run(args),
         RepoAction::Remote(args) => remote::run(args),
+        RepoAction::State(args) => state::run(args),
     }
 }
