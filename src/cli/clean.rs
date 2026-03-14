@@ -5,7 +5,10 @@ use std::fs::{create_dir_all, remove_dir, rename};
 
 use clap::Args;
 
-use crate::{Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree};
+use crate::{
+    Config, Repository, UrlParser, get_repo_tree_dir, load_empty_dirs,
+    load_repositories_silent,
+};
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
@@ -21,8 +24,7 @@ pub fn run(args: CleanArgs) -> i32 {
     let repo_tree_dir = get_repo_tree_dir();
     let config = Config::default();
     let url_parser = UrlParser::new(&config);
-    let repositories = load_repo_tree(&repo_tree_dir, &url_parser)
-        .0
+    let repositories = load_repositories_silent(&repo_tree_dir, &url_parser)
         .into_iter()
         .filter(|r| {
             r.expected_root(&repo_tree_dir).is_some_and(|p| p != r.root)
@@ -67,7 +69,7 @@ pub fn run(args: CleanArgs) -> i32 {
 
     let mut first = true;
     loop {
-        let empty_dirs = load_repo_tree(&repo_tree_dir, &url_parser).1;
+        let empty_dirs = load_empty_dirs(&repo_tree_dir, &url_parser);
 
         if empty_dirs.is_empty() {
             if first {
