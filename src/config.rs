@@ -461,3 +461,9 @@ impl Config {
         self.hosts.get(host)
     }
 }
+
+pub fn list_host_completer(
+    current: &std::ffi::OsStr,
+) -> Vec<CompletionCandidate> {
+    Config::default().host_completer(current)
+}

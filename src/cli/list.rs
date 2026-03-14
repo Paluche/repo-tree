@@ -1,7 +1,11 @@
 use clap::{ArgAction, Args};
-use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
+use clap_complete::engine::ArgValueCompleter;
 
-use crate::{Config, UrlParser, get_repo_tree_dir, load_repo_tree};
+use crate::{
+    UrlParser,
+    config::{Config, list_host_completer},
+    get_repo_tree_dir, load_repo_tree,
+};
 
 /// List all repositories in the repo_tree.
 #[derive(Args, Debug, PartialEq)]
@@ -49,8 +53,4 @@ pub fn run(args: ListArgs) -> i32 {
         println!("{}", repository.root.display());
     }
     0
-}
-
-fn list_host_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
-    Config::default().host_completer(current)
 }
