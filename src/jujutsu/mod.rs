@@ -19,7 +19,6 @@ use jj_lib::{
     settings::UserSettings,
 };
 pub use prompt::prompt;
-#[expect(unused_imports)]
 pub use repo_state::get_repo_state;
 
 pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {

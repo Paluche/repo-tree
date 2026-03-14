@@ -33,7 +33,6 @@ fn has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     revsets::revset_has_match(repo_path, "conflicts()")
 }
 
-#[expect(dead_code)]
 pub async fn get_repo_state(
     repo_path: &Path,
 ) -> Result<RepoState, Box<dyn Error>> {
