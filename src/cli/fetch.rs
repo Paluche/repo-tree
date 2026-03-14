@@ -6,7 +6,7 @@ use clap::Args;
 
 use crate::{
     Config, Repository, UrlParser, VersionControlSystem, get_repo_tree_dir,
-    git, jujutsu, load_repo_tree,
+    git, jujutsu, load_repositories,
 };
 
 /// Fetch all the repositories within the repo_tree.
@@ -68,8 +68,8 @@ pub fn run(args: FetchArgs) -> i32 {
     let repo_tree_dir = get_repo_tree_dir();
     let config = Config::default();
     let url_parser = UrlParser::new(&config);
-    let (repositories, _) =
-        load_repo_tree(&repo_tree_dir, &UrlParser::new(&Config::default()));
+    let repositories =
+        load_repositories(&repo_tree_dir, &UrlParser::new(&Config::default()));
 
     let (ok, total) = repositories
         .iter()

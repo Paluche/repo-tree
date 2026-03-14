@@ -12,7 +12,9 @@ use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use itertools::Itertools;
 use which::which;
 
-use crate::{Config, Repository, UrlParser, get_repo_tree_dir, load_repo_tree};
+use crate::{
+    Config, Repository, UrlParser, get_repo_tree_dir, load_repositories,
+};
 
 /// Resolve the name of a repository into its path.
 #[derive(Args, Debug, PartialEq)]
@@ -83,12 +85,8 @@ fn reduce_repo_names(
 
 fn get_repositories() -> HashMap<String, Repository> {
     let config = Config::default();
-    let (repositories, empty_dirs) =
-        load_repo_tree(&get_repo_tree_dir(), &UrlParser::new(&config));
-
-    for empty_dir in empty_dirs {
-        eprintln!("Empty directory in REPO_TREE_DIR: {}", empty_dir.display());
-    }
+    let repositories =
+        load_repositories(&get_repo_tree_dir(), &UrlParser::new(&config));
 
     let mut ret = reduce_repo_names(repositories.clone());
 
