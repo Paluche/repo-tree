@@ -11,6 +11,7 @@ mod list;
 mod prompt;
 mod repo;
 mod resolve;
+mod todo;
 mod tree;
 mod util;
 
@@ -32,6 +33,7 @@ enum Action {
     Tree(tree::TreeArgs),
     Clean(clean::CleanArgs),
     Fetch(fetch::FetchArgs),
+    Todo(todo::TodoArgs),
     Repo(repo::RepoArgs),
     Git(git::GitArgs),
     Prompt(prompt::PromptArgs),
@@ -73,6 +75,7 @@ pub fn run() -> i32 {
         Action::Tree(args) => tree::run(args),
         Action::Clean(args) => clean::run(args),
         Action::Fetch(args) => fetch::run(args),
+        Action::Todo(args) => todo::run(args),
         Action::Repo(args) => repo::run(args),
         Action::Git(args) => git::run(args),
         Action::Prompt(args) => prompt::run(args),
