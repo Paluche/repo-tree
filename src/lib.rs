@@ -33,9 +33,50 @@ pub fn get_repo_tree_dir() -> PathBuf {
     ret
 }
 
-pub fn load_repo_tree(
+pub fn load_repositories(
     repo_tree_dir: &Path,
     url_parser: &UrlParser,
-) -> (Vec<Repository>, Vec<PathBuf>) {
-    repository::search(repo_tree_dir, url_parser)
+) -> Vec<Repository> {
+    let (repositories, empty_dirs) =
+        repository::search(repo_tree_dir, url_parser);
+
+    for empty_dir in empty_dirs {
+        eprintln!("Empty directory in REPO_TREE_DIR: {}", empty_dir.display());
+    }
+
+    repositories
+}
+
+pub fn load_repositories_silent(
+    repo_tree_dir: &Path,
+    url_parser: &UrlParser,
+) -> Vec<Repository> {
+    repository::search(repo_tree_dir, url_parser).0
+}
+
+pub fn load_filtered_repositories(
+    repo_tree_dir: &Path,
+    url_parser: &UrlParser,
+    filter_hosts: Vec<String>,
+    filter_names: Vec<String>,
+) -> Vec<Repository> {
+    load_repositories(repo_tree_dir, url_parser)
+        .into_iter()
+        .filter(|r| {
+            filter_hosts.iter().any(|host| {
+                if let Some(repo_host) = &r.id.host {
+                    &repo_host.name == host
+                } else {
+                    host == "local"
+                }
+            }) && filter_names.iter().any(|name| r.id.name.starts_with(name))
+        })
+        .collect()
+}
+
+pub fn load_empty_dirs(
+    repo_tree_dir: &Path,
+    url_parser: &UrlParser,
+) -> Vec<PathBuf> {
+    repository::search(repo_tree_dir, url_parser).1
 }
