@@ -193,7 +193,6 @@ pub struct RepoState {
 }
 
 impl RepoState {
-    #[expect(unused)]
     pub fn is_ok(&self) -> bool {
         !(self.unpushed_commits || self.needs_restack || self.has_conflicts)
     }
