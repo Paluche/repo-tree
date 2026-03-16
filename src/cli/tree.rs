@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::OsStr, fmt::Display, path::PathBuf};
+use std::{collections::BTreeMap, ffi::OsStr, fmt::Display, path::PathBuf};
 
 use clap::Args;
 use colored::{ColoredString, Colorize};
@@ -37,7 +37,7 @@ impl DirState {
 
 #[derive(Default, Debug)]
 struct Directory {
-    childs: HashMap<String, Self>,
+    childs: BTreeMap<String, Self>,
     repository: Option<Repository>,
 }
 
