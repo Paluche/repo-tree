@@ -92,7 +92,7 @@ fn parser_assert(
     if cond { Ok(()) } else { Err(parse_error) }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, PartialEq)]
 pub struct Host {
     pub name: String,
     pub dir_name: String,
