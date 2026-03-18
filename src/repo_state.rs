@@ -14,6 +14,7 @@ pub struct RepoState {
     needs_restack: bool,
     /// Some commits have conflicts.
     has_conflicts: bool,
+    has_pending_ref_to_delete: bool,
 }
 
 impl RepoState {
@@ -22,11 +23,13 @@ impl RepoState {
         has_unpushed_commits: bool,
         needs_restack: bool,
         has_conflicts: bool,
+        has_pending_ref_to_delete: bool,
     ) -> Self {
         Self {
             has_unpushed_commits,
             needs_restack,
             has_conflicts,
+            has_pending_ref_to_delete,
         }
     }
 
@@ -63,6 +66,14 @@ impl Display for RepoState {
                 write!(f, ", ")?;
             }
             write!(f, "{}", "has conflicts".bright_red())?;
+            empty = false;
+        }
+
+        if self.has_pending_ref_to_delete {
+            if !empty {
+                write!(f, ", ")?;
+            }
+            write!(f, "{}", "has pending reference to delete".bright_blue())?;
             empty = false;
         }
 
