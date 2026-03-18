@@ -3,6 +3,7 @@ pub mod cli;
 mod config;
 mod git;
 mod jujutsu;
+mod repo_state;
 mod repository;
 mod url_parser;
 mod version_control_system;
@@ -14,6 +15,7 @@ use std::{
 
 pub use crate::{
     config::{Config, Host},
+    repo_state::RepoState,
     repository::Repository,
     url_parser::UrlParser,
     version_control_system::VersionControlSystem,
