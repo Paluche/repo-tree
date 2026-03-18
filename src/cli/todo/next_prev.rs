@@ -1,0 +1,92 @@
+use clap::{ArgAction, Args};
+use clap_complete::engine::ArgValueCompleter;
+use colored::Colorize;
+use crossterm::terminal::{Clear, ClearType};
+use pollster::FutureExt;
+
+use crate::{
+    Repository, UrlParser, VersionControlSystem,
+    cli::cwd_default_path,
+    config::{Config, list_host_completer},
+    get_repo_tree_dir, iter_repos_from, jujutsu, load_filtered_repositories,
+};
+
+/// Go to the next or previous repository where you have to do something to keep
+/// it up-to-date.
+#[derive(Args, Debug, PartialEq)]
+pub struct NextPrevArgs {
+    /// Filter the repositories to list by their host. For example, "github" or
+    /// "local". Can be specified multiple times.
+    #[arg(
+        short='H', long="host", action=ArgAction::Append,
+        add=ArgValueCompleter::new(list_host_completer)
+        )
+    ]
+    hosts: Vec<String>,
+    /// Filter the repositories to by their name, within its forge. All
+    /// repositories which name starts with the provided value will be
+    /// listed. For example to filter only GitHub repositories from a
+    /// certain organization, you could use the organization name as value
+    /// for this argument, and "github" as value of the --host argument. Can be
+    /// specified multiple times.
+    #[arg(short = 'N', long = "name", action=ArgAction::Append)]
+    names: Vec<String>,
+}
+
+pub fn run(args: NextPrevArgs, reverse: bool) -> i32 {
+    let repo_path = cwd_default_path(None);
+    let repo_tree_dir = get_repo_tree_dir();
+    let current_repository = Repository::discover(
+        &repo_tree_dir,
+        repo_path.clone(),
+        &UrlParser::new(&Config::default()),
+    )
+    .expect("Error loading the repository");
+
+    let repositories = load_filtered_repositories(
+        &get_repo_tree_dir(),
+        &UrlParser::new(&Config::default()),
+        args.hosts,
+        args.names,
+    );
+
+    let mut repositories = iter_repos_from(repositories, current_repository);
+
+    if reverse {
+        repositories = Box::new(repositories.rev());
+    }
+
+    for repository in repositories {
+        if repository.id.remote_url.is_none() {
+            // Local repository.
+            continue;
+        }
+        eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
+        if let Some(repo_state) = match repository.vcs {
+            VersionControlSystem::Jujutsu
+            | VersionControlSystem::JujutsuGit => Some(
+                jujutsu::get_repo_state(&repository.root)
+                    .block_on()
+                    .expect("Unable to obtain repository state"),
+            ),
+            _ => None,
+        } {
+            if repo_state.is_ok() {
+                continue;
+            }
+            eprintln!(
+                "\r{}{} {:20} {}",
+                Clear(ClearType::CurrentLine),
+                repository.id.host.map_or("".red().to_string(), |h| h.repr),
+                repository.id.name,
+                repo_state
+            );
+            println!("{}", repository.root.display());
+            return 0;
+        }
+    }
+
+    eprint!("\r{}", Clear(ClearType::CurrentLine));
+    eprintln!("Nothing to do.");
+    0
+}

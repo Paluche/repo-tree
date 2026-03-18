@@ -15,7 +15,7 @@ use crate::{
     version_control_system::VersionControlSystem,
 };
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq)]
 pub struct RepoId {
     pub remote_url: Option<String>,
     pub host: Option<Host>,
@@ -50,7 +50,7 @@ impl Display for RepoId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Repository {
     pub vcs: VersionControlSystem,
     pub is_submodule: bool,
