@@ -34,7 +34,7 @@ impl Display for RepoState {
             if !empty {
                 write!(f, ", ")?;
             }
-            write!(f, "{}", "has_conflicts".bright_red())?;
+            write!(f, "{}", "has conflicts".bright_red())?;
             empty = false;
         }
 
