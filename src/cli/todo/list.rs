@@ -49,7 +49,12 @@ pub fn run(args: ListArgs) -> i32 {
             // Local repository.
             continue;
         }
-        eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id);
+        let id = format!(
+            "{} {:20}",
+            repository.id.host.map_or("".red().to_string(), |h| h.repr),
+            repository.id.name
+        );
+        eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
         if let Some(repo_state) = match repository.vcs {
             VersionControlSystem::Jujutsu
             | VersionControlSystem::JujutsuGit => Some(
@@ -64,17 +69,17 @@ pub fn run(args: ListArgs) -> i32 {
                 ok += 1;
                 if args.verbose {
                     eprint!("\r{}", Clear(ClearType::CurrentLine));
-                    println!("{}: {}", repository.id, repo_state);
+                    println!("{} {}", id, repo_state);
                 }
             } else {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
-                println!("{}: {}", repository.id, repo_state);
+                println!("{} {}", id, repo_state);
             }
         } else {
             n_a += 1;
             if args.verbose {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
-                println!("{}: {}", repository.id, "N/A".bright_yellow());
+                println!("{} {}", id, "N/A".bright_yellow());
             }
         }
     }
