@@ -9,7 +9,7 @@
 use std::{error::Error, path::Path};
 
 use super::revsets;
-use crate::repository::RepoState;
+use crate::RepoState;
 
 /// Compute if the repository has unpushed commits. Do not take into account
 /// empty commits with empty description.
