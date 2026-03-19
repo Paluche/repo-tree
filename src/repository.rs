@@ -27,7 +27,7 @@ use crate::repo_state::RepoState;
 use crate::utils::get_last_modified;
 use crate::version_control_system::VersionControlSystem;
 
-/// Metadata about the file containing the
+/// Metadata about the file containing the repository remote(s).
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 struct RemoteConfig {
     /// Path to the file containing the remote information.

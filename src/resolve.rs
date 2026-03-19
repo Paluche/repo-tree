@@ -17,7 +17,7 @@ use crate::config::Config;
 use crate::repository::Repositories;
 use crate::repository::Repository;
 
-/// Find the shortest end-path to identify two
+/// Find the shortest end-path to identify two path.
 fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
     let mut ret_a = Vec::new();
     let mut ret_b = Vec::new();
@@ -118,8 +118,6 @@ fn fzf_ask(
 ) -> Result<String, Box<dyn Error>> {
     let fzf = which("fzf")?;
 
-    // TODO: The preview of the values is not set, therefore it is displaying
-    // bad information / errors.
     let mut child = Command::new(fzf)
         .arg("--preview")
         .arg(
@@ -131,13 +129,13 @@ fn fzf_ask(
         .stdout(Stdio::piped())
         .spawn()?;
 
-    // Provide choices on stdin
+    // Provide choices on stdin.
     {
         let stdin = child.stdin.as_mut().unwrap();
         stdin.write_all(&repositories.keys().join("\n").into_bytes())?
     }
 
-    // Wait and read selection
+    // Wait and read selection.
     let output = child.wait_with_output()?;
     let res = String::from_utf8_lossy(&output.stdout).into_owned();
     if let Some(res) = res.strip_suffix('\n') {
@@ -191,7 +189,7 @@ pub fn resolve<'repos>(
         Ok(Some(candidates.get(name).unwrap()))
     } else {
         eprintln!("Several possible match:");
-        // Sort by match score
+        // Sort by match score.
         matches.sort_by_key(|i| std::cmp::Reverse(i.0));
 
         for (_, name) in matches {

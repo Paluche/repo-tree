@@ -27,7 +27,7 @@ pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
     let repo_dir = jj_dir.join("repo");
 
     Ok(if repo_dir.is_file() {
-        // jj workspace
+        // jj workspace.
         jj_dir.join(read_to_string(repo_dir)?).canonicalize()?
     } else {
         repo_dir

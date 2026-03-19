@@ -1012,7 +1012,7 @@ mod tests {
             },
         );
 
-        // Check local
+        // Check local.
         check_host(
             "local",
             &config.local,
@@ -1025,7 +1025,7 @@ mod tests {
             },
         );
 
-        // Check resolve command configuration
+        // Check resolve command configuration.
         assert_eq!(
             config.command.resolve.aliases,
             BTreeMap::from_iter(
@@ -1033,10 +1033,10 @@ mod tests {
             )
         );
 
-        // Check todo command configuration
+        // Check todo command configuration.
         assert_eq!(config.command.todo.ignore, vec!["Paluche/jj-test-repo"]);
 
-        // Check clone command configuration
+        // Check clone command configuration.
         assert_eq!(
             config.command.clone.default_vcs,
             VersionControlSystem::Jujutsu

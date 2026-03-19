@@ -16,7 +16,7 @@ pub struct RootArgs {
     parent: bool,
 
     /// Also display repository types. The output will then have 4 words:
-    /// <Root of the repository> <is_git> <is_jj>
+    /// <Root of the repository> <is_git> <is_jj>.
     #[arg(long)]
     print_type: bool,
     /// Force recreating the cache.

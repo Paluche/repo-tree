@@ -70,7 +70,7 @@ pub fn init_colocate<P: AsRef<OsStr>>(location: P) -> i32 {
         .unwrap()
 }
 
-/// Fetch the repository
+/// Fetch the repository.
 pub fn fetch<P: AsRef<OsStr>>(location: P, quiet: bool) -> i32 {
     let mut cmd = new_jj_command();
     cmd.arg("--repository")

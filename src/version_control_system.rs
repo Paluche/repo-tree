@@ -14,9 +14,9 @@ use serde::Serialize;
 #[serde(rename_all = "kebab-case")]
 /// Representation of the different types of version control system supported.
 pub enum VersionControlSystem {
-    /// git
+    /// Git.
     Git,
-    /// jj
+    /// Jujutsu (jj).
     Jujutsu,
     /// Jujutsu collocated with Git.
     #[default]
@@ -59,7 +59,6 @@ impl VersionControlSystem {
         let (is_git_main, is_git_submodule) = exists(dir, ".git");
 
         if is_git_main || is_git_submodule {
-            // is_git
             if is_jj {
                 Some((Self::JujutsuGit, is_git_submodule))
             } else {

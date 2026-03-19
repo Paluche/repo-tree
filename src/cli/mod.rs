@@ -41,7 +41,7 @@ pub enum ColorBehavior {
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Action to perform
+    /// Action to perform.
     #[command(subcommand)]
     action: Action,
     /// Force recreating the cache.
