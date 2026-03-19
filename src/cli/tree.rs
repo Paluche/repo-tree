@@ -2,7 +2,6 @@
 //! by the `tree` command line.
 use std::collections::BTreeMap;
 use std::fmt::Display;
-use std::path::PathBuf;
 
 use clap::Args;
 use colored::ColoredString;
@@ -127,6 +126,7 @@ impl<'repos> Directory<'repos> {
     fn display<T: Display>(
         &self,
         f: &mut std::fmt::Formatter<'_>,
+        config: &Config,
         prefix: String,
         name: T,
         dir_state: DirState,
@@ -161,7 +161,7 @@ impl<'repos> Directory<'repos> {
                     }
                     .get_subdir_prefix(),
                     remote_url.green(),
-                    r.vcs.short_display(),
+                    r.vcs.short_display(config),
                 )?;
             }
             if !submodules.is_empty() {
@@ -227,6 +227,7 @@ impl<'repos> Directory<'repos> {
         for (i, (name, directory)) in current.childs.iter().enumerate() {
             directory.display(
                 f,
+                config,
                 format!("{prefix}{}", dir_state.get_subdir_prefix()),
                 name,
                 if i == final_i {
@@ -243,8 +244,8 @@ impl<'repos> Directory<'repos> {
 
 /// Representation of the repo tree root directory.
 struct RootDirectory<'config, 'repos> {
-    /// Actual path to the repo tree root.
-    repo_tree_dir: &'config PathBuf,
+    /// Configuration of the rt tool.
+    config: &'config Config,
     /// Associated Directory struct, head of the Directory struct tree.
     directory: Directory<'repos>,
 }
@@ -261,10 +262,7 @@ impl<'config, 'repos> RootDirectory<'config, 'repos> {
             directory.insert(config, repository);
         }
 
-        Self {
-            repo_tree_dir: &config.repo_tree_dir,
-            directory,
-        }
+        Self { config, directory }
     }
 }
 
@@ -272,8 +270,9 @@ impl<'config, 'repos> Display for RootDirectory<'config, 'repos> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.directory.display(
             f,
+            self.config,
             "".to_string(),
-            self.repo_tree_dir.display(),
+            self.config.repo_tree_dir.display(),
             DirState::Root,
         )
     }

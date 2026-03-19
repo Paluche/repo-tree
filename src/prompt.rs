@@ -60,7 +60,7 @@ impl<'pb, 'repo, 'config> std::fmt::Display for Display<'pb, 'repo, 'config> {
             f,
             "{}{}{}{}{}{}",
             self.config.prompt.prefix,
-            self.prompt.repository.vcs.short_display(),
+            self.prompt.repository.vcs.short_display(self.config),
             self.config.prompt.separator,
             self.prompt.repository.id.remote.host(self.config).repr(),
             self.config.prompt.separator,

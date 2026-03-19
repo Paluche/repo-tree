@@ -4,9 +4,10 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use clap::ValueEnum;
-use colored::Colorize;
 use serde::Deserialize;
 use serde::Serialize;
+
+use crate::config::Config;
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Default, ValueEnum, Serialize, Deserialize,
@@ -83,16 +84,11 @@ impl VersionControlSystem {
 
     /// Obtain a string giving a short human readable description of the version
     /// control system.
-    pub fn short_display(&self) -> String {
-        match self {
-            Self::Git => "󰊢".ansi_color(166).to_string(),
-            Self::Jujutsu => "".blue().to_string(),
-            Self::JujutsuGit => format!(
-                "{}{}",
-                Self::Git.short_display(),
-                Self::Jujutsu.short_display(),
-            ),
-        }
+    pub fn short_display<'vcs, 'config>(
+        &'vcs self,
+        config: &'config Config,
+    ) -> ShortDisplay<'vcs, 'config> {
+        ShortDisplay { vcs: self, config }
     }
 }
 
@@ -107,5 +103,34 @@ impl Display for VersionControlSystem {
                 Self::JujutsuGit => "jj-git",
             }
         )
+    }
+}
+
+/// Struct providing a display for a short representation of the
+/// VersionControlSystem struct.
+pub struct ShortDisplay<'vcs, 'config> {
+    /// VersionControlSystem to display as a short representation.
+    vcs: &'vcs VersionControlSystem,
+    /// Configuration of the rt tool.
+    config: &'config Config,
+}
+
+impl<'vcs, 'config> Display for ShortDisplay<'vcs, 'config> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.vcs {
+            VersionControlSystem::Git => {
+                write!(f, "{}", self.config.prompt.vcs.git)
+            }
+            VersionControlSystem::Jujutsu => {
+                write!(f, "{}", self.config.prompt.vcs.jj)
+            }
+            VersionControlSystem::JujutsuGit => {
+                write!(
+                    f,
+                    "{}{}",
+                    self.config.prompt.vcs.git, self.config.prompt.vcs.jj
+                )
+            }
+        }
     }
 }
