@@ -299,33 +299,31 @@ type RemoteHosts = BTreeMap<String, RemoteHost>;
 /// Obtain the default host to add to the configuration if they are not already
 /// configured by the user.
 fn default_remote_hosts() -> RemoteHosts {
-    let msg = "Hardcoded value must be valid";
-
     [
         (
             "github.com",
             "github",
             "",
-            Color::from_str("white").expect(msg),
+            Color::from(colored::Color::White),
         ),
         ("gitlab.com", "gitlab", "󰮠", Color::from(166)),
         (
             "git.kernel.org",
             "kernel",
             "",
-            Color::from_str("white").expect(msg),
+            Color::from(colored::Color::White),
         ),
         (
             "bitbucket.org",
             "bitbucket",
             "",
-            Color::from_str("blue").expect(msg),
+            Color::from(colored::Color::Blue),
         ),
         (
             "codeberg.org",
             "codeberg",
             "",
-            Color::from_str("blue").expect(msg),
+            Color::from(colored::Color::Blue),
         ),
     ]
     .into_iter()
@@ -351,8 +349,7 @@ impl Default for LocalHost {
             name: "local".to_string(),
             dir_name: None,
             repr: Some("󰋊".to_string()),
-            repr_color: Color::from_str("white")
-                .expect("Hardcoded value must be valid"),
+            repr_color: Color::from(colored::Color::White),
         }
     }
 }
@@ -379,8 +376,7 @@ impl Default for UnknownHost {
     fn default() -> Self {
         Self {
             repr: "".to_string(),
-            repr_color: Color::from_str("red")
-                .expect("Hardcoded value must be valid"),
+            repr_color: Color::from(colored::Color::Red),
         }
     }
 }
@@ -701,7 +697,7 @@ mod tests {
             None,
             "github",
             Some(""),
-            Color::from_str("white").unwrap(),
+            Color::from(colored::Color::White),
             "".white().to_string(),
         );
         check_remote_host(
@@ -721,7 +717,7 @@ mod tests {
             None,
             "kernel",
             Some(""),
-            Color::from_str("white").unwrap(),
+            Color::from(colored::Color::White),
             "".white().to_string(),
         );
         check_remote_host(
@@ -731,7 +727,7 @@ mod tests {
             None,
             "bitbucket",
             Some(""),
-            Color::from_str("blue").unwrap(),
+            Color::from(colored::Color::Blue),
             "".blue().to_string(),
         );
         check_remote_host(
@@ -902,7 +898,7 @@ mod tests {
             None,
             "github",
             Some(""),
-            Color::from_str("white").unwrap(),
+            Color::from(colored::Color::White),
             "".white().to_string(),
         );
         check_remote_host(
@@ -942,7 +938,7 @@ mod tests {
             None,
             "bitbucket",
             Some(""),
-            Color::from_str("blue").unwrap(),
+            Color::from(colored::Color::Blue),
             "".blue().to_string(),
         );
         check_remote_host(
@@ -988,7 +984,7 @@ mod tests {
             None,
             "kernel",
             Some(""),
-            Color::from_str("white").unwrap(),
+            Color::from(colored::Color::White),
             "".white().to_string(),
         );
         check_remote_host(
