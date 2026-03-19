@@ -31,7 +31,7 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, prompt: &mut Prompt) -> i32 {
         // |(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|
         let mut branch_info = String::new();
 
-        // All other branches at the current reference
+        // All other branches at the current reference,
         for (i, branch) in git_status.head.branches.iter().enumerate() {
             if i == 0 {
                 branch_info.push_str(" 󰫍");
@@ -41,7 +41,7 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, prompt: &mut Prompt) -> i32 {
             branch_info.push_str(branch)
         }
 
-        // All other tags at the current reference
+        // All other tags at the current reference.
         for (i, branch) in git_status.head.tags.iter().enumerate() {
             if i == 0 {
                 branch_info.push_str(" ");
@@ -63,7 +63,7 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, prompt: &mut Prompt) -> i32 {
             branch_info.yellow()
         ));
 
-        // Upstream info
+        // Upstream information.
         prompt.push(
             if let Some(upstream_info) = &git_status.head.upstream {
                 if upstream_info.gone {
@@ -94,7 +94,7 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, prompt: &mut Prompt) -> i32 {
         ));
     }
 
-    // Submodule status
+    // Submodule status.
     prompt.push(submodules.as_string().red());
 
     // stash status

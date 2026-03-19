@@ -4,8 +4,8 @@
 //! Typically:
 //! - jj restack needed. Some mutable commits are not on top of latest
 //!   immutables ones.
-//! - repo has conflicts
-//! - repo has unpushed commits
+//! - repo has conflicts.
+//! - repo has unpushed commits.
 use std::error::Error;
 use std::path::Path;
 

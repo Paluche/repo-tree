@@ -45,7 +45,7 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
     //   ssh://user@host:2222/owner/repo.git
     //   git://host/owner/repo
     //   file:///path/to/repo.git
-    // Captures: scheme, user (optional), host, port (optional), path
+    // Captures: scheme, user (optional), host, port (optional), path.
     let re_scheme = Regex::new(concat!(
         r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
         r"://(?:(?P<user>[^@]+)@)?(?P<host>[^/:]+)",
@@ -56,31 +56,19 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
     // scp-like syntax, e.g.:
     //   git@github.com:owner/repo.git
     //   user@host:/absolute/path/to/repo.git
-    // Captures: user (optional), host, path
+    // Captures: user (optional), host, path.
     let re_scp = Regex::new(
         r"^(?:(?P<user>[^@:\s]+)@)?(?P<host>[^:\s]+):(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
     ).unwrap();
-
-    // local paths (file:// handled above; this covers bare filesystem paths)
-    // matches:
-    //   /absolute/path/to/repo.git
-    //   ./relative/path
-    //   ../relative/path
-    //   ~/path
-    //   C:\path\to\repo.git
-    // let re_local = Regex::new(
-    //     r"^(?:file:///(?P<file_path>[^ \r\n]+)|[./~][^ \r\n]*|[A-Za-z]:[\\/][^ \r\n]*)$"
-    // ).unwrap();
 
     re_scheme
         .captures(url)
         .or(re_scp.captures(url))
         .ok_or(ParseUrlError(url.to_string()))
-    //.or(re_local.captures(url))
 }
 
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
-/// Repository Identifier
+/// Repository Identifier.
 pub struct RepoId {
     /// Information about the host associated with the repository.
     pub remote: Remote,

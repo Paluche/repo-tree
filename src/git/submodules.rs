@@ -15,7 +15,7 @@ use crate::host::Remote;
 ///
 /// This handles:
 /// - absolute URLs (http://, https://, ssh://, git://, file://, etc.) =>
-///   returned as-is
+///   returned as-is.
 /// - scp-style urls (git@host:owner/repo.git). If `submodule_url` is relative
 ///   (starts with ./ or ../), it is resolved against the base scp path.
 /// - relative pathlike urls (../foo/bar) resolved against the base remote path.
@@ -31,8 +31,6 @@ use crate::host::Remote;
 ///   into an ssh:// URL for path joining.
 /// - This helper focuses on the common cases; for complete fidelity to `git`
 ///   behaviour, call git itself or replicate git's source logic.
-///
-/// Returns: resolved URL string (absolute).
 fn resolve_url<P: AsRef<Path>>(
     main_repo_root: P,
     main_repo_remote: &Remote,
@@ -43,24 +41,23 @@ fn resolve_url<P: AsRef<Path>>(
         return Ok(Some(submodule_url.to_string()));
     }
 
-    // If it's an absolute filesystem path, return as-is
+    // If it's an absolute filesystem path, return as-is.
     if Path::new(submodule_url).is_absolute() {
         return Ok(Some(submodule_url.to_string()));
     }
 
-    // Pick a base remote to resolve against
+    // Pick a base remote to resolve against.
     // If base remote is scp-like (user@host:path) convert it to
-    // ssh://user@host/ for joining
+    // ssh://user@host/ for joining.
     let scp_re =
         Regex::new(r"^(?:(?P<user>[^@]+)@)?(?P<host>[^:]+):(?P<path>.+)$")
             .unwrap();
 
     Ok(if let Some(main_remote_url) = main_repo_remote.url() {
-        // Try to parse base as a normal URL (http/https/git/file)
+        // Try to parse base as a normal URL (http/https/git/file).
         if let Ok(mut base) = Url::parse(main_remote_url) {
             // We want to join against the parent directory of the repository's
-            // path component
-            // e.g. base path: /owner/repo.git -> parent: /owner/
+            // path component e.g. base path: /owner/repo.git -> parent: /owner/
             let base_path = base.path();
             let base_parent = Path::new(base_path)
                 .parent()
@@ -69,13 +66,13 @@ fn resolve_url<P: AsRef<Path>>(
 
             // Build a base URL whose path is the base_parent, so joining
             // 'submodule_url' works.
-            // Ensure trailing slash to treat it as a directory for Url::join
+            // Ensure trailing slash to treat it as a directory for Url::join.
             base.set_path(&format!("{}/", base_parent.trim_end_matches('/')));
 
             let joined = base.join(submodule_url)?;
             Some(joined.to_string())
         } else if scp_re.is_match(main_remote_url) {
-            // parse base as scp-like
+            // Parse base as scp-like.
             let caps = scp_re.captures(main_remote_url).unwrap();
             let user = caps.name("user").map(|m| m.as_str());
             let host = caps.name("host").unwrap().as_str();
@@ -89,19 +86,19 @@ fn resolve_url<P: AsRef<Path>>(
                 format!("ssh://{}/", host)
             };
             // Ensure base_path is treated as path and not as host; join parent
-            // directory of base_path
-            // e.g. base_path = "owner/repo.git" -> base_dir = "owner"
+            // directory of base_path e.g. base_path = "owner/repo.git" ->
+            // base_dir = "owner".
             let base_parent = Path::new(base_path)
                 .parent()
                 .map(|p| p.to_string_lossy())
                 .unwrap_or_else(|| "".into());
             if !base_parent.is_empty() {
-                // note: url::Url::join works with trailing slashes; ensure one
-                // exists
+                // Note: url::Url::join works with trailing slashes; ensure one
+                // exists.
                 base_ssh.push_str(&format!("{}/", base_parent));
             }
 
-            // Now join the relative submodule_url to this base_ssh
+            // Now join the relative submodule_url to this base_ssh.
             let base = Url::parse(&base_ssh)?;
             let joined = base.join(submodule_url)?;
             // Convert ssh://user@host/... back to scp-like (optional). We will

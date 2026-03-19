@@ -22,21 +22,21 @@ use crate::utils::get_last_modified;
 /// All the different entry status you can have in the porcelain v2 output of
 /// git status.
 pub enum EntryStatus {
-    /// The entry is unmodified '.'
+    /// The entry is unmodified '.'.
     Unmodified,
-    /// The entry is modified 'M'
+    /// The entry is modified 'M'.
     Modified,
-    /// File type of the entry has changed 'T'
+    /// File type of the entry has changed 'T'.
     FileTypeChanged,
-    /// Entry is newly added 'A'
+    /// Entry is newly added 'A'.
     Added,
-    /// Entry has been deleted 'D'
+    /// Entry has been deleted 'D'.
     Deleted,
-    /// Entry has been renamed 'R'
+    /// Entry has been renamed 'R'.
     Renamed,
-    /// Entry has been copied 'C'
+    /// Entry has been copied 'C'.
     Copied,
-    /// Entry has been updated 'C'
+    /// Entry has been updated 'U'.
     Updated,
     /// Entry is untracked.
     Untracked,
@@ -93,7 +93,7 @@ impl EntryStatus {
 pub enum SubmoduleStatus {
     /// The entry is not a submodule "N...".
     NotASubmodule,
-    /// The entry is a submodule. "S<c><m><u>"
+    /// The entry is a submodule. "S<c><m><u>":
     /// - <c> is "C" if the commit changed; otherwise ".".
     /// - <m> is "M" if it has tracked changes; otherwise ".".
     /// - <u> is "U" if there are untracked changes; otherwise ".".
@@ -219,8 +219,7 @@ pub struct ItemStatus {
     /// Submodule entry status.
     pub submodule_status: SubmoduleStatus,
     /// In case the entry is renamed or copied, you will find here the path
-    /// where the file was before, respectively where is the source file
-    /// is.
+    /// where the file was before, respectively where is the source file is.
     pub orig_path: Option<String>,
     /// Path to the entry.
     pub path: String,
@@ -320,7 +319,7 @@ fn parse_line(line: &str) -> ParseOutput {
         // or
         // <m1>        The octal file mode in stage 1.
         let mut i = 0;
-        // if entry_type is 'u', skip fields:
+        // If entry_type is 'u', skip fields:
         // <m1>        The octal file mode in stage 1.
         // <m2>        The octal file mode in stage 2.
         // <m3>        The octal file mode in stage 3.
@@ -600,17 +599,17 @@ fn get_last_fetched(git_dir: &Path) -> Option<DateTime<Utc>> {
 /// The different Git operation you might be stuck in a middle of its execution
 /// to resolve a conflict.
 pub enum GitOperation {
-    /// git rebase
+    /// git rebase.
     Rebase,
-    /// git am
+    /// git am.
     AM,
-    /// git cherry-pick
+    /// git cherry-pick.
     CherryPick,
-    /// git bisect
+    /// git bisect.
     Bisect,
-    /// git merge
+    /// git merge.
     Merge,
-    /// git revert
+    /// git revert.
     Revert,
 }
 
