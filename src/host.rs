@@ -12,7 +12,7 @@ use crate::config::RemoteHost;
 use crate::config::UnknownHost;
 use crate::error::UnknownRemoteHostError;
 
-#[derive(Clone, Debug, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 /// The different type of host one repository can be associated with.
 pub enum Remote {
     /// Remote of the repository associated with the repository.
@@ -47,7 +47,7 @@ impl Remote {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Hash)]
+#[derive(Clone, Hash)]
 /// The different type of host one repository can be associated with.
 pub enum Host<'config> {
     /// Repository is associated with a remote repository stored on the linked

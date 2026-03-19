@@ -251,7 +251,7 @@ trait HostInfoRaw {
 /// RemoteHost and LocalHost follows the same content and functions.
 macro_rules! define_host_struct {
     ($name:ident, $def:ident ) => {
-        #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Hash)]
+        #[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
         /// Representation of a repository $def host.
         pub struct $name {
             /// Name of the remote host.
@@ -367,7 +367,7 @@ impl Default for LocalHost {
 
 /// Configuration when having to handle an unknown host (unknown from the
 /// configuration).
-#[derive(Deserialize, Serialize, Hash, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, Hash, PartialEq)]
 pub struct UnknownHost {
     /// Short representation to use is the host is unknown
     repr: String,
@@ -394,7 +394,7 @@ impl Default for UnknownHost {
 }
 
 /// Configuration regardin allowed the repository location.
-#[derive(Serialize, Deserialize, Hash, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Hash, PartialEq)]
 pub struct RepositoryLocation {
     /// List of glob patterns, any repositories path matching one of the
     /// defined pattern will be allowed to live outside the repo tree. No
@@ -442,7 +442,7 @@ impl Default for RepositoryLocation {
 }
 
 /// Configuration for the `rt clone` command.
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct CloneCommandConfig {
     /// Default version control system to use to clone a repository in the repo
     /// tree.
@@ -451,7 +451,7 @@ pub struct CloneCommandConfig {
 }
 
 /// Configuration for the `rt resolve` command.
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct ResolveCommandConfig {
     /// Resolution aliases.
     #[serde(default)]
@@ -459,7 +459,7 @@ pub struct ResolveCommandConfig {
 }
 
 /// Configuration for the `rt todo` command.
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct TodoCommandConfig {
     /// List of ID of repositories to be ignored by the command.
     #[serde(default)]
@@ -467,7 +467,7 @@ pub struct TodoCommandConfig {
 }
 
 /// Configuration for `rt` commands.
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct CommandConfig {
     /// Configuration for `rt clone`.
     pub clone: CloneCommandConfig,
@@ -478,7 +478,7 @@ pub struct CommandConfig {
 }
 
 /// Configuration of the rt executable.
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Config {
     /// Path the root of the repo tree. Value obtained through environment
     /// variable REPO_TREE_DIR.

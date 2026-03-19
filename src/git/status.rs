@@ -18,7 +18,7 @@ use strum::IntoEnumIterator;
 use super::new_git_command;
 use crate::utils::get_last_modified;
 
-#[derive(Debug, Hash, PartialEq, Eq, EnumIter)]
+#[derive(Hash, PartialEq, Eq, EnumIter)]
 /// All the different entry status you can have in the porcelain v2 output of
 /// git status.
 pub enum EntryStatus {
@@ -88,7 +88,6 @@ impl EntryStatus {
     }
 }
 
-#[derive(Debug)]
 /// Parsing result of the submodule status in the porcelain v2 output of git
 /// status. Which is initially a 4 character field.
 pub enum SubmoduleStatus {
@@ -211,7 +210,6 @@ impl SummarizeSubmoduleStatus {
     }
 }
 
-#[derive(Debug)]
 /// Status of an item.
 pub struct ItemStatus {
     /// Staged entry status.
@@ -451,7 +449,6 @@ impl SummarizeStatus {
     }
 }
 
-#[derive(Debug)]
 /// Information related to an upstream.
 pub struct UpstreamInfo {
     /// Name of the upstream branch.
@@ -527,7 +524,6 @@ where
     Ok(output.lines().map(|s| s.to_string()).collect())
 }
 
-#[derive(Debug)]
 /// Information related to the HEAD.
 pub struct HeadInfo {
     /// Object Identifier of the commit the HEAD is at.
@@ -600,7 +596,7 @@ fn get_last_fetched(git_dir: &Path) -> Option<DateTime<Utc>> {
     get_last_modified(&git_dir.join("FETCH_HEAD")).ok()
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 /// The different Git operation you might be stuck in a middle of its execution
 /// to resolve a conflict.
 pub enum GitOperation {
@@ -679,7 +675,6 @@ fn get_ongoing_operations(git_dir: &Path) -> Vec<GitOperation> {
     ret
 }
 
-#[derive(Debug)]
 /// Parsed result of a `git status --porcelain=v2` command.
 pub struct GitStatus {
     /// Information about the current HEAD.

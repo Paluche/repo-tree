@@ -79,7 +79,7 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
     //.or(re_local.captures(url))
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 /// Repository Identifier
 pub struct RepoId {
     /// Information about the host associated with the repository.
