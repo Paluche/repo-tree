@@ -224,6 +224,39 @@ fn generate_gs_zsh(
     generate_sub_completer("gs", var, completer, &["git", "status"], buf)
 }
 
+fn generate_todo(
+    var: &str,
+    completer: &str,
+    buf: &mut dyn Write,
+) -> Result<(), Error> {
+    let script = indoc! { r#"
+        function todo()
+        {
+            if [[ "$@" == *-h* ]] || [[ "$@" == *--help* ]] || [[ "$@" == *list* ]]
+            then
+                rt todo "${@}"
+            elif repo_path=$(rt todo "${@}")
+            then
+                if [ -z "${repo_path}" ]
+                then
+                    echo "Nothing to do"
+                    return 0
+                fi
+
+                if ! cd "${repo_path}"
+                then
+                    echo "Unable to go to \"${repo_path}\"" > /dev/stderr
+                    return 1
+                fi
+            else
+                return 1
+            fi
+        }
+    "#};
+    writeln!(buf, "{script}\n")?;
+    generate_sub_completer("todo", var, completer, &["git", "status"], buf)
+}
+
 fn complete_utils_zsh(
     var: &str,
     completer: &str,
@@ -233,6 +266,7 @@ fn complete_utils_zsh(
     generate_repo_clone_zsh(var, completer, buf)?;
     generate_gtr_zsh(buf)?;
     generate_gs_zsh(var, completer, buf)?;
+    generate_todo(var, completer, buf)?;
 
     Ok(())
 }

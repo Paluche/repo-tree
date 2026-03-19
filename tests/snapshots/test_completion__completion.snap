@@ -272,3 +272,66 @@ function _gs() {
 }
 
 compdef _gs gs
+
+function todo()
+{
+    if [[ "$@" == *-h* ]] || [[ "$@" == *--help* ]] || [[ "$@" == *list* ]]
+    then
+        rt todo "${@}"
+    elif repo_path=$(rt todo "${@}")
+    then
+        if [ -z "${repo_path}" ]
+        then
+            echo "Nothing to do"
+            return 0
+        fi
+
+        if ! cd "${repo_path}"
+        then
+            echo "Unable to go to \"${repo_path}\"" > /dev/stderr
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+
+#compdef todo
+function _todo() {
+    local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
+    local _CLAP_IFS=$'\n'
+
+    local words=("${words[1]}" "git" "status" "${words[@]:2}")
+
+    local completions=("${(@f)$( \
+        _CLAP_IFS="$_CLAP_IFS" \
+        _CLAP_COMPLETE_INDEX="$((_CLAP_COMPLETE_INDEX + 2))" \
+        COMPLETE="zsh" \
+        rt -- "${words[@]}" 2>/dev/null \
+    )}")
+
+    if [[ -n $completions ]]; then
+        local -a dirs=()
+        local -a other=()
+        local completion
+        for completion in $completions; do
+            local value="${completion%%:*}"
+            if [[ "$value" == */ ]]; then
+                local dir_no_slash="${value%/}"
+                if [[ "$completion" == *:* ]]; then
+                    local desc="${completion#*:}"
+                    dirs+=("$dir_no_slash:$desc")
+                else
+                    dirs+=("$dir_no_slash")
+                fi
+            else
+                other+=("$completion")
+            fi
+        done
+        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe 'values' other
+    fi
+}
+
+compdef _todo todo
