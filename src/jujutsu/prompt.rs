@@ -1,4 +1,5 @@
 //! Build the prompt line for a Jujutsu repository.
+use std::error::Error;
 use std::path::Path;
 
 use colored::Colorize;
@@ -11,6 +12,7 @@ use jj_lib::repo::Repo;
 use jj_lib::revset::RevsetExpression;
 
 use super::load;
+use super::repo_state::has_conflicts;
 use crate::prompt_builder::PromptBuilder;
 
 #[derive(Debug)]
@@ -208,10 +210,11 @@ fn list_tags(
 
 /// Internal method to build the prompt line for a Jujutsu repository.
 fn prompt_internal(
+    repo_path: &Path,
     repo: &dyn Repo,
     current_commit: &CommitId,
     info: &mut PromptBuilder,
-) -> BackendResult<()> {
+) -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
 
     list_bookmarks(
@@ -240,6 +243,10 @@ fn prompt_internal(
         buffer
     });
 
+    if has_conflicts(repo_path)? {
+        info.push_colored_string("󰝧".bright_red())
+    }
+
     Ok(())
 }
 
@@ -252,7 +259,9 @@ pub async fn prompt(repo_path: &Path, info: &mut PromptBuilder) -> i32 {
         return 1;
     };
 
-    if let Err(err) = prompt_internal(repo.as_ref(), current_commit, info) {
+    if let Err(err) =
+        prompt_internal(repo_path, repo.as_ref(), current_commit, info)
+    {
         eprintln!("{err}");
         1
     } else {
