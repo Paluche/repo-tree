@@ -32,7 +32,7 @@ fn needs_restack(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
 }
 
 /// Find out if the repository has commits with conflicts.
-fn has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
+pub fn has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     revsets::revset_has_match(repo_path, "conflicts()")
 }
 
