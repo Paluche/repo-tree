@@ -53,7 +53,11 @@ pub fn run(config: &Config, args: StateArgs) -> i32 {
                 .url()
                 .map_or("".to_string(), |u| format!(": {u}"))
         );
-        println!("{} {}", repository.vcs, repository.vcs.short_display());
+        println!(
+            "{} {}",
+            repository.vcs,
+            repository.vcs.short_display(config)
+        );
     }
 
     let repo_state = match repository.state() {

@@ -414,6 +414,37 @@ impl Default for UnknownHost {
     }
 }
 
+/// Configuration to representing a version control system.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct VcsPromptConfig {
+    /// Git Version Control System representation.
+    #[serde(default = "VcsPromptConfig::default_git")]
+    pub git: ColoredText,
+    /// Jujutsu Version Control System representation.
+    #[serde(default = "VcsPromptConfig::default_jj")]
+    pub jj: ColoredText,
+}
+
+#[allow(clippy::missing_docs_in_private_items)]
+impl VcsPromptConfig {
+    fn default_git() -> ColoredText {
+        ColoredText::new("󰊢", 166)
+    }
+
+    fn default_jj() -> ColoredText {
+        ColoredText::new("", colored::Color::Blue)
+    }
+}
+
+impl Default for VcsPromptConfig {
+    fn default() -> Self {
+        Self {
+            git: Self::default_git(),
+            jj: Self::default_jj(),
+        }
+    }
+}
+
 /// Configuration to customize the prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct PromptConfig {
@@ -423,6 +454,9 @@ pub struct PromptConfig {
     /// String to use to separate the different fields of the prompt.
     #[serde(default = "PromptConfig::default_separator")]
     pub separator: ColoredText,
+    /// Configuration to representing a version control system.
+    #[serde(default)]
+    pub vcs: VcsPromptConfig,
 }
 
 impl PromptConfig {
@@ -442,6 +476,7 @@ impl Default for PromptConfig {
         Self {
             prefix: Self::default_prefix(),
             separator: Self::default_separator(),
+            vcs: VcsPromptConfig::default(),
         }
     }
 }
@@ -828,6 +863,10 @@ mod tests {
             &PromptConfig {
                 prefix: ColoredText::new("┣━┫", colored::Color::Cyan),
                 separator: ColoredText::new("|", colored::Color::Cyan),
+                vcs: VcsPromptConfig {
+                    git: ColoredText::new("󰊢", 166),
+                    jj: ColoredText::new("", colored::Color::Blue),
+                },
             },
         );
 
@@ -912,6 +951,14 @@ mod tests {
         [prompt.separator]
         text = "|"
         color = "cyan"
+
+        [prompt.vcs.git]
+        text = "󰊢"
+        color = 166
+
+        [prompt.vcs.jj]
+        text = ""
+        color = "blue"
 
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]
@@ -1132,8 +1179,26 @@ mod tests {
             &PromptConfig {
                 prefix: ColoredText::new("┣━┫", colored::Color::Cyan),
                 separator: ColoredText::new("|", colored::Color::Cyan),
+                vcs: VcsPromptConfig {
+                    git: ColoredText::new("󰊢", 166),
+                    jj: ColoredText::new("", colored::Color::Blue),
+                },
             },
         );
+
+        // Check repository ignores.
+        assert_eq!(
+            config.repository.ignore,
+            ["/tmp/**", "**/.*/**"]
+                .into_iter()
+                .map(|v| {
+                    Glob::new(v).expect(
+                        "Hardcoded values should be valid glob patterns.",
+                    )
+                })
+                .collect::<Vec<Glob>>()
+        );
+        assert_eq!(config.repository.extend_ignore, Vec::new());
 
         // Check resolve command configuration.
         assert_eq!(
@@ -1151,6 +1216,7 @@ mod tests {
             config.command.clone.default_vcs,
             VersionControlSystem::Jujutsu
         );
+
         insta::assert_snapshot!(toml::to_string(&config)?, @r#"
         [host."alice-and-bob.net"]
         name = "alice-and-bob"
@@ -1240,6 +1306,14 @@ mod tests {
         [prompt.separator]
         text = "|"
         color = "cyan"
+
+        [prompt.vcs.git]
+        text = "󰊢"
+        color = 166
+
+        [prompt.vcs.jj]
+        text = ""
+        color = "blue"
 
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]

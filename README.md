@@ -259,12 +259,17 @@ information potentially displayed.
 The prompt output starts with a `prefix`, and each fields are separated from
 the previous one by a `separator`.
 
-Here are the following configurations:
+Here are the following configurations available and their default value.
 
 ```toml
 [prompt]
 prefix = { text = '┣━┫', color = 'cyan' }
 separator = { text = '|', color = 'cyan' }
+
+# Configure representation for the different version control systems supported.
+[prompt.vcs]
+git = { text = "󰊢" , color = 166 }
+jj = { text = "" , color = "blue" }
 ```
 
 ### Configuring repositories to ignore
