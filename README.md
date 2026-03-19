@@ -3,7 +3,7 @@
 This repository provides a series of tool to organize the repositories you
 clone within a single executable `rt`.
 
-## Organized your repositories
+## Organize your repositories
 
 The repositories are organized in the Repository Tree root directory specified
 by the `REPO_TREE_DIR` environment variable.
