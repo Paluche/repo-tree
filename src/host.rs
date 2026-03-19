@@ -92,11 +92,11 @@ impl<'config> Host<'config> {
     }
 
     /// Get the short representation of the host.
-    pub fn repr(&self) -> String {
+    pub fn repr<'host>(&'host self) -> Box<dyn Display + 'host> {
         match self {
-            Self::Remote(remote_host) => remote_host.repr(),
-            Self::UnknownRemote(_, unknown_host) => unknown_host.repr(),
-            Self::Local(local_host) => local_host.repr(),
+            Self::Remote(remote_host) => Box::new(remote_host),
+            Self::UnknownRemote(_, unknown_host) => Box::new(unknown_host),
+            Self::Local(local_host) => Box::new(local_host),
         }
     }
 }

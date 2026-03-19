@@ -86,8 +86,10 @@ environment variable `XDG_CONFIG_HOME` is set,
 
 ### Color configuration
 
-On the following configuration, some fields are colors (`repr_color` for
-instance). You have several option to specify the color to use.
+On the following configuration, some fields are colored text (`local.repr` for
+instance). You specify the `text` and the `color` to color the text with.
+You have several option to specify the color to use.
+to color the text with.
 
 - `string`: The valid values being: `"black"` `"red"`, `"green"`, `"yellow"`,
   `"blue"`, `"magenta"`, `"purple"` (equivalent to `"magenta"`), `"cyan"`,
@@ -110,15 +112,20 @@ where all the associated repositories will be stored in.
 
 ```toml
 [host."<URL>"]
-name = '<NAME>'  # Pretty name for the host.
-dir_name = '<DIR_NAME>'  # Name of the directory the host's repositories will
-                         # be stored. Optional, defaults to the value set to
-                         # 'name'.
-repr = '<REPR>' # Host representation used in the prompt. Optional, defaults to
-                # the value set to 'name'.
-repr_color = <COLOR>  # Color to use to colorize the 'repr' value. Optional,
-                      # defaults to no color. See Color Configuration chapter
-                      # above.
+# Pretty name for the host.
+name = '<NAME>'
+
+# Name of the directory the host's repositories will be stored. Optional,
+# defaults to the value set to 'name'.
+dir_name = '<DIR_NAME>'
+repr = {
+  # Host representation used in the prompt. Optional, defaults the value set to
+  # 'name'.
+  text = '<REPR>'
+  # Color to use to colorize the 'repr.text' value. Optional, defaults to no
+  # color. See Color Configuration chapter above.
+  color = <COLOR>
+}
 ```
 
 The default configuration for the hosts is the following:
@@ -126,28 +133,23 @@ The default configuration for the hosts is the following:
 ```toml
 [host."github.com"]
 name = 'github'
-repr = ''
-repr_color = 'white'
+repr = { text = '', color = 'white' }
 
 [host."gitlab.com"]
 name = 'gitlab'
-repr = '󰮠'
-repr_color = 166 # Orange
+repr = { text = '󰮠', color = 166 } # Orange
 
 [host."git.kernel.org"]
 name = 'kernel'
-repr = ''
-repr_color = 'white'
+repr = { text = '', color = 'white' }
 
 [host."bitbucket.org"]
 name = 'bitbucket'
-repr = ''
-repr_color = 'blue'
+repr = { text = '', color = 'blue' }
 
 [host."codeberg.org"]
 name = 'codeberg'
-repr = ''
-repr_color = 'blue'
+repr = { text = '',  color = 'blue' }
 ```
 
 The special `repr` characters comes from the
@@ -168,11 +170,13 @@ name = '<NAME>'  # Pretty name for the local "host".
 dir_name = '<DIR_NAME>'  # Name of the directory the local repositories will
                          # be stored. Optional, defaults to the value set to
                          # 'name'.
-repr = '<REPR>' # Host representation used in the prompt. Optional, defaults to
-                # the value set to 'name'.
-repr_color = <COLOR>  # Color to use to colorize the 'repr' value. Optional,
-                      # defaults to no color. See Color Configuration chapter
-                      # above.
+repr = {
+  text = '<REPR>', # Host representation used in the prompt. Optional, defaults
+                   # to the value set to 'name'.
+  color = <COLOR>  # Color to use to colorize the 'repr.text' value. Optional,
+                   # defaults to no color. See Color Configuration chapter
+                   # above.
+}
 ```
 
 The default configuration for the local host is the following:
@@ -180,7 +184,7 @@ The default configuration for the local host is the following:
 ```toml
 [local]
 name = 'local'
-repr = '󰋊'
+repr = { text = '󰋊', color = 'white' }
 ```
 
 ### Configuring management of unknown remote
@@ -189,19 +193,18 @@ A remote is considered unknown if you did not provide the associated
 configuration for the host remote URL.
 
 ```toml
-[unknown_host]
-repr = '<REPR>' # Representation used in the prompt for unknown hosts.
-repr_color = <COLOR>  # Color to use to colorize the 'repr' value. Optional,
-                      # defaults to no color. See Color Configuration chapter
-                      # above.
+[unknown_host.repr]
+text = '<REPR>' # Representation used in the prompt for unknown hosts.
+color = <COLOR>  # Color to use to colorize the 'repr.text' value. Optional,
+                 # defaults to no color. See Color Configuration chapter above.
 ```
 
 The default configuration for the unknown hosts is the following:
 
 ```toml
-[local]
-name = ''
-repr_color: 'red'
+[unknown_host.repr]
+text = ''
+color: 'red'
 ```
 
 ### Configuring repositories to ignore

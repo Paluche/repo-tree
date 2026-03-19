@@ -10,9 +10,11 @@ use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
 use std::ffi::OsStr;
+use std::fmt::Display;
 use std::fs;
 use std::hash::Hash;
 use std::hash::Hasher;
+use std::ops::Deref;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -217,13 +219,46 @@ impl Color {
     }
 }
 
+/// Configuration for a colored text.
+#[derive(Default, Debug, Clone, PartialEq, Hash, Serialize, Deserialize)]
+pub struct ColoredText {
+    /// Text value.
+    text: String,
+    /// Color of the text.
+    color: Color,
+}
+
+impl Deref for ColoredText {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.text
+    }
+}
+
+impl ColoredText {
+    /// Create a new ColoredText.
+    fn new<S, C>(text: S, color: C) -> Self
+    where
+        S: ToString,
+        Color: From<C>,
+    {
+        Self {
+            text: text.to_string(),
+            color: Color::from(color),
+        }
+    }
+}
+
+impl Display for ColoredText {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.color.colorize(&self.text))
+    }
+}
 /// Common trait for Host configuration (RemoteHost, LocalHost and UnknownHost).
 pub trait HostInfo {
     /// Get the directory name for that host in the repo tree.
     fn dir_name(&self) -> String;
-
-    /// Get the short representation of the host.
-    fn repr(&self) -> String;
 }
 
 #[cfg(test)]
@@ -235,10 +270,7 @@ trait HostInfoRaw {
     fn raw_dir_name(&self) -> &Option<String>;
 
     /// Get the raw `repr` configuration value.
-    fn raw_repr(&self) -> &Option<String>;
-
-    /// Get the raw `repr_color` configuration value.
-    fn raw_repr_color(&self) -> &Color;
+    fn raw_repr(&self) -> &ColoredText;
 }
 
 /// Define a host-like struct, this is here to assure simple that the struct
@@ -253,10 +285,8 @@ macro_rules! define_host_struct {
             /// Name of the directory for that host in the repo tree.
             dir_name: Option<String>,
             /// Short representation of the host.
-            repr: Option<String>,
             #[serde(default)]
-            /// Color for the short representation of the host.
-            repr_color: Color,
+            repr: ColoredText,
         }
 
         impl HostInfo for $name {
@@ -264,11 +294,15 @@ macro_rules! define_host_struct {
             fn dir_name(&self) -> String {
                 self.dir_name.clone().unwrap_or(self.name.clone())
             }
+        }
 
-            /// Get the short representation of the host.
-            fn repr(&self) -> String {
-                self.repr_color
-                    .colorize(self.repr.as_deref().unwrap_or(&self.name))
+        impl Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                if self.repr.is_empty() {
+                    write!(f, "{}", self.name)
+                } else {
+                    self.repr.fmt(f)
+                }
             }
         }
 
@@ -282,12 +316,8 @@ macro_rules! define_host_struct {
                 &self.dir_name
             }
 
-            fn raw_repr(&self) -> &Option<String> {
+            fn raw_repr(&self) -> &ColoredText {
                 &self.repr
-            }
-
-            fn raw_repr_color(&self) -> &Color {
-                &self.repr_color
             }
         }
     };
@@ -302,41 +332,20 @@ type RemoteHosts = BTreeMap<String, RemoteHost>;
 /// configured by the user.
 fn default_remote_hosts() -> RemoteHosts {
     [
-        (
-            "github.com",
-            "github",
-            "",
-            Color::from(colored::Color::White),
-        ),
-        ("gitlab.com", "gitlab", "󰮠", Color::from(166)),
-        (
-            "git.kernel.org",
-            "kernel",
-            "",
-            Color::from(colored::Color::White),
-        ),
-        (
-            "bitbucket.org",
-            "bitbucket",
-            "",
-            Color::from(colored::Color::Blue),
-        ),
-        (
-            "codeberg.org",
-            "codeberg",
-            "",
-            Color::from(colored::Color::Blue),
-        ),
+        ("github.com", "github", "", colored::Color::White),
+        ("gitlab.com", "gitlab", "󰮠", colored::Color::AnsiColor(166)),
+        ("git.kernel.org", "kernel", "", colored::Color::White),
+        ("bitbucket.org", "bitbucket", "", colored::Color::Blue),
+        ("codeberg.org", "codeberg", "", colored::Color::Blue),
     ]
     .into_iter()
-    .map(|(u, n, r, repr_color)| {
+    .map(|(u, n, r, color)| {
         (
             u.to_string(),
             RemoteHost {
                 name: n.to_string(),
                 dir_name: None,
-                repr: Some(r.to_string()),
-                repr_color,
+                repr: ColoredText::new(r, color),
             },
         )
     })
@@ -350,8 +359,7 @@ impl Default for LocalHost {
         Self {
             name: "local".to_string(),
             dir_name: None,
-            repr: Some("󰋊".to_string()),
-            repr_color: Color::from(colored::Color::White),
+            repr: ColoredText::new("󰋊", colored::Color::White),
         }
     }
 }
@@ -361,24 +369,25 @@ impl Default for LocalHost {
 #[derive(Deserialize, Serialize, Hash, PartialEq)]
 pub struct UnknownHost {
     /// Short representation to use if the host is unknown.
-    repr: String,
-    #[serde(default)]
-    /// Color for the short representation of the host.
-    repr_color: Color,
+    repr: ColoredText,
 }
 
-impl UnknownHost {
-    /// Get the short representation of the host.
-    pub fn repr(&self) -> String {
-        self.repr_color.colorize(&self.repr)
+impl HostInfo for UnknownHost {
+    fn dir_name(&self) -> String {
+        panic!("Should not happen");
+    }
+}
+
+impl Display for UnknownHost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.repr.fmt(f)
     }
 }
 
 impl Default for UnknownHost {
     fn default() -> Self {
         Self {
-            repr: "".to_string(),
-            repr_color: Color::from(colored::Color::Red),
+            repr: ColoredText::new("", colored::Color::Red),
         }
     }
 }
@@ -607,15 +616,14 @@ mod tests {
         name: &'static str,
         raw_dir_name: Option<&'static str>,
         dir_name: &'static str,
-        raw_repr: Option<&'static str>,
-        raw_repr_color: Color,
+        raw_repr: ColoredText,
         repr: String,
     }
 
     /// Check a struct implementing HostInfo and HostInfoRaw traits.
     fn check_host<H>(id: &str, host: &H, expected: HostRef)
     where
-        H: HostInfo + HostInfoRaw,
+        H: HostInfo + HostInfoRaw + Display,
     {
         let name = host.raw_name();
         assert_eq!(
@@ -637,18 +645,12 @@ mod tests {
             expected.dir_name
         );
         let raw_repr = host.raw_repr();
-        let expected_raw_repr = expected.raw_repr.map(|v| v.to_string());
         assert_eq!(
-            raw_repr, &expected_raw_repr,
-            "{id} repr: {raw_repr:?} != {expected_raw_repr:?}",
+            raw_repr, &expected.raw_repr,
+            "{id} repr: {raw_repr:?} != {:?}",
+            expected.raw_repr,
         );
-        let raw_repr_color = host.raw_repr_color();
-        assert_eq!(
-            raw_repr_color, &expected.raw_repr_color,
-            "{id} repr_color: {raw_repr_color:?} != {:?}",
-            expected.raw_repr_color,
-        );
-        let repr = host.repr();
+        let repr = format!("{}", host);
         assert_eq!(
             repr, expected.repr,
             "{id} repr(): {repr} != {}",
@@ -687,8 +689,7 @@ mod tests {
                 name: "github",
                 raw_dir_name: None,
                 dir_name: "github",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from(colored::Color::White),
+                raw_repr: ColoredText::new("", colored::Color::White),
                 repr: "".white().to_string(),
             },
         );
@@ -699,8 +700,7 @@ mod tests {
                 name: "gitlab",
                 raw_dir_name: None,
                 dir_name: "gitlab",
-                raw_repr: Some("󰮠"),
-                raw_repr_color: Color::from(166),
+                raw_repr: ColoredText::new("󰮠", 166),
                 repr: "󰮠".ansi_color(166).to_string(),
             },
         );
@@ -711,8 +711,7 @@ mod tests {
                 name: "kernel",
                 raw_dir_name: None,
                 dir_name: "kernel",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from(colored::Color::White),
+                raw_repr: ColoredText::new("", colored::Color::White),
                 repr: "".white().to_string(),
             },
         );
@@ -723,8 +722,7 @@ mod tests {
                 name: "bitbucket",
                 raw_dir_name: None,
                 dir_name: "bitbucket",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from(colored::Color::Blue),
+                raw_repr: ColoredText::new("", colored::Color::Blue),
                 repr: "".blue().to_string(),
             },
         );
@@ -735,8 +733,7 @@ mod tests {
                 name: "codeberg",
                 raw_dir_name: None,
                 dir_name: "codeberg",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from(colored::Color::Blue),
+                raw_repr: ColoredText::new("", colored::Color::Blue),
                 repr: "".blue().to_string(),
             },
         );
@@ -749,8 +746,7 @@ mod tests {
                 name: "local",
                 raw_dir_name: None,
                 dir_name: "local",
-                raw_repr: Some("󰋊"),
-                raw_repr_color: Color::from(colored::Color::White),
+                raw_repr: ColoredText::new("󰋊", colored::Color::White),
                 repr: "󰋊".white().to_string(),
             },
         );
@@ -785,41 +781,53 @@ mod tests {
         insta::assert_snapshot!(toml::to_string(&config)?, @r#"
         [host."bitbucket.org"]
         name = "bitbucket"
-        repr = ""
-        repr_color = "blue"
+
+        [host."bitbucket.org".repr]
+        text = ""
+        color = "blue"
 
         [host."codeberg.org"]
         name = "codeberg"
-        repr = ""
-        repr_color = "blue"
+
+        [host."codeberg.org".repr]
+        text = ""
+        color = "blue"
 
         [host."git.kernel.org"]
         name = "kernel"
-        repr = ""
-        repr_color = "white"
+
+        [host."git.kernel.org".repr]
+        text = ""
+        color = "white"
 
         [host."github.com"]
         name = "github"
-        repr = ""
-        repr_color = "white"
+
+        [host."github.com".repr]
+        text = ""
+        color = "white"
 
         [host."gitlab.com"]
         name = "gitlab"
-        repr = "󰮠"
-        repr_color = 166
+
+        [host."gitlab.com".repr]
+        text = "󰮠"
+        color = 166
 
         [local]
         name = "local"
-        repr = "󰋊"
-        repr_color = "white"
+
+        [local.repr]
+        text = "󰋊"
+        color = "white"
 
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]
         extend_ignore = []
 
-        [unknown_host]
-        repr = ""
-        repr_color = "red"
+        [unknown_host.repr]
+        text = ""
+        color = "red"
 
         [command.clone]
         default_vcs = "jujutsu-git"
@@ -838,32 +846,27 @@ mod tests {
         let config = Config::load_internal(indoc! {r#"
         [host."my.custom-domain.fr"]
         name = 'mine'
-        repr = '󱘎'
-        repr_color = 'blue'
+        repr = { text = '󱘎', color = 'blue' }
 
         [host."git.buildroot.net"]
         name = 'buildroot'
         dir_name = '.'
-        repr = '󰥯'
-        repr_color = 'yellow'
+        repr = { text = '󰥯', color = 'yellow' }
 
         [host."busybox.net"]
         name = 'busybox'
 
         [host."blabla.net"]
         name = 'blabla'
-        repr = ''
-        repr_color = 124
+        repr = { text = '', color = 124 }
 
         [host."alice-and-bob.net"]
         name = 'alice-and-bob'
-        repr = ''
-        repr_color = [48, 15, 16]
+        repr = { text = '',  color = [48, 15, 16]}
 
         [local]
         name = 'local'
-        repr = '󰋊'
-        repr_color = 'white'
+        repr = {text = '󰋊', color = 'white'}
 
         [command.resolve.aliases]
         rt = 'repo-tree'
@@ -899,8 +902,7 @@ mod tests {
                 name: "github",
                 raw_dir_name: None,
                 dir_name: "github",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from_str("white").unwrap(),
+                raw_repr: ColoredText::new("", colored::Color::White),
                 repr: "".white().to_string(),
             },
         );
@@ -911,8 +913,7 @@ mod tests {
                 name: "gitlab",
                 raw_dir_name: None,
                 dir_name: "gitlab",
-                raw_repr: Some("󰮠"),
-                raw_repr_color: Color::from(166),
+                raw_repr: ColoredText::new("󰮠", 166),
                 repr: "󰮠".ansi_color(166).to_string(),
             },
         );
@@ -923,8 +924,7 @@ mod tests {
                 name: "mine",
                 raw_dir_name: None,
                 dir_name: "mine",
-                raw_repr: Some("󱘎"),
-                raw_repr_color: Color::from(colored::Color::Blue),
+                raw_repr: ColoredText::new("󱘎", colored::Color::Blue),
                 repr: "󱘎".blue().to_string(),
             },
         );
@@ -935,8 +935,7 @@ mod tests {
                 name: "buildroot",
                 raw_dir_name: Some("."),
                 dir_name: ".",
-                raw_repr: Some("󰥯"),
-                raw_repr_color: Color::from(colored::Color::Yellow),
+                raw_repr: ColoredText::new("󰥯", colored::Color::Yellow),
                 repr: "󰥯".yellow().to_string(),
             },
         );
@@ -947,8 +946,7 @@ mod tests {
                 name: "bitbucket",
                 raw_dir_name: None,
                 dir_name: "bitbucket",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from_str("blue").unwrap(),
+                raw_repr: ColoredText::new("", colored::Color::Blue),
                 repr: "".blue().to_string(),
             },
         );
@@ -959,8 +957,7 @@ mod tests {
                 name: "busybox",
                 raw_dir_name: None,
                 dir_name: "busybox",
-                raw_repr: None,
-                raw_repr_color: Color::default(),
+                raw_repr: ColoredText::default(),
                 repr: "busybox".to_string(),
             },
         );
@@ -971,8 +968,7 @@ mod tests {
                 name: "blabla",
                 raw_dir_name: None,
                 dir_name: "blabla",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from(colored::Color::AnsiColor(124)),
+                raw_repr: ColoredText::new("", 124),
                 repr: "".ansi_color(124).to_string(),
             },
         );
@@ -983,8 +979,7 @@ mod tests {
                 name: "alice-and-bob",
                 raw_dir_name: None,
                 dir_name: "alice-and-bob",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from((48, 15, 16)),
+                raw_repr: ColoredText::new("", (48, 15, 16)),
                 repr: ""
                     .color(colored::Color::TrueColor {
                         r: 48,
@@ -1001,8 +996,7 @@ mod tests {
                 name: "kernel",
                 raw_dir_name: None,
                 dir_name: "kernel",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from(colored::Color::White),
+                raw_repr: ColoredText::new("", colored::Color::White),
                 repr: "".white().to_string(),
             },
         );
@@ -1013,8 +1007,7 @@ mod tests {
                 name: "codeberg",
                 raw_dir_name: None,
                 dir_name: "codeberg",
-                raw_repr: Some(""),
-                raw_repr_color: Color::from(colored::Color::Blue),
+                raw_repr: ColoredText::new("", colored::Color::Blue),
                 repr: "".blue().to_string(),
             },
         );
@@ -1027,8 +1020,7 @@ mod tests {
                 name: "local",
                 raw_dir_name: None,
                 dir_name: "local",
-                raw_repr: Some("󰋊"),
-                raw_repr_color: Color::from(colored::Color::White),
+                raw_repr: ColoredText::new("󰋊", colored::Color::White),
                 repr: "󰋊".white().to_string(),
             },
         );
@@ -1053,40 +1045,88 @@ mod tests {
         insta::assert_snapshot!(toml::to_string(&config)?, @r#"
         [host."alice-and-bob.net"]
         name = "alice-and-bob"
-        repr = ""
-        repr_color = [48, 15, 16]
+
+        [host."alice-and-bob.net".repr]
+        text = ""
+        color = [48, 15, 16]
+
+        [host."bitbucket.org"]
+        name = "bitbucket"
+
+        [host."bitbucket.org".repr]
+        text = ""
+        color = "blue"
 
         [host."blabla.net"]
         name = "blabla"
-        repr = ""
-        repr_color = 124
+
+        [host."blabla.net".repr]
+        text = ""
+        color = 124
 
         [host."busybox.net"]
         name = "busybox"
 
+        [host."busybox.net".repr]
+        text = ""
+
+        [host."codeberg.org"]
+        name = "codeberg"
+
+        [host."codeberg.org".repr]
+        text = ""
+        color = "blue"
+
         [host."git.buildroot.net"]
         name = "buildroot"
         dir_name = "."
-        repr = "󰥯"
-        repr_color = "yellow"
+
+        [host."git.buildroot.net".repr]
+        text = "󰥯"
+        color = "yellow"
+
+        [host."git.kernel.org"]
+        name = "kernel"
+
+        [host."git.kernel.org".repr]
+        text = ""
+        color = "white"
+
+        [host."github.com"]
+        name = "github"
+
+        [host."github.com".repr]
+        text = ""
+        color = "white"
+
+        [host."gitlab.com"]
+        name = "gitlab"
+
+        [host."gitlab.com".repr]
+        text = "󰮠"
+        color = 166
 
         [host."my.custom-domain.fr"]
         name = "mine"
-        repr = "󱘎"
-        repr_color = "blue"
+
+        [host."my.custom-domain.fr".repr]
+        text = "󱘎"
+        color = "blue"
 
         [local]
         name = "local"
-        repr = "󰋊"
-        repr_color = "white"
+
+        [local.repr]
+        text = "󰋊"
+        color = "white"
 
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]
         extend_ignore = []
 
-        [unknown_host]
-        repr = ""
-        repr_color = "red"
+        [unknown_host.repr]
+        text = ""
+        color = "red"
 
         [command.clone]
         default_vcs = "jujutsu"
