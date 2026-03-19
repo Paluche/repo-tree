@@ -35,9 +35,8 @@ struct Color {
     color: Option<colored::Color>,
 }
 
-impl Color {
-    #[cfg(test)]
-    fn new_color(color: colored::Color) -> Self {
+impl From<colored::Color> for Color {
+    fn from(color: colored::Color) -> Self {
         Self { color: Some(color) }
     }
 }
@@ -46,26 +45,19 @@ impl FromStr for Color {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self {
-            color: Some(colored::Color::from_str(s)?),
-        })
+        Ok(Self::from(colored::Color::from_str(s)?))
     }
 }
 
 impl From<u8> for Color {
     fn from(value: u8) -> Self {
-        Self {
-            color: Some(colored::Color::AnsiColor(value)),
-        }
+        Self::from(colored::Color::AnsiColor(value))
     }
 }
 
-impl Color {
-    /// True RGB color.
-    fn true_color(r: u8, g: u8, b: u8) -> Self {
-        Self {
-            color: Some(colored::Color::TrueColor { r, g, b }),
-        }
+impl From<(u8, u8, u8)> for Color {
+    fn from((r, g, b): (u8, u8, u8)) -> Self {
+        Self::from(colored::Color::TrueColor { r, g, b })
     }
 }
 
@@ -105,11 +97,11 @@ impl<'de> Deserialize<'de> for Color {
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                let r = seq.next_element()?;
-                let g = seq.next_element()?;
-                let b = seq.next_element()?;
-
-                Ok(Color::true_color(r.unwrap(), g.unwrap(), b.unwrap()))
+                Ok(Color::from((
+                    seq.next_element()?.unwrap(),
+                    seq.next_element()?.unwrap(),
+                    seq.next_element()?.unwrap(),
+                )))
             }
 
             fn expecting(
@@ -749,7 +741,7 @@ mod tests {
             None,
             "codeberg",
             Some(""),
-            Color::new_color(colored::Color::Blue),
+            Color::from(colored::Color::Blue),
             "".blue().to_string(),
         );
 
@@ -761,7 +753,7 @@ mod tests {
             None,
             "local",
             Some("󰋊"),
-            Color::new_color(colored::Color::White),
+            Color::from(colored::Color::White),
             "󰋊".white().to_string(),
         );
 
@@ -930,7 +922,7 @@ mod tests {
             None,
             "mine",
             Some("󱘎"),
-            Color::new_color(colored::Color::Blue),
+            Color::from(colored::Color::Blue),
             "󱘎".blue().to_string(),
         );
         check_remote_host(
@@ -940,7 +932,7 @@ mod tests {
             Some("."),
             ".",
             Some("󰥯"),
-            Color::new_color(colored::Color::Yellow),
+            Color::from(colored::Color::Yellow),
             "󰥯".yellow().to_string(),
         );
         check_remote_host(
@@ -970,7 +962,7 @@ mod tests {
             None,
             "blabla",
             Some(""),
-            Color::new_color(colored::Color::AnsiColor(124)),
+            Color::from(124),
             "".ansi_color(124).to_string(),
         );
         check_remote_host(
@@ -980,7 +972,7 @@ mod tests {
             None,
             "alice-and-bob",
             Some(""),
-            Color::true_color(48, 15, 16),
+            Color::from((48, 15, 16)),
             ""
                 .color(colored::Color::TrueColor {
                     r: 48,
@@ -1006,7 +998,7 @@ mod tests {
             None,
             "codeberg",
             Some(""),
-            Color::new_color(colored::Color::Blue),
+            Color::from(colored::Color::Blue),
             "".blue().to_string(),
         );
 
@@ -1018,7 +1010,7 @@ mod tests {
             None,
             "local",
             Some("󰋊"),
-            Color::new_color(colored::Color::White),
+            Color::from(colored::Color::White),
             "󰋊".white().to_string(),
         );
 
