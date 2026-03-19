@@ -4,7 +4,6 @@
 //! `${HOME}/.config` in place.
 //!
 //! See repository README for more information.
-//! ```
 
 use core::str::FromStr;
 use std::collections::BTreeMap;
@@ -358,7 +357,7 @@ impl Default for LocalHost {
 /// configuration).
 #[derive(Deserialize, Serialize, Hash, PartialEq)]
 pub struct UnknownHost {
-    /// Short representation to use is the host is unknown
+    /// Short representation to use if the host is unknown.
     repr: String,
     #[serde(default)]
     /// Color for the short representation of the host.
@@ -381,7 +380,7 @@ impl Default for UnknownHost {
     }
 }
 
-/// Configuration regardin allowed the repository location.
+/// Configuration regarding allowed repository locations.
 #[derive(Serialize, Deserialize, Hash, PartialEq)]
 pub struct RepositoryLocation {
     /// List of glob patterns, any repositories path matching one of the
@@ -667,6 +666,7 @@ mod tests {
     fn default_config() -> Result<(), Box<dyn Error>> {
         let config = Config::load_internal("")?;
 
+        // Check remote (remote hosts) values.
         check_remote_hosts(
             &config,
             &[
@@ -738,7 +738,7 @@ mod tests {
             },
         );
 
-        // Check local
+        // Check local.
         check_host(
             "local",
             &config.local,
@@ -752,7 +752,7 @@ mod tests {
             },
         );
 
-        // Check repository ignores
+        // Check repository ignores.
         assert_eq!(
             config.repository.ignore,
             ["/tmp/**", "**/.*/**"]
@@ -766,13 +766,13 @@ mod tests {
         );
         assert_eq!(config.repository.extend_ignore, Vec::new());
 
-        // Check resolve command configuration
+        // Check resolve command configuration.
         assert_eq!(config.command.resolve.aliases, BTreeMap::new());
 
-        // Check todo command configuration
+        // Check todo command configuration.
         assert_eq!(config.command.todo.ignore, Vec::<String>::new());
 
-        // Check clone command configuration
+        // Check clone command configuration.
         assert_eq!(
             config.command.clone.default_vcs,
             VersionControlSystem::JujutsuGit
@@ -875,6 +875,7 @@ mod tests {
     fn full_config() -> Result<(), Box<dyn Error>> {
         let config = Config::load_internal(FULL_TEST_CONFIG)?;
 
+        // Check remote (remote hosts) values.
         check_remote_hosts(
             &config,
             &[
@@ -1038,8 +1039,10 @@ mod tests {
                 vec![("rt".to_string(), "repo-tree".to_string())].into_iter()
             )
         );
+
         // Check todo command configuration
         assert_eq!(config.command.todo.ignore, vec!["Paluche/jj-test-repo"]);
+
         // Check clone command configuration
         assert_eq!(
             config.command.clone.default_vcs,
