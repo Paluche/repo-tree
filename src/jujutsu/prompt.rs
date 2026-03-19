@@ -236,21 +236,21 @@ fn prompt_internal(
     )?;
     list_tags(repo, current_commit, &mut buffer)?;
 
-    prompt.push_string(&if buffer.is_empty() {
+    prompt.push(if buffer.is_empty() {
         "󰫌".bright_black().to_string()
     } else {
         buffer
     });
 
     if has_conflicts(repo_path)? {
-        prompt.push_colored_string("󰝧".bright_red())
+        prompt.push("󰝧".bright_red())
     }
 
     Ok(())
 }
 
 /// Build the prompt line for a Jujutsu repository.
-pub async fn prompt(repo_path: &Path, prompt: &mut Prompt) -> i32 {
+pub async fn prompt(repo_path: &Path, prompt: &mut Prompt<'_>) -> i32 {
     let repo = load(repo_path).await.unwrap();
     let Some(current_commit) =
         repo.view().get_wc_commit_id(WorkspaceName::DEFAULT)
