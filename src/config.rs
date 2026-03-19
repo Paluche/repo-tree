@@ -205,9 +205,12 @@ impl Hash for Color {
 
 impl Color {
     /// Colorize the provided text.
-    fn colorize(&self, text: &str) -> String {
-        if let Some(c) = self.color {
-            text.color(c).to_string()
+    pub fn colorize<T>(&self, text: T) -> String
+    where
+        T: ToString,
+    {
+        if let Some(color) = self.color {
+            text.to_string().color(color).to_string()
         } else {
             text.to_string()
         }
