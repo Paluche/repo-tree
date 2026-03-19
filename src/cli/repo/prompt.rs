@@ -46,7 +46,7 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
         }
     };
 
-    let mut prompt = Prompt::new(config, &repository);
+    let mut prompt = Prompt::new(&repository);
 
     let ret = match repository.vcs {
         VersionControlSystem::Git => {
@@ -65,7 +65,7 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
     };
 
     if ret == 0 {
-        println!("{prompt}");
+        println!("{}", prompt.display(config));
     }
 
     ret
