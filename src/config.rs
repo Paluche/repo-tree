@@ -830,7 +830,9 @@ mod tests {
         Ok(())
     }
 
-    const FULL_TEST_CONFIG: &str = indoc! {r#"
+    #[test]
+    fn full_config() -> Result<(), Box<dyn Error>> {
+        let config = Config::load_internal(indoc! {r#"
         [host."my.custom-domain.fr"]
         name = 'mine'
         repr = '󱘎'
@@ -869,11 +871,7 @@ mod tests {
         [command.clone]
         default_vcs = 'jujutsu'
         "#
-    };
-
-    #[test]
-    fn full_config() -> Result<(), Box<dyn Error>> {
-        let config = Config::load_internal(FULL_TEST_CONFIG)?;
+        })?;
 
         // Check remote (remote hosts) values.
         check_remote_hosts(
@@ -1048,12 +1046,6 @@ mod tests {
             config.command.clone.default_vcs,
             VersionControlSystem::Jujutsu
         );
-        Ok(())
-    }
-
-    #[test]
-    fn serialize_deserialize() -> Result<(), Box<dyn Error>> {
-        let config: Config = toml::from_str(FULL_TEST_CONFIG)?;
 
         insta::assert_snapshot!(toml::to_string(&config)?, @r#"
         [host."alice-and-bob.net"]
