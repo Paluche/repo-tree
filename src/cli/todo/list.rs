@@ -35,25 +35,42 @@ pub struct ListArgs {
 }
 
 pub fn run(args: ListArgs) -> i32 {
-    let mut total: usize = 0;
+    let config = Config::default();
+    let mut todo: usize = 0;
     let mut ok: usize = 0;
     let mut n_a: usize = 0;
+    let mut skipped: usize = 0;
 
     for repository in load_filtered_repositories(
         &get_repo_tree_dir(),
-        &UrlParser::new(&Config::default()),
+        &UrlParser::new(&config),
         args.hosts,
         args.names,
     ) {
-        if repository.id.remote_url.is_none() {
-            // Local repository.
-            continue;
-        }
         let id = format!(
             "{} {:20}",
             repository.id.host.map_or("".red().to_string(), |h| h.repr),
             repository.id.name
         );
+
+        if repository.id.remote_url.is_none() {
+            if args.verbose {
+                eprint!("\r{}", Clear(ClearType::CurrentLine));
+                println!("{id} {}", "Ignored (local)".bright_black());
+            }
+            skipped += 1;
+            continue;
+        }
+
+        if config.todo_ignore.contains(&repository.id.name) {
+            if args.verbose {
+                eprint!("\r{}", Clear(ClearType::CurrentLine));
+                println!("{id} {}", "Ignored (configuration)".bright_black());
+            }
+            skipped += 1;
+            continue;
+        }
+
         eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
         if let Some(repo_state) = match repository.vcs {
             VersionControlSystem::Jujutsu
@@ -64,27 +81,27 @@ pub fn run(args: ListArgs) -> i32 {
             ),
             _ => None,
         } {
-            total += 1;
             if repo_state.is_ok() {
                 ok += 1;
                 if args.verbose {
                     eprint!("\r{}", Clear(ClearType::CurrentLine));
-                    println!("{} {}", id, repo_state);
+                    println!("{id} {repo_state}");
                 }
             } else {
+                todo += 1;
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
-                println!("{} {}", id, repo_state);
+                println!("{id} {repo_state}");
             }
         } else {
             n_a += 1;
             if args.verbose {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
-                println!("{} {}", id, "N/A".bright_yellow());
+                println!("{id} {}", "N/A".bright_yellow());
             }
         }
     }
 
     eprint!("\r{}", Clear(ClearType::CurrentLine));
-    println!("Todo: {ok}/{total} ({n_a} N/A)");
+    println!("{todo} todo, {ok} OK, {n_a} N/A, {skipped} skipped");
     0
 }
