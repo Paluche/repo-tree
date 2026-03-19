@@ -207,6 +207,66 @@ text = ''
 color: 'red'
 ```
 
+### Configuring the prompt output
+
+You can customize the prompt produce by `rt repo prompt`, you already
+encountered some of those customization through the host representations or
+`repr`.
+
+The prompt has the following fields:
+
+- `vcs` representation: Which version control system, is available for the
+  current repository.
+- Repository remote representation. Representation for the remote host of the
+  repository. Corresponding to the configuration `host.'<URL>'.repr` of the
+  remote host `URL` associated to the repository.
+- Full repository ID / name.
+- If the repository is a Git repository:
+  - Ongoing Git operations, if any. Display when you are in a middle of an
+    operation such as `rebase`, `am`, `cherry-pick`, `bisect`, `merge` or
+    `revert`. This happens when Git asks you to resolve a conflict. You should
+    only resolve the conflict, then execute `git <operation> --continue`.
+  - If the repository is not collocated with `jj`:
+    - List of branches which your `HEAD` is currently at.
+    - List of tags which your `HEAD` is currently at.
+    - Upstream information. If you are at a branch which has an upstream, what
+      is your state relative to that upstream. Do need to push / pull? Did you
+      diverged? Has the upstream branch been deleted? Otherwise show a
+      representaion telling you that you are detached from any branch, or that
+      there is no upstream set yet.
+    - stage / unstaged status.
+  - Status of the repository's submodules.
+  - Status of the repository's stash. Show a flag if you have pending stashes.
+- If the repository is a Jujutsu repository:
+  - List of bookmarks, from the following categories. Each bookmark will be
+    suffixed a `*` if there are some changes to that bookmark that must be
+    pushed to the remote.
+    - Bookmarks set the parent of the current commit you are editing (`@-` in
+      revset language).
+    - Bookmarks set on the current commit you are editing (`@` in revset
+      language).
+    - Bookmarks on which you have an impact on by editing the current commit,
+      said otherwise, the bookmarks set on any of the descendants commits of
+      the current one (`@::` in revset language).
+  - List the tags which are set to the parent commit you are editing.
+  - Show if there is any commits with conflicts to resolve.
+
+Each of this fields are display in the order as listed above, if there is
+nothing to show for a field, nothing is shown. We limit the output length for
+the branches and tags too avoid too noisy prompt, there is already a lot of
+information potentially displayed.
+
+The prompt output starts with a `prefix`, and each fields are separated from
+the previous one by a `separator`.
+
+Here are the following configurations:
+
+```toml
+[prompt]
+prefix = { text = '┣━┫', color = 'cyan' }
+separator = { text = '|', color = 'cyan' }
+```
+
 ### Configuring repositories to ignore
 
 You can allow some repositories to leave outside the repo tree in specific
