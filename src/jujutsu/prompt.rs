@@ -15,7 +15,6 @@ use super::load;
 use super::repo_state::has_conflicts;
 use crate::prompt_builder::PromptBuilder;
 
-#[derive(Debug)]
 /// Status of a reference.
 struct Ref {
     /// Name of the reference.

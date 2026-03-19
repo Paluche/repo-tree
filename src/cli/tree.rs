@@ -51,7 +51,7 @@ impl DirState {
 }
 
 /// Directory representation.
-#[derive(Default, Debug)]
+#[derive(Default)]
 struct Directory<'repos> {
     /// Childs directories within this directory.
     childs: BTreeMap<String, Self>,
@@ -242,7 +242,6 @@ impl<'repos> Directory<'repos> {
 }
 
 /// Representation of the repo tree root directory.
-#[derive(Debug)]
 struct RootDirectory<'config, 'repos> {
     /// Actual path to the repo tree root.
     repo_tree_dir: &'config PathBuf,

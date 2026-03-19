@@ -28,7 +28,7 @@ use crate::utils::get_last_modified;
 use crate::version_control_system::VersionControlSystem;
 
 /// Metadata about the file containing the
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 struct RemoteConfig {
     /// Path to the file containing the remote information.
     file: PathBuf,
@@ -54,7 +54,7 @@ impl RemoteConfig {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
 /// Representation of a repository.
 pub struct Repository {
     /// Type of version control system the repository uses.
@@ -240,7 +240,7 @@ fn load_cache() -> Result<Repositories, Box<dyn Error>> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 /// Repositories present in the repo tree.
 pub struct Repositories {
     /// The repositories in the repo tree.
