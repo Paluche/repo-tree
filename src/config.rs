@@ -414,6 +414,38 @@ impl Default for UnknownHost {
     }
 }
 
+/// Configuration to customize the prompt.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct PromptConfig {
+    /// Prefix to put in front of the prompt fields.
+    #[serde(default = "PromptConfig::default_prefix")]
+    pub prefix: ColoredText,
+    /// String to use to separate the different fields of the prompt.
+    #[serde(default = "PromptConfig::default_separator")]
+    pub separator: ColoredText,
+}
+
+impl PromptConfig {
+    /// Default value for `prefix` configuration.
+    fn default_prefix() -> ColoredText {
+        ColoredText::new("┣━┫", colored::Color::Cyan)
+    }
+
+    /// Default value for `separator` configuration.
+    fn default_separator() -> ColoredText {
+        ColoredText::new("|", colored::Color::Cyan)
+    }
+}
+
+impl Default for PromptConfig {
+    fn default() -> Self {
+        Self {
+            prefix: Self::default_prefix(),
+            separator: Self::default_separator(),
+        }
+    }
+}
+
 /// Configuration regarding allowed repository locations.
 #[derive(Serialize, Deserialize, Hash, PartialEq)]
 pub struct RepositoryLocation {
@@ -516,6 +548,9 @@ pub struct Config {
     /// configuration).
     #[serde(default)]
     pub unknown_host: UnknownHost,
+    /// Configuration to customize the prompt.
+    #[serde(default)]
+    pub prompt: PromptConfig,
     /// Configuration regarding allowed repository location outside the repo
     /// tree.
     #[serde(default)]
@@ -787,6 +822,15 @@ mod tests {
             },
         );
 
+        // Check prompt configuration.
+        assert_eq!(
+            &config.prompt,
+            &PromptConfig {
+                prefix: ColoredText::new("┣━┫", colored::Color::Cyan),
+                separator: ColoredText::new("|", colored::Color::Cyan),
+            },
+        );
+
         // Check repository ignores.
         assert_eq!(
             config.repository.ignore,
@@ -860,6 +904,14 @@ mod tests {
         [unknown_host.repr]
         text = ""
         color = "red"
+
+        [prompt.prefix]
+        text = "┣━┫"
+        color = "cyan"
+
+        [prompt.separator]
+        text = "|"
+        color = "cyan"
 
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]
@@ -1074,6 +1126,15 @@ mod tests {
             },
         );
 
+        // Check prompt configuration.
+        assert_eq!(
+            &config.prompt,
+            &PromptConfig {
+                prefix: ColoredText::new("┣━┫", colored::Color::Cyan),
+                separator: ColoredText::new("|", colored::Color::Cyan),
+            },
+        );
+
         // Check resolve command configuration.
         assert_eq!(
             config.command.resolve.aliases,
@@ -1090,7 +1151,6 @@ mod tests {
             config.command.clone.default_vcs,
             VersionControlSystem::Jujutsu
         );
-
         insta::assert_snapshot!(toml::to_string(&config)?, @r#"
         [host."alice-and-bob.net"]
         name = "alice-and-bob"
@@ -1172,6 +1232,14 @@ mod tests {
         [unknown_host.repr]
         text = ""
         color = "red"
+
+        [prompt.prefix]
+        text = "┣━┫"
+        color = "cyan"
+
+        [prompt.separator]
+        text = "|"
+        color = "cyan"
 
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]

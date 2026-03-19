@@ -56,20 +56,19 @@ pub struct Display<'prompt, 'repo, 'config> {
 
 impl<'pb, 'repo, 'config> std::fmt::Display for Display<'pb, 'repo, 'config> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let separator = format!("{}", "|".cyan());
         write!(
             f,
             "{}{}{}{}{}{}",
-            "┣━┫".cyan(),
+            self.config.prompt.prefix,
             self.prompt.repository.vcs.short_display(),
-            separator,
+            self.config.prompt.separator,
             self.prompt.repository.id.remote.host(self.config).repr(),
-            separator,
+            self.config.prompt.separator,
             self.prompt.repository.id.name.green()
         )?;
 
         for field in &self.prompt.fields {
-            write!(f, "{}{field}", separator)?;
+            write!(f, "{}{field}", self.config.prompt.separator)?;
         }
 
         Ok(())
