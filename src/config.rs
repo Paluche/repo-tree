@@ -20,6 +20,9 @@
 //! vcs: <DEFAULT VCS TO USE>
 //! repo_aliases:
 //!       <alias>: <repo_name>
+//! todo:
+//!   ignore:
+//!      - <repo_name>
 //! ```
 
 use core::str::FromStr;
@@ -325,11 +328,62 @@ fn parse_repo_aliases(
     Ok(())
 }
 
+fn parse_todo(
+    config_path: &Path,
+    todo_ignore: &mut Vec<String>,
+    value: &Yaml,
+) -> Result<(), ParseError> {
+    let hash = value.as_hash().ok_or_else(|| {
+        ParseError::new(
+            config_path,
+            "\"todo\": Expecting only entries in the format: `string: string`"
+                .to_string(),
+        )
+    })?;
+
+    for (key, value) in hash {
+        let key = String::from(key.as_str().ok_or(ParseError::new(
+            config_path,
+            "\"todo\": Unexpected non-string key".to_string(),
+        ))?);
+
+        match key.as_str() {
+            "ignore" => parse_todo_ignore(config_path, todo_ignore, value)?,
+            key => Err(ParseError::new(
+                config_path,
+                format!("Unknown key \"todo.{key}\""),
+            ))?,
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_todo_ignore(
+    config_path: &Path,
+    todo_ignore: &mut Vec<String>,
+    value: &Yaml,
+) -> Result<(), ParseError> {
+    let list = value.as_vec().ok_or(ParseError::new(
+        config_path,
+        "\"todo.ignore\": Expecting as list as value".to_string(),
+    ))?;
+
+    for item in list {
+        todo_ignore.push(String::from(item.as_str().ok_or(ParseError::new(
+            config_path,
+            "\"todo.ignore\": Unexpected non-string key".to_string(),
+        ))?))
+    }
+    Ok(())
+}
+
 pub struct Config {
     pub hosts: Hosts,
     pub local: Host,
     pub vcs: VersionControlSystem,
     pub repo_aliases: RepoAliases,
+    pub todo_ignore: Vec<String>,
 }
 
 impl Config {
@@ -343,6 +397,7 @@ impl Config {
             local,
             vcs,
             repo_aliases: HashMap::new(),
+            todo_ignore: Vec::new(),
         };
 
         let config_path = std::env::var("XDG_CONFIG_HOME")
@@ -393,6 +448,9 @@ impl Config {
                     &mut ret.repo_aliases,
                     value,
                 )?,
+                "todo" => {
+                    parse_todo(&config_path, &mut ret.todo_ignore, value)?
+                }
                 key => Err(ParseError::new(
                     &config_path,
                     format!("Unknown key \"{key}\""),
