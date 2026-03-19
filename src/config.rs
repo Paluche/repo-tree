@@ -601,79 +601,66 @@ mod tests {
         }
     }
 
+    struct HostRef {
+        name: &'static str,
+        raw_dir_name: Option<&'static str>,
+        dir_name: &'static str,
+        raw_repr: Option<&'static str>,
+        raw_repr_color: Color,
+        repr: String,
+    }
+
     /// Check a struct implementing HostInfo and HostInfoRaw traits.
-    #[allow(clippy::too_many_arguments)]
-    fn check_host<H>(
-        id: &str,
-        host: &H,
-        expected_name: &str,
-        expected_raw_dir_name: Option<&str>,
-        expected_dir_name: &str,
-        expected_raw_repr: Option<&str>,
-        expected_raw_repr_color: Color,
-        expected_repr: String,
-    ) where
+    fn check_host<H>(id: &str, host: &H, expected: HostRef)
+    where
         H: HostInfo + HostInfoRaw,
     {
         let name = host.raw_name();
-        assert_eq!(name, expected_name, "{id} name: {name} != {expected_name}");
+        assert_eq!(
+            name, expected.name,
+            "{id} name: {name} != {}",
+            expected.name
+        );
         let raw_dir_name = host.raw_dir_name();
         let expected_raw_dir_name =
-            expected_raw_dir_name.map(|v| v.to_string());
+            expected.raw_dir_name.map(|v| v.to_string());
         assert_eq!(
             raw_dir_name, &expected_raw_dir_name,
             "{id} dir_name: {raw_dir_name:?} != {expected_raw_dir_name:?}",
         );
         let dir_name = host.dir_name();
         assert_eq!(
-            dir_name, expected_dir_name,
-            "{id} dir_name(): {dir_name} != {expected_dir_name}",
+            dir_name, expected.dir_name,
+            "{id} dir_name(): {dir_name} != {}",
+            expected.dir_name
         );
         let raw_repr = host.raw_repr();
-        let expected_raw_repr = expected_raw_repr.map(|v| v.to_string());
+        let expected_raw_repr = expected.raw_repr.map(|v| v.to_string());
         assert_eq!(
             raw_repr, &expected_raw_repr,
             "{id} repr: {raw_repr:?} != {expected_raw_repr:?}",
         );
         let raw_repr_color = host.raw_repr_color();
         assert_eq!(
-            raw_repr_color, &expected_raw_repr_color,
-            "{id} repr_color: {raw_repr_color:?} != \
-             {expected_raw_repr_color:?}",
+            raw_repr_color, &expected.raw_repr_color,
+            "{id} repr_color: {raw_repr_color:?} != {:?}",
+            expected.raw_repr_color,
         );
         let repr = host.repr();
         assert_eq!(
-            repr, expected_repr,
-            "{id} repr(): {repr} != {expected_repr}",
+            repr, expected.repr,
+            "{id} repr(): {repr} != {}",
+            expected.repr
         );
     }
 
     /// Check a remote host from the configuration.
-    #[allow(clippy::too_many_arguments)]
-    fn check_remote_host(
-        config: &Config,
-        key: &str,
-        expected_name: &str,
-        expected_raw_dir_name: Option<&str>,
-        expected_dir_name: &str,
-        expected_raw_repr: Option<&str>,
-        expected_raw_repr_color: Color,
-        expected_repr: String,
-    ) {
+    fn check_remote_host(config: &Config, key: &str, expected: HostRef) {
         let remote_host = config.remote_hosts.get(key).unwrap_or_else(|| {
             panic!("Missing expected remote host \"{key}\"")
         });
 
-        check_host(
-            key,
-            remote_host,
-            expected_name,
-            expected_raw_dir_name,
-            expected_dir_name,
-            expected_raw_repr,
-            expected_raw_repr_color,
-            expected_repr,
-        );
+        check_host(key, remote_host, expected);
     }
 
     #[test]
@@ -693,64 +680,76 @@ mod tests {
         check_remote_host(
             &config,
             "github.com",
-            "github",
-            None,
-            "github",
-            Some(""),
-            Color::from(colored::Color::White),
-            "".white().to_string(),
+            HostRef {
+                name: "github",
+                raw_dir_name: None,
+                dir_name: "github",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from(colored::Color::White),
+                repr: "".white().to_string(),
+            },
         );
         check_remote_host(
             &config,
             "gitlab.com",
-            "gitlab",
-            None,
-            "gitlab",
-            Some("󰮠"),
-            Color::from(166),
-            "󰮠".ansi_color(166).to_string(),
+            HostRef {
+                name: "gitlab",
+                raw_dir_name: None,
+                dir_name: "gitlab",
+                raw_repr: Some("󰮠"),
+                raw_repr_color: Color::from(166),
+                repr: "󰮠".ansi_color(166).to_string(),
+            },
         );
         check_remote_host(
             &config,
             "git.kernel.org",
-            "kernel",
-            None,
-            "kernel",
-            Some(""),
-            Color::from(colored::Color::White),
-            "".white().to_string(),
+            HostRef {
+                name: "kernel",
+                raw_dir_name: None,
+                dir_name: "kernel",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from(colored::Color::White),
+                repr: "".white().to_string(),
+            },
         );
         check_remote_host(
             &config,
             "bitbucket.org",
-            "bitbucket",
-            None,
-            "bitbucket",
-            Some(""),
-            Color::from(colored::Color::Blue),
-            "".blue().to_string(),
+            HostRef {
+                name: "bitbucket",
+                raw_dir_name: None,
+                dir_name: "bitbucket",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from(colored::Color::Blue),
+                repr: "".blue().to_string(),
+            },
         );
         check_remote_host(
             &config,
             "codeberg.org",
-            "codeberg",
-            None,
-            "codeberg",
-            Some(""),
-            Color::from(colored::Color::Blue),
-            "".blue().to_string(),
+            HostRef {
+                name: "codeberg",
+                raw_dir_name: None,
+                dir_name: "codeberg",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from(colored::Color::Blue),
+                repr: "".blue().to_string(),
+            },
         );
 
         // Check local
         check_host(
             "local",
             &config.local,
-            "local",
-            None,
-            "local",
-            Some("󰋊"),
-            Color::from(colored::Color::White),
-            "󰋊".white().to_string(),
+            HostRef {
+                name: "local",
+                raw_dir_name: None,
+                dir_name: "local",
+                raw_repr: Some("󰋊"),
+                raw_repr_color: Color::from(colored::Color::White),
+                repr: "󰋊".white().to_string(),
+            },
         );
 
         // Check repository ignores
@@ -894,120 +893,142 @@ mod tests {
         check_remote_host(
             &config,
             "github.com",
-            "github",
-            None,
-            "github",
-            Some(""),
-            Color::from(colored::Color::White),
-            "".white().to_string(),
+            HostRef {
+                name: "github",
+                raw_dir_name: None,
+                dir_name: "github",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from_str("white").unwrap(),
+                repr: "".white().to_string(),
+            },
         );
         check_remote_host(
             &config,
             "gitlab.com",
-            "gitlab",
-            None,
-            "gitlab",
-            Some("󰮠"),
-            Color::from(166),
-            "󰮠".ansi_color(166).to_string(),
+            HostRef {
+                name: "gitlab",
+                raw_dir_name: None,
+                dir_name: "gitlab",
+                raw_repr: Some("󰮠"),
+                raw_repr_color: Color::from(166),
+                repr: "󰮠".ansi_color(166).to_string(),
+            },
         );
         check_remote_host(
             &config,
             "my.custom-domain.fr",
-            "mine",
-            None,
-            "mine",
-            Some("󱘎"),
-            Color::from(colored::Color::Blue),
-            "󱘎".blue().to_string(),
+            HostRef {
+                name: "mine",
+                raw_dir_name: None,
+                dir_name: "mine",
+                raw_repr: Some("󱘎"),
+                raw_repr_color: Color::from(colored::Color::Blue),
+                repr: "󱘎".blue().to_string(),
+            },
         );
         check_remote_host(
             &config,
             "git.buildroot.net",
-            "buildroot",
-            Some("."),
-            ".",
-            Some("󰥯"),
-            Color::from(colored::Color::Yellow),
-            "󰥯".yellow().to_string(),
+            HostRef {
+                name: "buildroot",
+                raw_dir_name: Some("."),
+                dir_name: ".",
+                raw_repr: Some("󰥯"),
+                raw_repr_color: Color::from(colored::Color::Yellow),
+                repr: "󰥯".yellow().to_string(),
+            },
         );
         check_remote_host(
             &config,
             "bitbucket.org",
-            "bitbucket",
-            None,
-            "bitbucket",
-            Some(""),
-            Color::from(colored::Color::Blue),
-            "".blue().to_string(),
+            HostRef {
+                name: "bitbucket",
+                raw_dir_name: None,
+                dir_name: "bitbucket",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from_str("blue").unwrap(),
+                repr: "".blue().to_string(),
+            },
         );
         check_remote_host(
             &config,
             "busybox.net",
-            "busybox",
-            None,
-            "busybox",
-            None,
-            Color::default(),
-            "busybox".to_string(),
+            HostRef {
+                name: "busybox",
+                raw_dir_name: None,
+                dir_name: "busybox",
+                raw_repr: None,
+                raw_repr_color: Color::default(),
+                repr: "busybox".to_string(),
+            },
         );
         check_remote_host(
             &config,
             "blabla.net",
-            "blabla",
-            None,
-            "blabla",
-            Some(""),
-            Color::from(124),
-            "".ansi_color(124).to_string(),
+            HostRef {
+                name: "blabla",
+                raw_dir_name: None,
+                dir_name: "blabla",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from(colored::Color::AnsiColor(124)),
+                repr: "".ansi_color(124).to_string(),
+            },
         );
         check_remote_host(
             &config,
             "alice-and-bob.net",
-            "alice-and-bob",
-            None,
-            "alice-and-bob",
-            Some(""),
-            Color::from((48, 15, 16)),
-            ""
-                .color(colored::Color::TrueColor {
-                    r: 48,
-                    g: 15,
-                    b: 16,
-                })
-                .to_string(),
+            HostRef {
+                name: "alice-and-bob",
+                raw_dir_name: None,
+                dir_name: "alice-and-bob",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from((48, 15, 16)),
+                repr: ""
+                    .color(colored::Color::TrueColor {
+                        r: 48,
+                        g: 15,
+                        b: 16,
+                    })
+                    .to_string(),
+            },
         );
         check_remote_host(
             &config,
             "git.kernel.org",
-            "kernel",
-            None,
-            "kernel",
-            Some(""),
-            Color::from(colored::Color::White),
-            "".white().to_string(),
+            HostRef {
+                name: "kernel",
+                raw_dir_name: None,
+                dir_name: "kernel",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from(colored::Color::White),
+                repr: "".white().to_string(),
+            },
         );
         check_remote_host(
             &config,
             "codeberg.org",
-            "codeberg",
-            None,
-            "codeberg",
-            Some(""),
-            Color::from(colored::Color::Blue),
-            "".blue().to_string(),
+            HostRef {
+                name: "codeberg",
+                raw_dir_name: None,
+                dir_name: "codeberg",
+                raw_repr: Some(""),
+                raw_repr_color: Color::from(colored::Color::Blue),
+                repr: "".blue().to_string(),
+            },
         );
 
         // Check local
         check_host(
             "local",
             &config.local,
-            "local",
-            None,
-            "local",
-            Some("󰋊"),
-            Color::from(colored::Color::White),
-            "󰋊".white().to_string(),
+            HostRef {
+                name: "local",
+                raw_dir_name: None,
+                dir_name: "local",
+                raw_repr: Some("󰋊"),
+                raw_repr_color: Color::from(colored::Color::White),
+                repr: "󰋊".white().to_string(),
+            },
         );
 
         // Check resolve command configuration
