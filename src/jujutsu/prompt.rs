@@ -244,8 +244,8 @@ fn prompt_internal(
 }
 
 /// Build the prompt line for a Jujutsu repository.
-pub async fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
-    let repo = load(root).await.unwrap();
+pub async fn prompt(repo_path: &Path, info: &mut PromptBuilder) -> i32 {
+    let repo = load(repo_path).await.unwrap();
     let Some(current_commit) =
         repo.view().get_wc_commit_id(WorkspaceName::DEFAULT)
     else {
