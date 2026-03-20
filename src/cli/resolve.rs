@@ -1,4 +1,4 @@
-//! Action to resolve the path to a repository.
+//! Action to resolve the path to a repository from its name or alias.
 use std::{
     collections::HashMap,
     io::Write,
