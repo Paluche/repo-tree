@@ -11,6 +11,7 @@ mod list;
 mod prompt;
 mod repo;
 mod resolve;
+mod resolve_url;
 mod todo;
 mod tree;
 mod util;
@@ -28,6 +29,7 @@ struct Args {
 #[derive(Subcommand, Debug, PartialEq)]
 enum Action {
     Resolve(resolve::ResolveArgs),
+    ResolveUrl(resolve_url::ResolveUrlArgs),
     Clone(clone::CloneArgs),
     List(list::ListArgs),
     Tree(tree::TreeArgs),
@@ -71,6 +73,7 @@ pub fn run() -> i32 {
 
     match args.action {
         Action::Resolve(args) => resolve::run(args),
+        Action::ResolveUrl(args) => resolve_url::run(args),
         Action::List(args) => list::run(args),
         Action::Tree(args) => tree::run(args),
         Action::Clean(args) => clean::run(args),
