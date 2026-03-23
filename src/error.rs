@@ -2,6 +2,7 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 #[error("{0} not implemented yet")]
+/// A functionality is not implemented yet.
 pub struct NotImplementedError(pub String);
 
 #[derive(Debug, Error)]
