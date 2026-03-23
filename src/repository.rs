@@ -5,8 +5,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use pollster::FutureExt;
+
 use crate::{
-    UrlParser,
+    NotImplementedError, RepoState, UrlParser,
     config::Host,
     git::{self, SubmoduleInfo},
     jujutsu,
@@ -126,6 +128,18 @@ impl Repository {
             git::submodules::get(&self.root, self.id.remote_url.clone())?
         } else {
             Vec::new()
+        })
+    }
+
+    pub fn state(&self) -> Result<RepoState, Box<dyn Error>> {
+        Ok(match self.vcs {
+            VersionControlSystem::Jujutsu
+            | VersionControlSystem::JujutsuGit => {
+                jujutsu::get_repo_state(&self.root).block_on()?
+            }
+            vcs => Err(NotImplementedError(format!(
+                "Repository state for {vcs} Version Control"
+            )))?,
         })
     }
 }

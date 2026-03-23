@@ -1,6 +1,7 @@
 //! Libraries for the repo-tools utils
 pub mod cli;
 mod config;
+mod error;
 mod git;
 mod jujutsu;
 mod repo_state;
@@ -15,6 +16,7 @@ use std::{
 
 pub use crate::{
     config::{Config, Host},
+    error::NotImplementedError,
     repo_state::RepoState,
     repository::Repository,
     url_parser::UrlParser,

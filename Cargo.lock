@@ -2459,6 +2459,7 @@ dependencies = [
  "pollster",
  "regex",
  "strum",
+ "thiserror",
  "url",
  "which",
  "yaml-rust2",
