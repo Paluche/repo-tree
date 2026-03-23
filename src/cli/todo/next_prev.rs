@@ -7,7 +7,7 @@ use crate::{
     NotImplementedError, Repository, UrlParser,
     cli::cwd_default_path,
     config::{Config, list_host_completer},
-    get_repo_tree_dir, iter_repos_from, load_filtered_repositories,
+    get_repo_tree_dir, load_filtered_repositories,
 };
 
 /// Go to the next or previous repository where you have to do something to keep
@@ -30,6 +30,27 @@ pub struct NextPrevArgs {
     /// specified multiple times.
     #[arg(short = 'N', long = "name", action=ArgAction::Append)]
     names: Vec<String>,
+}
+
+fn iter_repos_from(
+    repositories: Vec<Repository>,
+    start: Option<Repository>,
+) -> Box<dyn DoubleEndedIterator<Item = Repository>> {
+    if let Some(start) = start {
+        // Use partition_in_place when stable.
+        let mut start_found = false;
+        let (start, end): (Vec<Repository>, Vec<Repository>) =
+            repositories.into_iter().partition(move |r| {
+                if r == &start {
+                    start_found = true;
+                }
+                start_found
+            });
+
+        Box::new(start.into_iter().skip(1).chain(end))
+    } else {
+        Box::new(repositories.into_iter())
+    }
 }
 
 pub fn run(args: NextPrevArgs, reverse: bool) -> i32 {
@@ -55,6 +76,7 @@ pub fn run(args: NextPrevArgs, reverse: bool) -> i32 {
         repositories = Box::new(repositories.rev());
     }
 
+    // Skip the current repository.
     for repository in repositories {
         if repository.id.remote_url.is_none() {
             // Local repository.

@@ -24,27 +24,6 @@ pub use crate::{
     version_control_system::VersionControlSystem,
 };
 
-pub fn iter_repos_from(
-    repositories: Vec<Repository>,
-    start: Option<Repository>,
-) -> Box<dyn DoubleEndedIterator<Item = Repository>> {
-    if let Some(start) = start {
-        // Use partition_in_place when stable.
-        let mut start_found = false;
-        let (start, end): (Vec<Repository>, Vec<Repository>) =
-            repositories.into_iter().partition(move |r| {
-                if r == &start {
-                    start_found = true;
-                }
-                start_found
-            });
-
-        Box::new(start.into_iter().skip(1).chain(end))
-    } else {
-        Box::new(repositories.into_iter())
-    }
-}
-
 pub fn get_repo_tree_dir() -> PathBuf {
     let ret = PathBuf::from(
         &env::var("REPO_TREE_DIR")
