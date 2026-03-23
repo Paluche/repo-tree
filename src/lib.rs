@@ -1,5 +1,5 @@
 //! Libraries for the repo-tools utils
-pub mod cli;
+mod cli;
 mod config;
 mod error;
 mod git;
@@ -15,6 +15,7 @@ use std::{
 };
 
 pub use crate::{
+    cli::run,
     config::{Config, Host},
     error::NotImplementedError,
     repo_state::RepoState,
