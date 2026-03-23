@@ -8,6 +8,7 @@ use clap::ValueEnum;
 use colored::Colorize;
 
 #[derive(Debug, Copy, Clone, ValueEnum, PartialEq)]
+/// Representation of the different types of version control system supported.
 pub enum VersionControlSystem {
     /// git
     Git,
@@ -18,6 +19,11 @@ pub enum VersionControlSystem {
 }
 
 impl VersionControlSystem {
+    /// Discover if there is a version control system at the given path, and
+    /// which one exactly.
+    /// Returns the path to the root of the repository, the type of version
+    /// control system it is, and if the repository is a git submodule or
+    /// not.
     pub fn discover_root(path: PathBuf) -> Option<(PathBuf, Self, bool)> {
         let mut current_path = Some(path);
         while current_path.is_some() {
@@ -61,14 +67,18 @@ impl VersionControlSystem {
         }
     }
 
+    /// Find out if the version control system is a Git repository.
     pub fn is_git(&self) -> bool {
         matches!(self, Self::Git | Self::JujutsuGit)
     }
 
+    /// Find out if the version control system is a Jujutsu repository.
     pub fn is_jujutsu(&self) -> bool {
         matches!(self, Self::Jujutsu | Self::JujutsuGit)
     }
 
+    /// Obtain a string giving a short human readable description of the version
+    /// control system.
     pub fn short_display(&self) -> String {
         match self {
             Self::Git => "󰊢".ansi_color(166).to_string(),
