@@ -140,12 +140,12 @@ fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
 pub fn run(args: ResolveArgs) -> i32 {
     let repositories = get_repositories();
 
-    let Some(query) = args.repo_id.or_else(|| fzf_ask(&repositories)) else {
+    let Some(repo_id) = args.repo_id.or_else(|| fzf_ask(&repositories)) else {
         eprintln!("No repository selected");
         return 2;
     };
 
-    if let Some(repo) = repositories.get(&query) {
+    if let Some(repo) = repositories.get(&repo_id) {
         println!("{}", repo.root.display());
         return 0;
     }
@@ -156,13 +156,13 @@ pub fn run(args: ResolveArgs) -> i32 {
         .keys()
         .filter_map(|item| {
             matcher
-                .fuzzy_match(item, query.as_str())
+                .fuzzy_match(item, repo_id.as_str())
                 .map(|score| (score, item))
         })
         .collect();
 
     if matches.is_empty() {
-        eprintln!("No match for {query}");
+        eprintln!("No match for {repo_id}");
         return 1;
     }
 
