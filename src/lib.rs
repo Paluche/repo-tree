@@ -1,4 +1,6 @@
 //! Libraries for the repo-tools utils
+#![warn(missing_docs)]
+
 mod cli;
 mod config;
 mod error;
