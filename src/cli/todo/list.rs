@@ -4,9 +4,9 @@ use colored::Colorize;
 use crossterm::terminal::{Clear, ClearType};
 
 use crate::{
-    NotImplementedError, UrlParser,
+    NotImplementedError,
     config::{Config, list_host_completer},
-    get_repo_tree_dir, load_filtered_repositories,
+    load_filtered_repositories,
 };
 
 /// Custom git status. Concise, with all the data and without help text.
@@ -40,12 +40,9 @@ pub fn run(args: ListArgs) -> i32 {
     let mut n_a: usize = 0;
     let mut skipped: usize = 0;
 
-    for repository in load_filtered_repositories(
-        &get_repo_tree_dir(),
-        &UrlParser::new(&config),
-        args.hosts,
-        args.names,
-    ) {
+    for repository in
+        load_filtered_repositories(&config, args.hosts, args.names)
+    {
         let id = format!(
             "{} {:20}",
             repository

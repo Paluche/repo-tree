@@ -6,8 +6,8 @@ use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
 use pollster::FutureExt;
 
 use crate::{
-    Config, Repository, UrlParser, cli::cwd_default_path, get_repo_tree_dir,
-    git, jujutsu, version_control_system::VersionControlSystem,
+    Config, Repository, cli::cwd_default_path, git, jujutsu,
+    version_control_system::VersionControlSystem,
 };
 
 /// Generate the prompt for your shell.
@@ -76,12 +76,8 @@ pub fn run(args: PromptArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);
 
-    let repo = Repository::discover(
-        &get_repo_tree_dir(),
-        repo_path,
-        &UrlParser::new(&Config::default()),
-    )
-    .expect("Error loading the repository");
+    let repo = Repository::discover(&Config::default(), repo_path)
+        .expect("Error loading the repository");
 
     if repo.is_none() {
         return 0;

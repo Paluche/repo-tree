@@ -5,10 +5,7 @@ use std::fs::{create_dir_all, remove_dir, rename};
 
 use clap::Args;
 
-use crate::{
-    Config, Repository, UrlParser, get_repo_tree_dir, load_empty_dirs,
-    load_repositories_silent,
-};
+use crate::{Config, Repository, load_empty_dirs, load_repositories_silent};
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
@@ -21,14 +18,10 @@ pub struct CleanArgs {
 }
 
 pub fn run(args: CleanArgs) -> i32 {
-    let repo_tree_dir = get_repo_tree_dir();
     let config = Config::default();
-    let url_parser = UrlParser::new(&config);
-    let repositories = load_repositories_silent(&repo_tree_dir, &url_parser)
+    let repositories = load_repositories_silent(&config)
         .into_iter()
-        .filter(|r| {
-            r.expected_root(&repo_tree_dir).is_some_and(|p| p != r.root)
-        })
+        .filter(|r| r.expected_root(&config).is_some_and(|p| p != r.root))
         .collect::<Vec<Repository>>();
 
     let mut ret = 0;
@@ -38,8 +31,7 @@ pub fn run(args: CleanArgs) -> i32 {
     } else {
         println!("Repositories to move:");
         for repository in repositories {
-            let expected_root =
-                repository.expected_root(&repo_tree_dir).unwrap();
+            let expected_root = repository.expected_root(&config).unwrap();
             println!(
                 "- {}: {} => {}",
                 repository.id.name,
@@ -69,7 +61,7 @@ pub fn run(args: CleanArgs) -> i32 {
 
     let mut first = true;
     loop {
-        let empty_dirs = load_empty_dirs(&repo_tree_dir, &url_parser);
+        let empty_dirs = load_empty_dirs(&config);
 
         if empty_dirs.is_empty() {
             if first {

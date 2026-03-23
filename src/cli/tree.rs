@@ -3,9 +3,7 @@ use std::{collections::BTreeMap, ffi::OsStr, fmt::Display, path::PathBuf};
 use clap::Args;
 use colored::{ColoredString, Colorize};
 
-use crate::{
-    Config, Repository, UrlParser, get_repo_tree_dir, load_repositories,
-};
+use crate::{Config, Repository, load_repositories};
 
 /// Display a tree of your repo_tree.
 #[derive(Args, Debug, PartialEq)]
@@ -209,12 +207,10 @@ impl Display for RootDirectory {
 }
 
 pub fn run(_: TreeArgs) -> i32 {
-    let mut root = RootDirectory::new(get_repo_tree_dir());
+    let config = Config::default();
 
-    let repositories = load_repositories(
-        &get_repo_tree_dir(),
-        &UrlParser::new(&Config::default()),
-    );
+    let repositories = load_repositories(&Config::default());
+    let mut root = RootDirectory::new(config.repo_tree_dir);
 
     for repository in repositories {
         root.insert(repository);

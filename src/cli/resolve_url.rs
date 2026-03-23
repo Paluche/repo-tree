@@ -12,7 +12,7 @@ use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 use itertools::Itertools;
 use which::which;
 
-use crate::{Config, UrlParser, get_repo_tree_dir, load_repositories};
+use crate::{Config, load_repositories};
 
 /// Resolve the name of a repository into its path.
 #[derive(Args, Debug, PartialEq)]
@@ -25,18 +25,15 @@ pub struct ResolveUrlArgs {
 
 fn get_repositories() -> BTreeMap<String, PathBuf> {
     BTreeMap::from_iter(
-        load_repositories(
-            &get_repo_tree_dir(),
-            &UrlParser::new(&Config::default()),
-        )
-        .iter()
-        .filter_map(|repository| {
-            repository
-                .id
-                .remote_url
-                .clone()
-                .map(|u| (u, repository.root.clone()))
-        }),
+        load_repositories(&Config::default())
+            .iter()
+            .filter_map(|repository| {
+                repository
+                    .id
+                    .remote_url
+                    .clone()
+                    .map(|u| (u, repository.root.clone()))
+            }),
     )
 }
 

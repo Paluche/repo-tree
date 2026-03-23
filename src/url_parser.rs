@@ -46,110 +46,90 @@ fn compute_local_path<P: AsRef<Path>>(
     }
 }
 
-pub struct UrlParser<'a> {
-    config: &'a Config,
-    missing_hosts: Vec<String>,
+fn get_host_work_dir(config: &Config, host_url: &str) -> HostWorkDir {
+    config.get_host(host_url).cloned().map_or_else(
+        || HostWorkDir::Missing(host_url.to_string()),
+        HostWorkDir::Resolved,
+    )
 }
 
-impl<'a> UrlParser<'a> {
-    pub fn new(config: &'a Config) -> UrlParser<'a> {
-        Self {
-            config,
-            missing_hosts: Vec::new(),
-        }
+fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
+    // scheme-based URLs, e.g.:
+    //   https://github.com/owner/repo.git
+    //   https://oauth2:<token>@github.com/owner/repo.git
+    //   ssh://user@host:2222/owner/repo.git
+    //   git://host/owner/repo
+    //   file:///path/to/repo.git
+    // Captures: scheme, user (optional), host, port (optional), path
+    let re_scheme = Regex::new(concat!(
+        r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
+        r"://(?:(?P<user>[^@]+)@)?(?P<host>[^/:]+)",
+        r"(?::(?P<port>\d+))?/(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
+    ))
+    .unwrap();
+
+    // scp-like syntax, e.g.:
+    //   git@github.com:owner/repo.git
+    //   user@host:/absolute/path/to/repo.git
+    // Captures: user (optional), host, path
+    let re_scp = Regex::new(
+        r"^(?:(?P<user>[^@:\s]+)@)?(?P<host>[^:\s]+):(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
+    ).unwrap();
+
+    // local paths (file:// handled above; this covers bare filesystem paths)
+    // matches:
+    //   /absolute/path/to/repo.git
+    //   ./relative/path
+    //   ../relative/path
+    //   ~/path
+    //   C:\path\to\repo.git
+    // let re_local = Regex::new(
+    //     r"^(?:file:///(?P<file_path>[^ \r\n]+)|[./~][^ \r\n]*|[A-Za-z]:[\\/][^ \r\n]*)$"
+    // ).unwrap();
+
+    re_scheme
+        .captures(url)
+        .or(re_scp.captures(url))
+        .ok_or(ParseUrlError(url.to_string()))
+    //.or(re_local.captures(url))
+}
+
+/// Parse the provided repository remote URL into a host (as Host struct)
+/// and the local path the repository should be located at in the repo
+/// tree based according to the URL.
+pub fn parse_url(
+    config: &Config,
+    remote_url: &str,
+) -> Result<(Option<Host>, String), ParseUrlError> {
+    let remote_cap = capture_url(remote_url)?;
+    let host_repo_tree_dir = get_host_work_dir(config, &remote_cap["host"]);
+
+    if let HostWorkDir::Missing(host) = &host_repo_tree_dir {
+        eprintln!("Missing host configuration for {host}");
     }
 
-    fn get_host_work_dir(&self, host_url: &str) -> HostWorkDir {
-        self.config.get_host(host_url).cloned().map_or_else(
-            || HostWorkDir::Missing(host_url.to_string()),
-            HostWorkDir::Resolved,
-        )
-    }
+    Ok((
+        host_repo_tree_dir.into_option(),
+        remote_cap["path"].to_string(),
+    ))
+}
 
-    fn capture_url<'b>(
-        url: &'b str,
-    ) -> Result<regex::Captures<'b>, ParseUrlError> {
-        // scheme-based URLs, e.g.:
-        //   https://github.com/owner/repo.git
-        //   https://oauth2:<token>@github.com/owner/repo.git
-        //   ssh://user@host:2222/owner/repo.git
-        //   git://host/owner/repo
-        //   file:///path/to/repo.git
-        // Captures: scheme, user (optional), host, port (optional), path
-        let re_scheme = Regex::new(concat!(
-            r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
-            r"://(?:(?P<user>[^@]+)@)?(?P<host>[^/:]+)",
-            r"(?::(?P<port>\d+))?/(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
-        ))
-        .unwrap();
-
-        // scp-like syntax, e.g.:
-        //   git@github.com:owner/repo.git
-        //   user@host:/absolute/path/to/repo.git
-        // Captures: user (optional), host, path
-        let re_scp = Regex::new(
-            r"^(?:(?P<user>[^@:\s]+)@)?(?P<host>[^:\s]+):(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
-        ).unwrap();
-
-        // local paths (file:// handled above; this covers bare filesystem paths)
-        // matches:
-        //   /absolute/path/to/repo.git
-        //   ./relative/path
-        //   ../relative/path
-        //   ~/path
-        //   C:\path\to\repo.git
-        // let re_local = Regex::new(
-        //     r"^(?:file:///(?P<file_path>[^ \r\n]+)|[./~][^ \r\n]*|[A-Za-z]:[\\/][^ \r\n]*)$"
-        // ).unwrap();
-
-        re_scheme
-            .captures(url)
-            .or(re_scp.captures(url))
-            .ok_or(ParseUrlError(url.to_string()))
-        //.or(re_local.captures(url))
-    }
-
-    /// Parse the provided repository remote URL into a host (as Host struct)
-    /// and the local path the repository should be located at in the repo
-    /// tree based according to the URL.
-    /// Returns None if the
-    pub fn parse_url(
-        &self,
-        remote_url: &str,
-    ) -> Result<(Option<Host>, String), ParseUrlError> {
-        let remote_cap = Self::capture_url(remote_url)?;
-        let host_repo_tree_dir = self.get_host_work_dir(&remote_cap["host"]);
-
-        if let HostWorkDir::Missing(host) = &host_repo_tree_dir
-            && !self.missing_hosts.contains(host)
-        {
-            eprintln!("Missing host configuration for {host}");
-        }
-
+/// Parse the provided repository remote URL into a host (as Host struct)
+/// and the local path the repository should be located at in the repo
+/// tree based according to the URL.
+/// This version (in regard to parse_url()) defaults to the local host
+/// location configuration if the remote_url argument is None.
+pub fn parse_repo_url<P: AsRef<Path>>(
+    config: &Config,
+    repo_path: &P,
+    remote_url: Option<&String>,
+) -> Result<(Option<Host>, String), ParseUrlError> {
+    if let Some(remote_url) = remote_url {
+        parse_url(config, remote_url)
+    } else {
         Ok((
-            host_repo_tree_dir.into_option(),
-            remote_cap["path"].to_string(),
+            Some(config.local.clone()),
+            compute_local_path(&config.repo_tree_dir, repo_path),
         ))
-    }
-
-    /// Parse the provided repository remote URL into a host (as Host struct)
-    /// and the local path the repository should be located at in the repo
-    /// tree based according to the URL.
-    /// This version (in regard to parse_url()) defaults to the local host
-    /// location configuration if the remote_url argument is None.
-    pub fn parse_repo_url<P: AsRef<Path>>(
-        &self,
-        repo_tree_dir: &Path,
-        repo_path: &P,
-        remote_url: Option<&String>,
-    ) -> Result<(Option<Host>, String), ParseUrlError> {
-        if let Some(remote_url) = remote_url {
-            self.parse_url(remote_url)
-        } else {
-            Ok((
-                Some(self.config.local.clone()),
-                compute_local_path(repo_tree_dir, repo_path),
-            ))
-        }
     }
 }
