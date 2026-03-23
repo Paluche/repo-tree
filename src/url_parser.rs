@@ -3,7 +3,10 @@ use std::path::{Path, PathBuf};
 
 use regex::Regex;
 
-use crate::config::{Config, Host};
+use crate::{
+    config::{Config, Host},
+    error::ParseUrlError,
+};
 
 enum HostWorkDir {
     Missing(String),
@@ -63,7 +66,9 @@ impl<'a> UrlParser<'a> {
         )
     }
 
-    fn capture_url<'b>(url: &'b str) -> Option<regex::Captures<'b>> {
+    fn capture_url<'b>(
+        url: &'b str,
+    ) -> Result<regex::Captures<'b>, ParseUrlError> {
         // scheme-based URLs, e.g.:
         //   https://github.com/owner/repo.git
         //   https://oauth2:<token>@github.com/owner/repo.git
@@ -97,14 +102,17 @@ impl<'a> UrlParser<'a> {
         //     r"^(?:file:///(?P<file_path>[^ \r\n]+)|[./~][^ \r\n]*|[A-Za-z]:[\\/][^ \r\n]*)$"
         // ).unwrap();
 
-        re_scheme.captures(url).or(re_scp.captures(url))
+        re_scheme
+            .captures(url)
+            .or(re_scp.captures(url))
+            .ok_or(ParseUrlError(url.to_string()))
         //.or(re_local.captures(url))
     }
 
     pub fn parse_url(
         &self,
         remote_url: &str,
-    ) -> Option<(Option<Host>, String)> {
+    ) -> Result<(Option<Host>, String), ParseUrlError> {
         let remote_cap = Self::capture_url(remote_url)?;
         let host_repo_tree_dir = self.get_host_work_dir(&remote_cap["host"]);
 
@@ -114,7 +122,7 @@ impl<'a> UrlParser<'a> {
             eprintln!("Missing host configuration for {host}");
         }
 
-        Some((
+        Ok((
             host_repo_tree_dir.into_option(),
             remote_cap["path"].to_string(),
         ))
@@ -125,14 +133,14 @@ impl<'a> UrlParser<'a> {
         repo_tree_dir: &Path,
         repo_path: &P,
         remote_url: Option<&String>,
-    ) -> (Option<Host>, String) {
-        remote_url
-            .and_then(|u| self.parse_url(u))
-            .unwrap_or_else(|| {
-                (
-                    Some(self.config.local.clone()),
-                    compute_local_path(repo_tree_dir, repo_path),
-                )
-            })
+    ) -> Result<(Option<Host>, String), ParseUrlError> {
+        if let Some(remote_url) = remote_url {
+            self.parse_url(remote_url)
+        } else {
+            Ok((
+                Some(self.config.local.clone()),
+                compute_local_path(repo_tree_dir, repo_path),
+            ))
+        }
     }
 }

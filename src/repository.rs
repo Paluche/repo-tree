@@ -99,7 +99,7 @@ impl Repository {
             repo_tree_dir,
             &root,
             remote_url.as_ref(),
-        );
+        )?;
 
         let id = RepoId {
             remote_url,
