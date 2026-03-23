@@ -24,6 +24,8 @@ pub use crate::{
     version_control_system::VersionControlSystem,
 };
 
+/// Get the path to the root of the repo tree, from the environment variable
+/// REPO_TREE_DIR.
 pub fn get_repo_tree_dir() -> PathBuf {
     let ret = PathBuf::from(
         &env::var("REPO_TREE_DIR")
@@ -38,6 +40,9 @@ pub fn get_repo_tree_dir() -> PathBuf {
     ret
 }
 
+/// Load all the repositories present in the repo tree.
+/// Print a warning message if empty directories outside any repository are
+/// found in the repo tree.
 pub fn load_repositories(
     repo_tree_dir: &Path,
     url_parser: &UrlParser,
@@ -52,6 +57,7 @@ pub fn load_repositories(
     repositories
 }
 
+/// Load all the repositories present in the repo tree.
 pub fn load_repositories_silent(
     repo_tree_dir: &Path,
     url_parser: &UrlParser,
@@ -59,6 +65,7 @@ pub fn load_repositories_silent(
     repository::search(repo_tree_dir, url_parser).0
 }
 
+/// Load some of the repositories based on the provided filters.
 pub fn load_filtered_repositories(
     repo_tree_dir: &Path,
     url_parser: &UrlParser,
@@ -84,6 +91,8 @@ pub fn load_filtered_repositories(
         .collect()
 }
 
+/// Search for empty directories outside any repository are found in the repo
+/// tree.
 pub fn load_empty_dirs(
     repo_tree_dir: &Path,
     url_parser: &UrlParser,
