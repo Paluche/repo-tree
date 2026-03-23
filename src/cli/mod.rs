@@ -68,6 +68,7 @@ fn cwd_default_path(path: Option<String>) -> PathBuf {
     }
 }
 
+/// Entry point for the executable.
 pub fn run() -> i32 {
     complete_env::complete();
 
