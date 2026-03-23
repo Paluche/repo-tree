@@ -76,7 +76,7 @@ pub fn run(args: CloneArgs) -> i32 {
     let url_parser = UrlParser::new(&config);
     let parsed_url = url_parser.parse_url(&args.url);
 
-    if let Some((host, name)) = parsed_url {
+    if let Ok((host, name)) = parsed_url {
         if let Some(host) = host {
             do_clone(args.url, host, name, args.vcs.unwrap_or(config.vcs))
         } else {
