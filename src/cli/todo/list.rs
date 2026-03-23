@@ -2,12 +2,11 @@ use clap::{ArgAction, Args};
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
 use crossterm::terminal::{Clear, ClearType};
-use pollster::FutureExt;
 
 use crate::{
-    UrlParser, VersionControlSystem,
+    NotImplementedError, UrlParser,
     config::{Config, list_host_completer},
-    get_repo_tree_dir, jujutsu, load_filtered_repositories,
+    get_repo_tree_dir, load_filtered_repositories,
 };
 
 /// Custom git status. Concise, with all the data and without help text.
@@ -49,7 +48,11 @@ pub fn run(args: ListArgs) -> i32 {
     ) {
         let id = format!(
             "{} {:20}",
-            repository.id.host.map_or("".red().to_string(), |h| h.repr),
+            repository
+                .id
+                .host
+                .clone()
+                .map_or("".red().to_string(), |h| h.repr),
             repository.id.name
         );
 
@@ -72,14 +75,18 @@ pub fn run(args: ListArgs) -> i32 {
         }
 
         eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
-        if let Some(repo_state) = match repository.vcs {
-            VersionControlSystem::Jujutsu
-            | VersionControlSystem::JujutsuGit => Some(
-                jujutsu::get_repo_state(&repository.root)
-                    .block_on()
-                    .expect("Unable to obtain repository state"),
-            ),
-            _ => None,
+
+        if let Some(repo_state) = match &repository.state() {
+            Ok(v) => Some(v),
+            Err(err) => {
+                if err.downcast_ref::<NotImplementedError>().is_some() {
+                    None
+                } else {
+                    eprintln!("{err}");
+
+                    return 1;
+                }
+            }
         } {
             if repo_state.is_ok() {
                 ok += 1;

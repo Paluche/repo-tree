@@ -2,13 +2,12 @@ use clap::{ArgAction, Args};
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
 use crossterm::terminal::{Clear, ClearType};
-use pollster::FutureExt;
 
 use crate::{
-    Repository, UrlParser, VersionControlSystem,
+    NotImplementedError, Repository, UrlParser,
     cli::cwd_default_path,
     config::{Config, list_host_completer},
-    get_repo_tree_dir, iter_repos_from, jujutsu, load_filtered_repositories,
+    get_repo_tree_dir, iter_repos_from, load_filtered_repositories,
 };
 
 /// Go to the next or previous repository where you have to do something to keep
@@ -62,14 +61,17 @@ pub fn run(args: NextPrevArgs, reverse: bool) -> i32 {
             continue;
         }
         eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
-        if let Some(repo_state) = match repository.vcs {
-            VersionControlSystem::Jujutsu
-            | VersionControlSystem::JujutsuGit => Some(
-                jujutsu::get_repo_state(&repository.root)
-                    .block_on()
-                    .expect("Unable to obtain repository state"),
-            ),
-            _ => None,
+        if let Some(repo_state) = match &repository.state() {
+            Ok(v) => Some(v),
+            Err(err) => {
+                if err.downcast_ref::<NotImplementedError>().is_some() {
+                    None
+                } else {
+                    eprintln!("{err}");
+
+                    return 1;
+                }
+            }
         } {
             if repo_state.is_ok() {
                 continue;
