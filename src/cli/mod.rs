@@ -12,6 +12,7 @@ mod prompt;
 mod repo;
 mod resolve;
 mod resolve_url;
+mod rm;
 mod todo;
 mod tree;
 mod util;
@@ -40,6 +41,7 @@ enum Action {
     Git(git::GitArgs),
     Prompt(prompt::PromptArgs),
     Util(util::UtilArgs),
+    Rm(rm::RmArgs),
 }
 
 fn get_cwd() -> PathBuf {
@@ -84,5 +86,6 @@ pub fn run() -> i32 {
         Action::Prompt(args) => prompt::run(args),
         Action::Clone(args) => clone::run(args),
         Action::Util(args) => util::run(args),
+        Action::Rm(args) => rm::run(args),
     }
 }
