@@ -96,9 +96,13 @@ fn parser_assert(
 }
 
 #[derive(Clone, Hash, Debug, PartialEq)]
+/// Representation of a repository remote Host.
 pub struct Host {
+    /// Name of the remote host.
     pub name: String,
+    /// Name of the directory for that host in the repo tree.
     pub dir_name: String,
+    /// Short representation of the host.
     pub repr: String,
 }
 
@@ -378,11 +382,18 @@ fn parse_todo_ignore(
     Ok(())
 }
 
+/// rt configuration content.
 pub struct Config {
+    /// Configured known hosts.
     pub hosts: Hosts,
+    /// "Host" configuration for local repositories.
     pub local: Host,
+    /// Default version control system to use to clone the repositories.
     pub vcs: VersionControlSystem,
+    /// List of repository resolution aliases.
     pub repo_aliases: RepoAliases,
+    /// List of ID of the repository to not take into account in the todo
+    /// commands.
     pub todo_ignore: Vec<String>,
 }
 
@@ -461,6 +472,7 @@ impl Config {
         Ok(ret)
     }
 
+    /// Obtain completion candidates for a CLI host argument.
     pub fn host_completer(
         &self,
         current: &std::ffi::OsStr,
@@ -515,6 +527,7 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Get the specified Host struct for a given host.
     pub fn get_host(&self, host: &str) -> Option<&Host> {
         self.hosts.get(host)
     }
