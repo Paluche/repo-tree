@@ -2,9 +2,8 @@ use clap::{ArgAction, Args};
 use clap_complete::engine::ArgValueCompleter;
 
 use crate::{
-    UrlParser,
     config::{Config, list_host_completer},
-    get_repo_tree_dir, load_filtered_repositories,
+    load_filtered_repositories,
 };
 
 /// List all repositories in the repo_tree.
@@ -28,12 +27,9 @@ pub struct ListArgs {
 }
 
 pub fn run(args: ListArgs) -> i32 {
-    for repository in load_filtered_repositories(
-        &get_repo_tree_dir(),
-        &UrlParser::new(&Config::default()),
-        args.hosts,
-        args.names,
-    ) {
+    for repository in
+        load_filtered_repositories(&Config::default(), args.hosts, args.names)
+    {
         println!("{}", repository.root.display());
     }
     0

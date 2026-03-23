@@ -4,10 +4,10 @@ use colored::Colorize;
 use crossterm::terminal::{Clear, ClearType};
 
 use crate::{
-    NotImplementedError, Repository, UrlParser,
+    NotImplementedError, Repository,
     cli::cwd_default_path,
     config::{Config, list_host_completer},
-    get_repo_tree_dir, load_filtered_repositories,
+    load_filtered_repositories,
 };
 
 /// Go to the next or previous repository where you have to do something to keep
@@ -55,20 +55,12 @@ fn iter_repos_from(
 
 pub fn run(args: NextPrevArgs, reverse: bool) -> i32 {
     let repo_path = cwd_default_path(None);
-    let repo_tree_dir = get_repo_tree_dir();
-    let current_repository = Repository::discover(
-        &repo_tree_dir,
-        repo_path.clone(),
-        &UrlParser::new(&Config::default()),
-    )
-    .expect("Error loading the repository");
+    let config = Config::default();
+    let current_repository = Repository::discover(&config, repo_path.clone())
+        .expect("Error loading the repository");
 
-    let repositories = load_filtered_repositories(
-        &get_repo_tree_dir(),
-        &UrlParser::new(&Config::default()),
-        args.hosts,
-        args.names,
-    );
+    let repositories =
+        load_filtered_repositories(&config, args.hosts, args.names);
 
     let mut repositories = iter_repos_from(repositories, current_repository);
 

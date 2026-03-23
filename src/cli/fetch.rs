@@ -1,12 +1,11 @@
 //! Fetch and update the whole repo_tree.
 
-use std::{error::Error, path::Path};
+use std::error::Error;
 
 use clap::Args;
 
 use crate::{
-    Config, Repository, UrlParser, VersionControlSystem, get_repo_tree_dir,
-    git, jujutsu, load_repositories,
+    Config, Repository, VersionControlSystem, git, jujutsu, load_repositories,
 };
 
 /// Fetch all the repositories within the repo_tree.
@@ -18,8 +17,7 @@ pub struct FetchArgs {
 }
 
 pub fn fetch_repo(
-    repo_tree_dir: &Path,
-    url_parser: &UrlParser,
+    config: &Config,
     quiet: bool,
     repository: &Repository,
 ) -> Result<(usize, usize), Box<dyn Error>> {
@@ -36,11 +34,8 @@ pub fn fetch_repo(
     }
     for submodule in repository.submodules()? {
         let root = submodule.abs_path();
-        if let Some(repo) =
-            &Repository::try_new(repo_tree_dir, root.clone(), url_parser)?
-        {
-            let (_ok, _total) =
-                fetch_repo(repo_tree_dir, url_parser, quiet, repo)?;
+        if let Some(repo) = &Repository::try_new(config, root.clone())? {
+            let (_ok, _total) = fetch_repo(config, quiet, repo)?;
             ok += _ok;
             total += _total;
         } else {
@@ -65,18 +60,12 @@ pub fn fetch_repo(
 }
 
 pub fn run(args: FetchArgs) -> i32 {
-    let repo_tree_dir = get_repo_tree_dir();
     let config = Config::default();
-    let url_parser = UrlParser::new(&config);
-    let repositories =
-        load_repositories(&repo_tree_dir, &UrlParser::new(&Config::default()));
+    let repositories = load_repositories(&config);
 
     let (ok, total) = repositories
         .iter()
-        .map(|r| {
-            fetch_repo(&repo_tree_dir, &url_parser, args.quiet, r)
-                .unwrap_or((0, 1))
-        })
+        .map(|r| fetch_repo(&config, args.quiet, r).unwrap_or((0, 1)))
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
         .unwrap_or((0, 0));
 

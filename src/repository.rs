@@ -8,10 +8,10 @@ use std::{
 use pollster::FutureExt;
 
 use crate::{
-    NotImplementedError, RepoState, UrlParser,
+    Config, NotImplementedError, RepoState,
     config::Host,
     git::{self, SubmoduleInfo},
-    jujutsu,
+    jujutsu, parse_repo_url,
     version_control_system::VersionControlSystem,
 };
 
@@ -27,10 +27,10 @@ pub fn location(repo_tree_dir: &Path, host: &Host, name: &String) -> PathBuf {
 }
 
 impl RepoId {
-    pub fn expected_root(&self, repo_tree_dir: &Path) -> Option<PathBuf> {
+    pub fn expected_root(&self, config: &Config) -> Option<PathBuf> {
         self.host
             .clone()
-            .map(|host| location(repo_tree_dir, &host, &self.name))
+            .map(|host| location(&config.repo_tree_dir, &host, &self.name))
     }
 }
 
@@ -66,16 +66,14 @@ pub struct Repository {
 impl Repository {
     /// Search for a repository at the given path.
     pub fn discover(
-        repo_tree_dir: &Path,
+        config: &Config,
         path: PathBuf,
-        url_parser: &UrlParser,
     ) -> Result<Option<Self>, Box<dyn Error>> {
         let mut current_path = Some(path);
 
         while current_path.is_some() {
             let root = current_path.clone().unwrap();
-            if let Some(repo) = Self::try_new(repo_tree_dir, root, url_parser)?
-            {
+            if let Some(repo) = Self::try_new(config, root)? {
                 return Ok(Some(repo));
             }
             current_path =
@@ -87,9 +85,8 @@ impl Repository {
 
     /// Try loading a repository which root is the one provided.
     pub fn try_new(
-        repo_tree_dir: &Path,
+        config: &Config,
         root: PathBuf,
-        url_parser: &UrlParser,
     ) -> Result<Option<Self>, Box<dyn Error>> {
         let vcs = VersionControlSystem::try_new(&root);
         if vcs.is_none() {
@@ -102,11 +99,7 @@ impl Repository {
             }
             VersionControlSystem::Jujutsu => jujutsu::get_remote_url(&root)?,
         };
-        let (host, name) = url_parser.parse_repo_url(
-            repo_tree_dir,
-            &root,
-            remote_url.as_ref(),
-        )?;
+        let (host, name) = parse_repo_url(config, &root, remote_url.as_ref())?;
 
         let id = RepoId {
             remote_url,
@@ -125,11 +118,11 @@ impl Repository {
     /// Get the expected path to the root of the repository within the repo
     /// tree. If the repository is a submodule then, it has to be at its place
     /// within its main repository and therefore we return None.
-    pub fn expected_root(&self, repo_tree_dir: &Path) -> Option<PathBuf> {
+    pub fn expected_root(&self, config: &Config) -> Option<PathBuf> {
         if self.is_submodule {
             None
         } else {
-            self.id.expected_root(repo_tree_dir)
+            self.id.expected_root(config)
         }
     }
 
@@ -168,11 +161,7 @@ impl Display for Repository {
     }
 }
 
-fn _search(
-    repo_tree_dir: &Path,
-    dir: &Path,
-    url_parser: &UrlParser,
-) -> (Vec<Repository>, Vec<PathBuf>) {
+fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
     let mut repositories = Vec::new();
     let mut empty_dirs = Vec::new();
     if !dir.is_dir() {
@@ -184,13 +173,10 @@ fn _search(
     for entry in dir.read_dir().expect("read dir call failed").flatten() {
         empty_dir = false;
         let root = entry.path();
-        if let Some(repo) =
-            Repository::try_new(repo_tree_dir, root.clone(), url_parser)
-                .unwrap()
-        {
+        if let Some(repo) = Repository::try_new(config, root.clone()).unwrap() {
             repositories.push(repo);
         } else {
-            let res = _search(repo_tree_dir, &root, url_parser);
+            let res = _search(config, &root);
             repositories.extend(res.0);
             empty_dirs.extend(res.1);
         }
@@ -203,9 +189,6 @@ fn _search(
     (repositories, empty_dirs)
 }
 
-pub fn search(
-    repo_tree_dir: &Path,
-    url_parser: &UrlParser,
-) -> (Vec<Repository>, Vec<PathBuf>) {
-    _search(repo_tree_dir, repo_tree_dir, url_parser)
+pub fn search(config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
+    _search(config, &config.repo_tree_dir)
 }

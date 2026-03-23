@@ -28,6 +28,7 @@
 use core::str::FromStr;
 use std::{
     collections::HashMap,
+    env,
     error::Error,
     fmt::Display,
     fs,
@@ -384,6 +385,8 @@ fn parse_todo_ignore(
 
 /// rt configuration content.
 pub struct Config {
+    /// Path the root of the repo tree.
+    pub repo_tree_dir: PathBuf,
     /// Configured known hosts.
     pub hosts: Hosts,
     /// "Host" configuration for local repositories.
@@ -403,7 +406,18 @@ impl Config {
         local: Host,
         vcs: VersionControlSystem,
     ) -> Result<Self, Box<dyn Error>> {
+        let repo_tree_dir = PathBuf::from(
+            &env::var("REPO_TREE_DIR")
+                .expect("Missing REPO_TREE_DIR environment variable"),
+        );
+
+        assert!(
+            repo_tree_dir.is_absolute(),
+            "REPO_TREE_DIR value must be an absolute path"
+        );
+
         let mut ret = Self {
+            repo_tree_dir,
             hosts,
             local,
             vcs,

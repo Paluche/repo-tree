@@ -2,9 +2,7 @@
 use clap::Args;
 use clap_complete::{PathCompleter, engine::ArgValueCompleter};
 
-use crate::{
-    Config, Repository, UrlParser, cli::cwd_default_path, get_repo_tree_dir,
-};
+use crate::{Config, Repository, cli::cwd_default_path};
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.
@@ -17,13 +15,9 @@ pub struct RemoteArgs {
 
 pub fn run(args: RemoteArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
-    let repo_tree_dir = get_repo_tree_dir();
-    if let Some(repository) = Repository::discover(
-        &repo_tree_dir,
-        repo_path.clone(),
-        &UrlParser::new(&Config::default()),
-    )
-    .expect("Error loading the repository")
+    if let Some(repository) =
+        Repository::discover(&Config::default(), repo_path.clone())
+            .expect("Error loading the repository")
     {
         if let Some(remote_url) = repository.id.remote_url {
             println!("{remote_url}");

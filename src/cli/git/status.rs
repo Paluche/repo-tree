@@ -5,9 +5,8 @@ use clap_complete::{PathCompleter, engine::ArgValueCompleter};
 use colored::Colorize;
 
 use crate::{
-    Config, Repository, UrlParser,
+    Config, Repository,
     cli::cwd_default_path,
-    get_repo_tree_dir,
     git::{self, GitStatus, SubmoduleStatus},
 };
 
@@ -118,18 +117,15 @@ fn format_repo_status(
 
 pub fn run(args: StatusArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
-    let repo_tree_dir = get_repo_tree_dir();
-    let Some(repository) = Repository::discover(
-        &repo_tree_dir,
-        repo_path.clone(),
-        &UrlParser::new(&Config::default()),
-    )
-    .expect("Error loading the repository") else {
+    let config = Config::default();
+    let Some(repository) = Repository::discover(&config, repo_path.clone())
+        .expect("Error loading the repository")
+    else {
         eprintln!("Not within a repository");
         exit(1);
     };
 
-    let expected_root = repository.expected_root(&repo_tree_dir);
+    let expected_root = repository.expected_root(&config);
 
     if let Some(expected_root) = expected_root
         && repository.root != expected_root

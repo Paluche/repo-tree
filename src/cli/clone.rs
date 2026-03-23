@@ -2,8 +2,7 @@
 use clap::Args;
 
 use crate::{
-    Config, Host, UrlParser, VersionControlSystem, get_repo_tree_dir, git,
-    jujutsu, repository,
+    Config, Host, VersionControlSystem, git, jujutsu, parse_url, repository,
 };
 
 /// Clone a repository within the repo tree.
@@ -17,13 +16,13 @@ pub struct CloneArgs {
 }
 
 fn do_clone(
+    config: &Config,
     remote_url: String,
     host: Host,
     name: String,
     vcs: VersionControlSystem,
 ) -> i32 {
-    let repo_tree_dir = &get_repo_tree_dir();
-    let location = repository::location(repo_tree_dir, &host, &name);
+    let location = repository::location(&config.repo_tree_dir, &host, &name);
 
     if location.exists() {
         if let Some((current_vcs, _)) = VersionControlSystem::try_new(&location)
@@ -73,12 +72,17 @@ fn do_clone(
 
 pub fn run(args: CloneArgs) -> i32 {
     let config = Config::default();
-    let url_parser = UrlParser::new(&config);
-    let parsed_url = url_parser.parse_url(&args.url);
+    let parsed_url = parse_url(&config, &args.url);
 
     if let Ok((host, name)) = parsed_url {
         if let Some(host) = host {
-            do_clone(args.url, host, name, args.vcs.unwrap_or(config.vcs))
+            do_clone(
+                &config,
+                args.url,
+                host,
+                name,
+                args.vcs.unwrap_or(config.vcs),
+            )
         } else {
             eprintln!("Unknown host");
             1

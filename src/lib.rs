@@ -9,10 +9,7 @@ mod repository;
 mod url_parser;
 mod version_control_system;
 
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 
 pub use crate::{
     cli::run,
@@ -20,35 +17,15 @@ pub use crate::{
     error::NotImplementedError,
     repo_state::RepoState,
     repository::Repository,
-    url_parser::UrlParser,
+    url_parser::{parse_repo_url, parse_url},
     version_control_system::VersionControlSystem,
 };
-
-/// Get the path to the root of the repo tree, from the environment variable
-/// REPO_TREE_DIR.
-pub fn get_repo_tree_dir() -> PathBuf {
-    let ret = PathBuf::from(
-        &env::var("REPO_TREE_DIR")
-            .expect("Missing REPO_TREE_DIR environment variable"),
-    );
-
-    assert!(
-        ret.is_absolute(),
-        "REPO_TREE_DIR value must be an absolute path"
-    );
-
-    ret
-}
 
 /// Load all the repositories present in the repo tree.
 /// Print a warning message if empty directories outside any repository are
 /// found in the repo tree.
-pub fn load_repositories(
-    repo_tree_dir: &Path,
-    url_parser: &UrlParser,
-) -> Vec<Repository> {
-    let (repositories, empty_dirs) =
-        repository::search(repo_tree_dir, url_parser);
+pub fn load_repositories(config: &Config) -> Vec<Repository> {
+    let (repositories, empty_dirs) = repository::search(config);
 
     for empty_dir in empty_dirs {
         eprintln!("Empty directory in REPO_TREE_DIR: {}", empty_dir.display());
@@ -58,21 +35,17 @@ pub fn load_repositories(
 }
 
 /// Load all the repositories present in the repo tree.
-pub fn load_repositories_silent(
-    repo_tree_dir: &Path,
-    url_parser: &UrlParser,
-) -> Vec<Repository> {
-    repository::search(repo_tree_dir, url_parser).0
+pub fn load_repositories_silent(config: &Config) -> Vec<Repository> {
+    repository::search(config).0
 }
 
 /// Load some of the repositories based on the provided filters.
 pub fn load_filtered_repositories(
-    repo_tree_dir: &Path,
-    url_parser: &UrlParser,
+    config: &Config,
     filter_hosts: Vec<String>,
     filter_names: Vec<String>,
 ) -> Vec<Repository> {
-    let repositories = load_repositories(repo_tree_dir, url_parser);
+    let repositories = load_repositories(config);
 
     repositories
         .into_iter()
@@ -93,9 +66,6 @@ pub fn load_filtered_repositories(
 
 /// Search for empty directories outside any repository are found in the repo
 /// tree.
-pub fn load_empty_dirs(
-    repo_tree_dir: &Path,
-    url_parser: &UrlParser,
-) -> Vec<PathBuf> {
-    repository::search(repo_tree_dir, url_parser).1
+pub fn load_empty_dirs(config: &Config) -> Vec<PathBuf> {
+    repository::search(config).1
 }
