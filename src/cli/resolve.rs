@@ -138,16 +138,26 @@ fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
 }
 
 pub fn run(args: ResolveArgs) -> i32 {
+    if let Some(repository) = resolve(args.repo_id) {
+        println!("{}", repository.root.display());
+        0
+    } else {
+        2
+    }
+}
+
+pub fn resolve(repo_id: Option<String>) -> Option<Repository> {
     let repositories = get_repositories();
 
-    let Some(repo_id) = args.repo_id.or_else(|| fzf_ask(&repositories)) else {
+    let Some(repo_id) = repo_id.or_else(|| fzf_ask(&repositories)) else {
         eprintln!("No repository selected");
-        return 2;
+        return None;
     };
 
-    if let Some(repo) = repositories.get(&repo_id) {
-        println!("{}", repo.root.display());
-        return 0;
+    let repo = repositories.get(&repo_id);
+
+    if repo.is_some() {
+        return repo.cloned();
     }
 
     let matcher = SkimMatcherV2::default();
@@ -163,7 +173,7 @@ pub fn run(args: ResolveArgs) -> i32 {
 
     if matches.is_empty() {
         eprintln!("No match for {repo_id}");
-        return 1;
+        return None;
     }
 
     matches.dedup_by_key(|(_, name)| {
@@ -173,8 +183,7 @@ pub fn run(args: ResolveArgs) -> i32 {
     if matches.len() == 1 {
         let name = matches[0].1;
         eprintln!("Considering you meant {name}");
-        println!("{}", repositories.get(name).unwrap().root.display());
-        0
+        Some(repositories.get(name).unwrap().clone())
     } else {
         eprintln!("Several possible match:");
         // Sort by match score
@@ -184,11 +193,13 @@ pub fn run(args: ResolveArgs) -> i32 {
             eprintln!("- {name}");
         }
 
-        2
+        None
     }
 }
 
-fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
+pub fn resolve_completer(
+    current: &std::ffi::OsStr,
+) -> Vec<CompletionCandidate> {
     let Some(current) = current.to_str() else {
         return vec![];
     };
