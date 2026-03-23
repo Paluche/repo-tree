@@ -2,6 +2,8 @@ use std::fmt::Display;
 
 use colored::Colorize;
 
+/// State of a repository. Get information about the status of your job within
+/// the repository.
 pub struct RepoState {
     has_unpushed_commits: bool,
     needs_restack: bool,
@@ -9,6 +11,7 @@ pub struct RepoState {
 }
 
 impl RepoState {
+    /// Create a new RepoState structure.
     pub fn new(
         has_unpushed_commits: bool,
         needs_restack: bool,
@@ -21,18 +24,23 @@ impl RepoState {
         }
     }
 
+    /// Is the repository in an OK state?
     pub fn is_ok(&self) -> bool {
         !(self.has_unpushed_commits || self.needs_restack || self.has_conflicts)
     }
 
+    /// Is there unpushed commits / changes in the repository which you should
+    /// push?
     pub fn has_unpushed_commits(&self) -> bool {
         self.has_unpushed_commits
     }
 
+    /// Does your branches needs to be rebased to be kept up-to-date?
     pub fn needs_restack(&self) -> bool {
         self.needs_restack
     }
 
+    /// Is there conflicts to resolve?
     pub fn has_conflicts(&self) -> bool {
         self.has_conflicts
     }
