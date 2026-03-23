@@ -51,14 +51,20 @@ impl Display for RepoId {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// Representation of a repository.
 pub struct Repository {
+    /// Type of version control system the repository uses.
     pub vcs: VersionControlSystem,
+    /// Boolean indicating if the repository is a git submodule or not.
     pub is_submodule: bool,
+    /// Path to the root of the repository.
     pub root: PathBuf,
+    /// Identifier of the repository.
     pub id: RepoId,
 }
 
 impl Repository {
+    /// Search for a repository at the given path.
     pub fn discover(
         repo_tree_dir: &Path,
         path: PathBuf,
@@ -79,6 +85,7 @@ impl Repository {
         Ok(None)
     }
 
+    /// Try loading a repository which root is the one provided.
     pub fn try_new(
         repo_tree_dir: &Path,
         root: PathBuf,
@@ -115,6 +122,9 @@ impl Repository {
         }))
     }
 
+    /// Get the expected path to the root of the repository within the repo
+    /// tree. If the repository is a submodule then, it has to be at its place
+    /// within its main repository and therefore we return None.
     pub fn expected_root(&self, repo_tree_dir: &Path) -> Option<PathBuf> {
         if self.is_submodule {
             None
@@ -123,6 +133,7 @@ impl Repository {
         }
     }
 
+    /// Get the git submodules present in the repository.
     pub fn submodules(&self) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
         Ok(if self.vcs.is_git() {
             git::submodules::get(&self.root, self.id.remote_url.clone())?
@@ -131,6 +142,7 @@ impl Repository {
         })
     }
 
+    /// Get the repository state.
     pub fn state(&self) -> Result<RepoState, Box<dyn Error>> {
         Ok(match self.vcs {
             VersionControlSystem::Jujutsu
