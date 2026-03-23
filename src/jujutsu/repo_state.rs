@@ -37,7 +37,7 @@ pub async fn get_repo_state(
     repo_path: &Path,
 ) -> Result<RepoState, Box<dyn Error>> {
     Ok(RepoState {
-        unpushed_commits: has_unpushed_commits(repo_path)?,
+        has_unpushed_commits: has_unpushed_commits(repo_path)?,
         needs_restack: needs_restack(repo_path)?,
         has_conflicts: has_conflicts(repo_path)?,
     })
