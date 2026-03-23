@@ -3,21 +3,21 @@ use std::fmt::Display;
 use colored::Colorize;
 
 pub struct RepoState {
-    pub unpushed_commits: bool,
+    pub has_unpushed_commits: bool,
     pub needs_restack: bool,
     pub has_conflicts: bool,
 }
 
 impl RepoState {
     pub fn is_ok(&self) -> bool {
-        !(self.unpushed_commits || self.needs_restack || self.has_conflicts)
+        !(self.has_unpushed_commits || self.needs_restack || self.has_conflicts)
     }
 }
 
 impl Display for RepoState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut empty = true;
-        if self.unpushed_commits {
+        if self.has_unpushed_commits {
             write!(f, "{}", "unpushed commits".purple())?;
             empty = false;
         }
