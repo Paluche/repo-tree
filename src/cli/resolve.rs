@@ -156,7 +156,7 @@ pub fn run(args: ResolveArgs) -> i32 {
         .keys()
         .filter_map(|item| {
             matcher
-                .fuzzy_match(item, repo_id.as_str())
+                .fuzzy_match(item, &repo_id)
                 .map(|score| (score, item))
         })
         .collect();
