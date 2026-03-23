@@ -3,14 +3,38 @@ use std::fmt::Display;
 use colored::Colorize;
 
 pub struct RepoState {
-    pub has_unpushed_commits: bool,
-    pub needs_restack: bool,
-    pub has_conflicts: bool,
+    has_unpushed_commits: bool,
+    needs_restack: bool,
+    has_conflicts: bool,
 }
 
 impl RepoState {
+    pub fn new(
+        has_unpushed_commits: bool,
+        needs_restack: bool,
+        has_conflicts: bool,
+    ) -> Self {
+        Self {
+            has_unpushed_commits,
+            needs_restack,
+            has_conflicts,
+        }
+    }
+
     pub fn is_ok(&self) -> bool {
         !(self.has_unpushed_commits || self.needs_restack || self.has_conflicts)
+    }
+
+    pub fn has_unpushed_commits(&self) -> bool {
+        self.has_unpushed_commits
+    }
+
+    pub fn needs_restack(&self) -> bool {
+        self.needs_restack
+    }
+
+    pub fn has_conflicts(&self) -> bool {
+        self.has_conflicts
     }
 }
 
