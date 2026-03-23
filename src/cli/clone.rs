@@ -1,4 +1,4 @@
-//! Clone a repository into the repo_tree.
+//! Clone a repository into the repo tree.
 use clap::Args;
 
 use crate::{
