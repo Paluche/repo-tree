@@ -109,6 +109,10 @@ impl<'a> UrlParser<'a> {
         //.or(re_local.captures(url))
     }
 
+    /// Parse the provided repository remote URL into a host (as Host struct)
+    /// and the local path the repository should be located at in the repo
+    /// tree based according to the URL.
+    /// Returns None if the
     pub fn parse_url(
         &self,
         remote_url: &str,
@@ -128,6 +132,11 @@ impl<'a> UrlParser<'a> {
         ))
     }
 
+    /// Parse the provided repository remote URL into a host (as Host struct)
+    /// and the local path the repository should be located at in the repo
+    /// tree based according to the URL.
+    /// This version (in regard to parse_url()) defaults to the local host
+    /// location configuration if the remote_url argument is None.
     pub fn parse_repo_url<P: AsRef<Path>>(
         &self,
         repo_tree_dir: &Path,
