@@ -1,9 +1,11 @@
+//! Build the shell prompt information for Git repositories.
 use std::path::Path;
 
 use colored::Colorize;
 
 use crate::{PromptBuilder, git};
 
+/// Build the shell prompt information for Git repositories.
 pub fn prompt(
     root: &Path,
     is_jj_colocated: bool,

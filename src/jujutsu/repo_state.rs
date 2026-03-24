@@ -20,6 +20,7 @@ fn has_unpushed_commits(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     )
 }
 
+/// Find out if the repository has commits that needs to be restacked / rebased.
 fn needs_restack(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     // Each branch must be rebased on top of a immutable reference (bookmark or
     // tag).
@@ -29,10 +30,12 @@ fn needs_restack(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     )
 }
 
+/// Find out if the repository has commits with conflicts.
 fn has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     revsets::revset_has_match(repo_path, "conflicts()")
 }
 
+/// Get the repository state as RepoState struct.
 pub async fn get_repo_state(
     repo_path: &Path,
 ) -> Result<RepoState, Box<dyn Error>> {

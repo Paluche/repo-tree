@@ -119,6 +119,7 @@ impl Display for Repository {
     }
 }
 
+/// Search recursively repositories in a directory.
 fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
     let mut repositories = Vec::new();
     let mut empty_dirs = Vec::new();
@@ -147,6 +148,7 @@ fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
     (repositories, empty_dirs)
 }
 
+/// Search repositories in the repo tree.
 pub fn search(config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
     _search(config, &config.repo_tree_dir)
 }

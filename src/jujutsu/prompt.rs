@@ -1,3 +1,4 @@
+//! Build the prompt line for a Jujutsu repository.
 use std::path::Path;
 
 use colored::Colorize;
@@ -13,14 +14,21 @@ use super::load;
 use crate::PromptBuilder;
 
 #[derive(Debug)]
+/// Status of a reference.
 struct Ref {
+    /// Name of the reference.
     name: String,
+    /// If the reference has been modified compared to its known remote state.
     modified: bool,
+    /// If the reference exists only locally.
     local_only: bool,
+    /// If the reference exists only remotely, you will find in the Option the
+    /// name of the remote.
     remote_only: Option<String>,
 }
 
 impl Ref {
+    /// Try to instantiate a new Ref.
     fn try_new(
         name: &RefName,
         lrrt: &LocalRemoteRefTarget,
@@ -55,6 +63,7 @@ impl Ref {
         })
     }
 
+    /// Get the reference short representation as bookmark.
     fn get_bookmark_repr(&self) -> String {
         if let Some(remote) = &self.remote_only {
             format!("{}@{}", self.name.as_str(), remote).purple()
@@ -71,6 +80,7 @@ impl Ref {
         .to_string()
     }
 
+    /// Get the reference short representation as tag.
     fn get_tag_repr(&self) -> String {
         if let Some(remote) = &self.remote_only {
             format!("{}@{}", self.name.as_str(), remote)
@@ -88,8 +98,9 @@ impl Ref {
     }
 }
 
+/// The different categories of bookmarks we are listing.
 enum BookmarkCategory {
-    /// The bookmark is set at the current commit .
+    /// The bookmark is set at the current commit.
     Current,
     /// The bookmark is set to the direct parent of the current commit.
     Parents,
@@ -99,6 +110,7 @@ enum BookmarkCategory {
 }
 
 impl BookmarkCategory {
+    /// Get the bookmarks associated with the current category.
     fn get_bookmarks(
         &self,
         repo: &dyn Repo,
@@ -122,6 +134,7 @@ impl BookmarkCategory {
         }))
     }
 
+    /// Get short representation logo to represent this category of bookmarks.
     fn get_repr(&self) -> String {
         match self {
             Self::Current => "󰫍".bright_blue(),
@@ -132,6 +145,7 @@ impl BookmarkCategory {
     }
 }
 
+/// Build the list of bookmarks of the specified category for the prompt line.
 fn list_bookmarks(
     category: BookmarkCategory,
     repo: &dyn Repo,
@@ -157,6 +171,7 @@ fn list_bookmarks(
     Ok(())
 }
 
+/// Build the list of tags for the prompt line.
 fn list_tags(
     repo: &dyn Repo,
     current_commit: &CommitId,
@@ -191,6 +206,7 @@ fn list_tags(
     Ok(())
 }
 
+/// Internal method to build the prompt line for a Jujutsu repository.
 fn prompt_internal(
     repo: &dyn Repo,
     current_commit: &CommitId,
@@ -227,6 +243,7 @@ fn prompt_internal(
     Ok(())
 }
 
+/// Build the prompt line for a Jujutsu repository.
 pub async fn prompt(root: &Path, info: &mut PromptBuilder) -> i32 {
     let repo = load(root).await.unwrap();
     let Some(current_commit) =

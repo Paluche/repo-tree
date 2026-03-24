@@ -16,6 +16,7 @@ pub struct FetchArgs {
     quiet: bool,
 }
 
+/// Fetch one repository.
 pub fn fetch_repo(
     config: &Config,
     quiet: bool,
@@ -59,6 +60,7 @@ pub fn fetch_repo(
     Ok((ok, total))
 }
 
+/// Execute `rt fetch` command.
 pub fn run(config: &Config, args: FetchArgs) -> i32 {
     let repositories = load_repositories(config);
 

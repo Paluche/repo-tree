@@ -13,6 +13,7 @@ pub struct CloneArgs {
     vcs: Option<VersionControlSystem>,
 }
 
+/// Do the cloning of the repository.
 fn do_clone(
     config: &Config,
     repo_id: &RepoId,
@@ -70,6 +71,7 @@ fn do_clone(
     }
 }
 
+/// Execute the `rt clone` command.
 pub fn run(config: &Config, args: CloneArgs) -> i32 {
     let vcs = args.vcs.unwrap_or(config.command.clone.vcs);
 

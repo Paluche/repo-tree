@@ -1,3 +1,4 @@
+//! Enhanced git status.
 use std::{path::Path, process::exit};
 
 use clap::{ArgAction, Args};
@@ -23,6 +24,7 @@ pub struct StatusArgs {
     no_relative_path: bool,
 }
 
+/// Build the multi-line string representing a repository status.
 fn format_repo_status(
     cwd: &Path,
     main_repo_path: &Path,
@@ -115,6 +117,7 @@ fn format_repo_status(
     ret
 }
 
+/// Execute the `rt git status` command.
 pub fn run(config: &Config, args: StatusArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     let Some(repository) = Repository::discover(config, repo_path.clone())

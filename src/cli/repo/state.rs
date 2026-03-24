@@ -13,6 +13,7 @@ pub struct StateArgs {
     repository: Option<String>,
 }
 
+/// Execute the `rt repo state` command.
 pub fn run(config: &Config, args: StateArgs) -> i32 {
     let Some(repository) =
         Repository::discover(config, cwd_default_path(args.repository))

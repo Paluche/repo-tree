@@ -1,3 +1,4 @@
+//! Definition of errors struct used in the crate.
 use thiserror::Error;
 
 #[derive(Debug, Error)]

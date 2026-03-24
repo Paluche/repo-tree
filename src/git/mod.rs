@@ -1,3 +1,4 @@
+//! Functions related to interact with a Git VCS.
 mod prompt;
 mod status;
 pub mod submodules;
@@ -9,6 +10,9 @@ pub use status::{GitStatus, SubmoduleStatus, status};
 pub use submodules::SubmoduleInfo;
 use which::which;
 
+/// Get the remote URL of the repository to use to organize the repository
+/// within the repo tree. This would be either the origin remote or the first
+/// defined remote.
 pub fn get_remote_url_repo(
     repo: &git2::Repository,
 ) -> Result<Option<String>, git2::Error> {
@@ -24,10 +28,14 @@ pub fn get_remote_url_repo(
         .and_then(|r| r.url().map(String::from)))
 }
 
+/// Start a new git command line.
 fn new_git_command() -> Command {
     Command::new(which("git").expect("'git' not found"))
 }
 
+/// Get the remote URL of the repository to use to organize the repository
+/// within the repo tree. This would be either the origin remote or the first
+/// defined remote.
 pub fn get_remote_url<P: AsRef<Path>>(
     repo_path: P,
 ) -> Result<Option<String>, git2::Error> {
@@ -36,6 +44,7 @@ pub fn get_remote_url<P: AsRef<Path>>(
     get_remote_url_repo(&repo)
 }
 
+/// Clone a Git repository.
 pub fn clone<P: AsRef<OsStr>>(remote_url: &str, location: P) -> i32 {
     let mut res = new_git_command()
         .arg("clone")
@@ -63,6 +72,7 @@ pub fn clone<P: AsRef<OsStr>>(remote_url: &str, location: P) -> i32 {
     res
 }
 
+/// Fetch a Git repository.
 pub fn fetch<P: AsRef<OsStr>>(location: P, quiet: bool) -> i32 {
     let mut cmd = new_git_command();
 

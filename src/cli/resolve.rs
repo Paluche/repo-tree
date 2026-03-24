@@ -81,6 +81,8 @@ fn reduce_repo_names(
     ret
 }
 
+/// Get the map associating valid repository identifiers to the associated
+/// repository present in the repo tree.
 fn get_repositories(config: &Config) -> HashMap<String, Repository> {
     let repositories = load_repositories(config);
 
@@ -105,11 +107,14 @@ fn get_repositories(config: &Config) -> HashMap<String, Repository> {
     ret
 }
 
+/// Interactively ask the user to select the repository.
 fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
     let fzf = which("fzf").expect(
         "fzf not found, cannot interactively ask to select repository.",
     );
 
+    // TODO: The preview of the values is not set, therefore it is displaying
+    // bad information / errors.
     let mut child = Command::new(fzf)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -136,6 +141,7 @@ fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
     })
 }
 
+/// Execute the `rt resolve` command.
 pub fn run(config: &Config, args: ResolveArgs) -> i32 {
     if let Some(repository) = resolve(config, args.repo_id) {
         println!("{}", repository.root.display());
@@ -145,6 +151,7 @@ pub fn run(config: &Config, args: ResolveArgs) -> i32 {
     }
 }
 
+/// Resolve a repository identifier into a local repository.
 pub fn resolve(config: &Config, repo_id: Option<String>) -> Option<Repository> {
     let repositories = get_repositories(config);
 
@@ -196,6 +203,7 @@ pub fn resolve(config: &Config, repo_id: Option<String>) -> Option<Repository> {
     }
 }
 
+/// Get auto-completion candidate for a repository identifier argument.
 pub fn resolve_completer(
     current: &std::ffi::OsStr,
 ) -> Vec<CompletionCandidate> {

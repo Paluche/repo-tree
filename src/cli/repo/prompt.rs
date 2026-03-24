@@ -1,3 +1,4 @@
+//! Generate Prompt line for a repository.
 use clap::Args;
 use clap_complete::{ArgValueCompleter, PathCompleter};
 use colored::control::SHOULD_COLORIZE;
@@ -16,6 +17,7 @@ pub struct PromptArgs {
     repository: Option<String>,
 }
 
+/// Execute `rt repo prompt` command.
 pub fn run(config: &Config, args: PromptArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);

@@ -1,3 +1,4 @@
+//! List the operation to be done by the user in each repository.
 use clap::{ArgAction, Args};
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
@@ -33,6 +34,7 @@ pub struct ListArgs {
     verbose: bool,
 }
 
+/// Execute the `rt todo list` command.
 pub fn run(config: &Config, args: ListArgs) -> i32 {
     let mut todo: usize = 0;
     let mut ok: usize = 0;

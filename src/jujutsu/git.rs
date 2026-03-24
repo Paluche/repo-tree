@@ -1,4 +1,4 @@
-//! Function to interact with a Jujutsu which uses a git backend.
+//! Function to interact with a Jujutsu repository which uses a git backend.
 use std::{
     error::Error,
     ffi::OsStr,
@@ -12,6 +12,7 @@ use which::which;
 use super::get_repo_dir;
 use crate::git;
 
+/// Get the path to the git backend repository.
 pub fn get_git_backend_repo<P: AsRef<Path>>(
     repo_path: P,
 ) -> Result<git2::Repository, Box<dyn Error>> {
@@ -22,16 +23,19 @@ pub fn get_git_backend_repo<P: AsRef<Path>>(
     )?)?)
 }
 
+/// Get the remote URL of the repository.
 pub fn get_remote_url<P: AsRef<Path>>(
     repo_path: P,
 ) -> Result<Option<String>, Box<dyn Error>> {
     Ok(git::get_remote_url_repo(&get_git_backend_repo(repo_path)?)?)
 }
 
+/// Start a new command line to call jj.
 fn new_jj_command() -> Command {
     Command::new(which("jj").expect("Jujutsu not installed"))
 }
 
+/// Clone a Jujutsu repository.
 pub fn clone<P: AsRef<OsStr>>(
     remote_url: &str,
     location: P,
@@ -53,6 +57,7 @@ pub fn clone<P: AsRef<OsStr>>(
         .unwrap()
 }
 
+/// Initialize a Git-colocated Jujutsu repository.
 pub fn init_colocate<P: AsRef<OsStr>>(location: P) -> i32 {
     new_jj_command()
         .arg("git")
@@ -65,6 +70,7 @@ pub fn init_colocate<P: AsRef<OsStr>>(location: P) -> i32 {
         .unwrap()
 }
 
+/// Fetch the repository
 pub fn fetch<P: AsRef<OsStr>>(location: P, quiet: bool) -> i32 {
     let mut cmd = new_jj_command();
     cmd.arg("--repository")

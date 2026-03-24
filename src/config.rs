@@ -48,8 +48,10 @@ use serde::Deserialize;
 
 use crate::VersionControlSystem;
 
+/// Color configuration.
 #[derive(Default, Clone, Debug, PartialEq)]
 struct Color {
+    /// Color.
     color: Option<colored::Color>,
 }
 
@@ -147,6 +149,7 @@ impl Hash for Color {
 }
 
 impl Color {
+    /// Colorize the provided text.
     fn colorize(&self, text: &str) -> String {
         if let Some(c) = self.color {
             text.color(c).to_string()
@@ -156,6 +159,8 @@ impl Color {
     }
 }
 
+/// Define a host-like struct, this is here to assure simple that the struct
+/// Host and Local follows the same content and functions.
 macro_rules! define_host_struct {
     ($name:ident, $def:ident ) => {
         #[derive(Deserialize, Clone, Debug, PartialEq, Hash)]
@@ -188,8 +193,12 @@ macro_rules! define_host_struct {
 }
 
 define_host_struct!(Host, remote);
+
+/// A group of host as map indexed by the URL of the host.
 type Hosts = HashMap<String, Host>;
 
+/// Obtain the default host to add to the configuration if they are not already
+/// configured by the user.
 fn default_hosts() -> Vec<(String, Host)> {
     let msg = "Hardcoded value must be valid";
     [
@@ -237,6 +246,7 @@ fn default_hosts() -> Vec<(String, Host)> {
 define_host_struct!(Local, remote);
 
 impl Local {
+    /// Clone the Local struct into a Host.
     pub fn as_host(&self) -> Host {
         Host {
             name: self.name.clone(),
@@ -259,28 +269,39 @@ impl Default for Local {
     }
 }
 
+/// Configuration for the `rt clone` command.
 #[derive(Deserialize, Default)]
 pub struct CloneCommandConfig {
+    /// Default version control system to use to clone a repository in the repo
+    /// tree.
     #[serde(default)]
     pub vcs: VersionControlSystem,
 }
 
+/// Configuration for the `rt resolve` command.
 #[derive(Deserialize, Default)]
 pub struct ResolveCommandConfig {
+    /// Resolution aliases.
     #[serde(default)]
     pub aliases: HashMap<String, String>,
 }
 
+/// Configuration for the `rt todo` command.
 #[derive(Deserialize, Default)]
 pub struct TodoCommandConfig {
+    /// List of ID of repositories to be ignored by the command.
     #[serde(default)]
     pub ignore: Vec<String>,
 }
 
+/// Configuration for `rt` commands.
 #[derive(Deserialize, Default)]
 pub struct CommandConfig {
+    /// Configuration for `rt clone`.
     pub clone: CloneCommandConfig,
+    /// Configuration for `rt resolve`.
     pub resolve: ResolveCommandConfig,
+    /// Configuration for `rt todo`.
     pub todo: TodoCommandConfig,
 }
 
@@ -372,6 +393,7 @@ impl Config {
     }
 }
 
+/// Obtain the auto-completion candidates for a host argument.
 pub fn list_host_completer(current: &OsStr) -> Vec<CompletionCandidate> {
     Config::load().map_or(Vec::new(), |c| c.host_completer(current))
 }

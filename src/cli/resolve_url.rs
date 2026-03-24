@@ -7,7 +7,7 @@ use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
 
 use crate::{Config, load_repositories};
 
-/// Resolve the name of a repository into its path.
+/// Resolve the URL of a repository into its path.
 #[derive(Args, Debug, PartialEq)]
 pub struct ResolveUrlArgs {
     /// Repository identifier to resolve into the actual path within the
@@ -16,6 +16,8 @@ pub struct ResolveUrlArgs {
     repo_id: String,
 }
 
+/// Get the map associating remote URL to the repository present in the repo
+/// tree.
 fn get_repositories(config: &Config) -> BTreeMap<String, PathBuf> {
     BTreeMap::from_iter(load_repositories(config).iter().filter_map(
         |repository| {
@@ -28,6 +30,7 @@ fn get_repositories(config: &Config) -> BTreeMap<String, PathBuf> {
     ))
 }
 
+/// Execute the `rt resolve-url` command.
 pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
     let repositories = get_repositories(config);
     if let Some(repo) = repositories.get(&args.repo_id) {

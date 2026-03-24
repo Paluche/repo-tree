@@ -1,3 +1,4 @@
+//! rt todo subcommands.
 use clap::{Args, Subcommand};
 
 mod list;
@@ -5,13 +6,16 @@ mod next_prev;
 
 use crate::Config;
 
-/// Actions for git repositories.
+/// Commands related to the repository state. Find out if there is something to
+/// do in any of the repositories of your repo tree, and help tackles then down.
+#[allow(clippy::missing_docs_in_private_items)]
 #[derive(Args, Debug, PartialEq)]
 pub struct TodoArgs {
     #[command(subcommand)]
     action: TodoAction,
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 #[derive(Subcommand, Debug, PartialEq)]
 enum TodoAction {
     List(list::ListArgs),
@@ -19,6 +23,7 @@ enum TodoAction {
     Prev(next_prev::NextPrevArgs),
 }
 
+/// Execute the todo subcommand.
 pub fn run(config: &Config, args: TodoArgs) -> i32 {
     match args.action {
         TodoAction::List(args) => list::run(config, args),
