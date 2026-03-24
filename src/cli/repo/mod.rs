@@ -1,3 +1,4 @@
+//! Sub-commands for a single repository.
 mod prompt;
 mod remote;
 mod root;
@@ -8,12 +9,14 @@ use clap::{Args, Subcommand};
 use crate::Config;
 
 /// Actions for any type of repository.
+#[allow(clippy::missing_docs_in_private_items)]
 #[derive(Args, Debug, PartialEq)]
 pub struct RepoArgs {
     #[command(subcommand)]
     action: RepoAction,
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 #[derive(Subcommand, Debug, PartialEq)]
 enum RepoAction {
     Root(root::RootArgs),
@@ -22,6 +25,7 @@ enum RepoAction {
     Prompt(prompt::PromptArgs),
 }
 
+/// Execute the `rt repo` sub-commands.
 pub fn run(config: &Config, args: RepoArgs) -> i32 {
     match args.action {
         RepoAction::Root(args) => root::run(config, args),

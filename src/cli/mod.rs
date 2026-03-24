@@ -1,3 +1,4 @@
+//! Definition of the rt CLI.
 use std::{env, fs::canonicalize, path::PathBuf, process::exit};
 
 use clap::{Parser, Subcommand};
@@ -18,6 +19,7 @@ mod util;
 
 use crate::Config;
 
+#[allow(clippy::missing_docs_in_private_items)]
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -26,6 +28,7 @@ struct Args {
     action: Action,
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 #[derive(Subcommand, Debug, PartialEq)]
 enum Action {
     Resolve(resolve::ResolveArgs),
@@ -42,6 +45,7 @@ enum Action {
     Rm(rm::RmArgs),
 }
 
+/// Get the path to the current working directory.
 fn get_cwd() -> PathBuf {
     env::current_dir()
         .inspect_err(|_| {
@@ -51,6 +55,8 @@ fn get_cwd() -> PathBuf {
         .unwrap()
 }
 
+/// Process path arguments, which should default to the current working
+/// directory if not specified.
 fn cwd_default_path(path: Option<String>) -> PathBuf {
     let ret = path.map_or_else(get_cwd, PathBuf::from);
 

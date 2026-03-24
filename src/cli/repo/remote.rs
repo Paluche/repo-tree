@@ -13,6 +13,7 @@ pub struct RemoteArgs {
     repository: Option<String>,
 }
 
+/// Execute the `rt repo remote` command.
 pub fn run(config: &Config, args: RemoteArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     if let Some(repository) = Repository::discover(config, repo_path.clone())

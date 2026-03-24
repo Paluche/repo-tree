@@ -1,3 +1,4 @@
+//! Environment function completions.
 use std::{
     env::{args_os, current_dir, var_os},
     io::{Error, Write},
@@ -11,6 +12,7 @@ use indoc::indoc;
 
 use crate::cli::Args;
 
+/// Generate a completer for aliases which forces some arguments to rt.
 fn generate_sub_completer(
     name: &str,
     var: &str,
@@ -77,6 +79,9 @@ fn generate_sub_completer(
     writeln!(buf, "{script}\n")
 }
 
+/// Generate rcd function for ZSH syntax. The rcd (reposity change directory) is
+/// a wrapper around `rt resolve` command to jump to the root of the specified
+/// repository.
 fn generate_rcd_zsh(
     var: &str,
     completer: &str,
@@ -164,6 +169,7 @@ fn generate_rcd_zsh(
     generate_sub_completer("rcd", var, completer, &["resolve"], buf)
 }
 
+/// Generate rcd function for ZSH syntax.
 fn generate_repo_clone_zsh(
     var: &str,
     completer: &str,
@@ -195,6 +201,9 @@ fn generate_repo_clone_zsh(
     generate_sub_completer("repo-clone", var, completer, &["clone"], buf)
 }
 
+/// Generate gtr (go to root) function for ZSH syntax, allowing you to jump to
+/// the root of your repository, or if you are already at the root of a
+/// submodule, go to the parent repository root.
 fn generate_gtr_zsh(buf: &mut dyn Write) -> Result<(), Error> {
     let script = indoc! { r#"
         function gtr()
@@ -215,6 +224,7 @@ fn generate_gtr_zsh(buf: &mut dyn Write) -> Result<(), Error> {
     writeln!(buf, "{script}\n")
 }
 
+/// Alias for `rt git status`.
 fn generate_gs_zsh(
     var: &str,
     completer: &str,
@@ -224,6 +234,9 @@ fn generate_gs_zsh(
     generate_sub_completer("gs", var, completer, &["git", "status"], buf)
 }
 
+/// Generate `todo` function which is an alias to `rt todo` and if you call
+/// `todo next` or `todo previous`, change the current directory to go to the
+/// root of the next / previous repository where there is something to do.
 fn generate_todo(
     var: &str,
     completer: &str,
@@ -257,6 +270,7 @@ fn generate_todo(
     generate_sub_completer("todo", var, completer, &["git", "status"], buf)
 }
 
+/// Generate utils for ZSH syntax.
 fn complete_utils_zsh(
     var: &str,
     completer: &str,
@@ -271,6 +285,7 @@ fn complete_utils_zsh(
     Ok(())
 }
 
+/// Generate rt associated utils.
 pub fn complete_utils(
     shell: Shell,
     var: &str,
@@ -289,6 +304,8 @@ pub fn complete_utils(
     std::io::stdout().write_all(&buf)
 }
 
+/// Generate the complete function for `rt`, associated utils and there complete
+/// functions if applicable.
 pub fn complete() {
     let bin = "rt";
     let var = "COMPLETE";

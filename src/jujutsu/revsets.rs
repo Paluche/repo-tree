@@ -2,6 +2,7 @@
 
 use std::{error::Error, path::Path, process::Command};
 
+/// Find out if any commit matches the provided revset.
 pub fn revset_has_match(
     repo_path: &Path,
     revset: &str,

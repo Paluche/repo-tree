@@ -1,3 +1,5 @@
+//! Get a tree view of all your repositories in your repo tree. This is inspired
+//! by the `tree` command line.
 use std::{collections::BTreeMap, ffi::OsStr, fmt::Display, path::PathBuf};
 
 use clap::Args;
@@ -9,13 +11,18 @@ use crate::{Config, Repository, load_repositories};
 #[derive(Args, Debug, PartialEq)]
 pub struct TreeArgs {}
 
+/// The different states a directory entry in the tree might take.
 enum DirState {
+    /// Root directory.
     Root,
+    /// Sub-directory.
     SubDir,
+    /// Last sub-directory to be list within a parent directory.
     FinalSubDir,
 }
 
 impl DirState {
+    /// Prefix to display a new directory entry.
     fn get_dir_prefix(&self) -> &str {
         match self {
             Self::Root => "",
@@ -24,6 +31,7 @@ impl DirState {
         }
     }
 
+    /// Prefix to display a sub-content for the last printed directory entry.
     fn get_subdir_prefix(&self) -> &str {
         match self {
             Self::Root => "",
@@ -33,17 +41,24 @@ impl DirState {
     }
 }
 
+/// Directory representation.
 #[derive(Default, Debug)]
 struct Directory {
+    /// Childs directories within this directory.
     childs: BTreeMap<String, Self>,
+    /// Repository present in this directory.
     repository: Option<Repository>,
 }
 
 impl Directory {
+    /// Get a specific child directory by name.
     fn get_child(&mut self, name: &str) -> &mut Directory {
         self.childs.entry(name.to_string()).or_default()
     }
 
+    /// Insert a repository. Provide the path directory as an iterator on the
+    /// component of the path. This will create all Directory struct linked each
+    /// other, so you obtain a tree of Directory struct.
     fn insert<'a, T>(&mut self, mut components: T, repository: Repository)
     where
         T: Iterator<Item = &'a OsStr>,
@@ -56,6 +71,7 @@ impl Directory {
         }
     }
 
+    /// Get pretty string representation of the Directory.
     fn display(
         &self,
         f: &mut std::fmt::Formatter<'_>,
@@ -173,13 +189,17 @@ impl Directory {
     }
 }
 
+/// Representation of the repo tree root directory.
 #[derive(Debug)]
 struct RootDirectory {
+    /// Actual path to the repo tree root.
     path: PathBuf,
+    /// Associated Directory struct, head of the Directory struct tree.
     directory: Directory,
 }
 
 impl RootDirectory {
+    /// Instantiate a RootDirectory.
     fn new(path: PathBuf) -> Self {
         Self {
             path,
@@ -187,6 +207,7 @@ impl RootDirectory {
         }
     }
 
+    /// Insert a repository in the Directory struct tree.
     fn insert(&mut self, repository: Repository) {
         let path = repository.root.clone();
         assert!(path.starts_with(&self.path));
@@ -206,6 +227,7 @@ impl Display for RootDirectory {
     }
 }
 
+/// Execute the `rt tree` command.
 pub fn run(config: &Config, _: TreeArgs) -> i32 {
     let repositories = load_repositories(config);
     let mut root = RootDirectory::new(config.repo_tree_dir.clone());

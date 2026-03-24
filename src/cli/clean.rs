@@ -1,5 +1,5 @@
 //! Action to clean the repo_tree.
-//! Replace the repositories where they belong to.
+//! Move the repositories where they belong to and delete empty directories.
 
 use std::fs::{create_dir_all, remove_dir, rename};
 
@@ -17,6 +17,7 @@ pub struct CleanArgs {
     dry_run: bool,
 }
 
+/// Execute the `rt clean` command.
 pub fn run(config: &Config, args: CleanArgs) -> i32 {
     let repositories = load_repositories_silent(config)
         .into_iter()

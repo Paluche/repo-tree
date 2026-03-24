@@ -1,3 +1,4 @@
+//! List your repositories.
 use clap::{ArgAction, Args};
 use clap_complete::engine::ArgValueCompleter;
 
@@ -26,6 +27,7 @@ pub struct ListArgs {
     names: Vec<String>,
 }
 
+/// Execute the `rt list` command.
 pub fn run(config: &Config, args: ListArgs) -> i32 {
     for repository in load_filtered_repositories(config, args.hosts, args.names)
     {

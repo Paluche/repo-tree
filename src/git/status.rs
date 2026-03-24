@@ -18,20 +18,34 @@ use strum::{EnumIter, IntoEnumIterator};
 use super::new_git_command;
 
 #[derive(Debug, Hash, PartialEq, Eq, EnumIter)]
+/// All the different entry status you can have in the porcelain v2 output of
+/// git status.
 pub enum EntryStatus {
+    /// The entry is unmodified '.'
     Unmodified,
+    /// The entry is modified 'M'
     Modified,
+    /// File type of the entry has changed 'T'
     FileTypeChanged,
+    /// Entry is newly added 'A'
     Added,
+    /// Entry has been deleted 'D'
     Deleted,
+    /// Entry has been renamed 'R'
     Renamed,
+    /// Entry has been copied 'C'
     Copied,
+    /// Entry has been updated 'C'
     Updated,
+    /// Entry is untracked.
     Untracked,
+    /// Entry is ignored.
     Ignored,
 }
 
 impl EntryStatus {
+    /// Associate a character from the porcelain v2 git status output,
+    /// representing an entry status to a value of the EntryStatus enum.
     fn from_chars(chars: &mut Chars) -> Self {
         match chars.next().unwrap() {
             '.' => Self::Unmodified,
@@ -46,6 +60,7 @@ impl EntryStatus {
         }
     }
 
+    /// Get the colored string representation of the entry status.
     fn to_colored_string(&self, staged: bool) -> ColoredString {
         let ret = match self {
             Self::Unmodified => " ",
@@ -72,25 +87,34 @@ impl EntryStatus {
     }
 }
 
-// A 4 character field describing the submodule state.
-// "N..." when the entry is not a submodule.
-// "S<c><m><u>" when the entry is a submodule.
-// <c> is "C" if the commit changed; otherwise ".".
-// <m> is "M" if it has tracked changes; otherwise ".".
-// <u> is "U" if there are untracked changes; otherwise ".".
 #[derive(Debug)]
+/// Parsing result of the submodule status in the porcelain v2 output of git
+/// status. Which is initially a 4 character field.
 pub enum SubmoduleStatus {
+    /// The entry is not a submodule "N...".
     NotASubmodule,
+    /// The entry is a submodule. "S<c><m><u>"
+    /// - <c> is "C" if the commit changed; otherwise ".".
+    /// - <m> is "M" if it has tracked changes; otherwise ".".
+    /// - <u> is "U" if there are untracked changes; otherwise ".".
     Submodule {
+        /// The commit the subdmodule is at is different from the one set for
+        /// it in the main repository.
         commit_changed: bool,
+        /// Tracked files within the submodule have changed.
         tracked_changed: bool,
+        /// Submodule contains untracked files.
         has_untracked: bool,
     },
+    /// The entry is untracked.
     Untracked,
+    /// The entry is ignored.
     Ignored,
 }
 
 impl SubmoduleStatus {
+    /// Parse the 4 characters from the porcelain v2 git status output,
+    /// representing a submodule status to a value of the SubmoduleStatus enum.
     fn from_chars(chars: &mut Chars) -> Self {
         let is_submodule = chars.next().unwrap();
         let commit_changed = chars.next().unwrap();
@@ -115,6 +139,7 @@ impl SubmoduleStatus {
         }
     }
 
+    /// Get the colored string representation of the entry status.
     fn to_colored_string(&self) -> ColoredString {
         match self {
             Self::NotASubmodule => "    ".blue(),
@@ -136,13 +161,19 @@ impl SubmoduleStatus {
 }
 
 #[derive(Default)]
+/// Summary stats for a submodule status.
 pub struct SummarizeSubmoduleStatus {
+    /// Number of submodules with commits changed.
     commit_changed: usize,
+    /// Number of submodules with tracked changed.
     tracked_changed: usize,
+    /// Number of submodules with untracked files.
     has_untracked: usize,
 }
 
 impl SummarizeSubmoduleStatus {
+    /// Increment the internal counters based on the content of the provided
+    /// submodule status.
     fn increment(&mut self, submodule_status: &SubmoduleStatus) {
         if let &SubmoduleStatus::Submodule {
             commit_changed,
@@ -162,6 +193,7 @@ impl SummarizeSubmoduleStatus {
         }
     }
 
+    /// Convert the summary into a short representation string based on logos.
     pub fn as_string(&self) -> String {
         let mut ret = String::new();
         if self.commit_changed != 0 {
@@ -179,17 +211,24 @@ impl SummarizeSubmoduleStatus {
 }
 
 #[derive(Debug)]
+/// Status of an item.
 pub struct ItemStatus {
+    /// Staged entry status.
     pub staged: EntryStatus,
+    /// Unstaged entry status.
     pub unstaged: EntryStatus,
+    /// Submodule entry status.
     pub submodule_status: SubmoduleStatus,
-    // In case the file is renamed or copied, the orig_path variable will
-    // contain the path the file was before (respectively originally).
+    /// In case the entry is renamed or copied, you will find here the path
+    /// where the file was before, respectively where is the source file
+    /// is.
     pub orig_path: Option<String>,
+    /// Path to the entry.
     pub path: String,
 }
 
 impl ItemStatus {
+    /// Display the item status.
     pub fn display(
         &self,
         cwd: &Path,
@@ -227,12 +266,18 @@ impl ItemStatus {
     }
 }
 
+/// Enum representing the different parse result of a line from the porcelain v2
+/// output of git status.
 enum ParseOutput {
+    /// The parsed line was representing branch information.
     BranchInfo(String, String),
+    /// The parsed line is representing stash information.
     StashInfo(u32),
+    /// The parsed line is representing an item status.
     ItemStatus(ItemStatus),
 }
 
+/// Parse a line from the porcelain v2 output of git status.
 fn parse_line(line: &str) -> ParseOutput {
     let mut chars = line.chars();
 
@@ -349,11 +394,14 @@ fn parse_line(line: &str) -> ParseOutput {
     }
 }
 
+/// Summarization of the status.
 pub struct SummarizeStatus {
+    /// Total number of entries for each entry type detected in the status.
     map: HashMap<EntryStatus, usize>,
 }
 
 impl SummarizeStatus {
+    /// Initialize a new SummarizeStatus struct.
     fn new() -> Self {
         let mut map = HashMap::new();
         EntryStatus::iter().for_each(|status| {
@@ -362,10 +410,12 @@ impl SummarizeStatus {
         Self { map }
     }
 
+    /// Increment the internal counters based on the provided EntryStatus value.
     fn increment(&mut self, entry_status: &EntryStatus) {
         *self.map.get_mut(entry_status).unwrap() += 1;
     }
 
+    /// Convert the summary into a short representation string based on logos.
     pub fn as_string(&self) -> String {
         let mut ret = String::new();
         if *self.map.get(&EntryStatus::Added).unwrap() != 0 {
@@ -401,6 +451,7 @@ impl SummarizeStatus {
 }
 
 #[derive(Debug)]
+/// Information related to an upstream.
 pub struct UpstreamInfo {
     /// Name of the upstream branch.
     pub name: String,
@@ -426,6 +477,7 @@ impl Display for UpstreamInfo {
     }
 }
 
+/// Get the names of all branches which points at a specific commit.
 fn get_branches_pointing_at<S>(
     repo_path: &S,
     pointing_at: &str,
@@ -454,6 +506,7 @@ where
     Ok(ret)
 }
 
+/// Get the names of all tags which points at a specific commit.
 fn get_tags_pointing_at<S>(
     repo_path: &S,
     pointing_at: &str,
@@ -474,6 +527,7 @@ where
 }
 
 #[derive(Debug)]
+/// Information related to the HEAD.
 pub struct HeadInfo {
     /// Object Identifier of the commit the HEAD is at.
     pub oid: String,
@@ -489,6 +543,7 @@ pub struct HeadInfo {
 }
 
 impl HeadInfo {
+    /// Initialize a new HeadInfo struct.
     fn new<S>(
         branch_info: HashMap<String, String>,
         repo_path: &S,
@@ -539,6 +594,7 @@ impl HeadInfo {
     }
 }
 
+/// Find out when the repository was last fetched.
 fn get_last_fetched(git_dir: &Path) -> Option<DateTime<Utc>> {
     DateTime::from_timestamp_millis(
         metadata(git_dir.join("FETCH_HEAD"))
@@ -554,12 +610,20 @@ fn get_last_fetched(git_dir: &Path) -> Option<DateTime<Utc>> {
 }
 
 #[derive(Debug, PartialEq)]
+/// The different Git operation you might be stuck in a middle of its execution
+/// to resolve a conflict.
 pub enum GitOperation {
+    /// git rebase
     Rebase,
+    /// git am
     AM,
+    /// git cherry-pick
     CherryPick,
+    /// git bisect
     Bisect,
+    /// git merge
     Merge,
+    /// git revert
     Revert,
 }
 
@@ -580,6 +644,7 @@ impl Display for GitOperation {
     }
 }
 
+/// Get all currently ongoing operations.
 fn get_ongoing_operations(git_dir: &Path) -> Vec<GitOperation> {
     let mut ret = Vec::new();
     {
@@ -624,15 +689,22 @@ fn get_ongoing_operations(git_dir: &Path) -> Vec<GitOperation> {
 }
 
 #[derive(Debug)]
+/// Parsed result of a `git status --porcelain=v2` command.
 pub struct GitStatus {
+    /// Information about the current HEAD.
     pub head: HeadInfo,
+    /// Number of entries in the stash.
     pub nb_stash: u32,
+    /// Status of the items.
     pub status: Vec<ItemStatus>,
+    /// Date the repository has been synchronized with the remote.
     pub last_fetched: Option<DateTime<Utc>>,
+    /// List on currently ongoing operations.
     pub ongoing_operations: Vec<GitOperation>,
 }
 
 impl GitStatus {
+    /// Obtain a short summarized status.
     pub fn short_status(
         &self,
     ) -> (SummarizeStatus, SummarizeStatus, SummarizeSubmoduleStatus) {
@@ -650,6 +722,7 @@ impl GitStatus {
     }
 }
 
+/// Get the status of the repository.
 pub fn status<S>(repo_path: &S) -> Result<GitStatus, Box<dyn Error>>
 where
     S: AsRef<OsStr> + Sized,

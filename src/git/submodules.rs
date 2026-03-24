@@ -1,3 +1,4 @@
+//! Functions related to git submodules.
 use std::{
     error::Error,
     fs::canonicalize,
@@ -116,6 +117,7 @@ fn resolve_url<P: AsRef<Path>>(
     })
 }
 
+/// Resolve the submodule URL which is configured as a relative path / URL.
 fn resolve_url_as_relpath<P: AsRef<Path>>(
     repo_path: P,
     submodule_url: &str,
@@ -132,6 +134,7 @@ fn resolve_url_as_relpath<P: AsRef<Path>>(
     .map(|p| p.to_string_lossy().to_string())
 }
 
+/// Information on a submodule.
 pub struct SubmoduleInfo {
     /// Path to the root of the main repository.
     pub main_repo_root: PathBuf,
@@ -139,8 +142,11 @@ pub struct SubmoduleInfo {
     pub sub_path: PathBuf,
     /// Head OID, commit at which the submodule is configured to be.
     pub head: Option<Oid>,
+    /// Head OID, the submodule is currently at.
     pub actual_head: Option<Oid>,
+    /// Number of commits ahead to go to the head to the action_head.
     pub ahead: Option<usize>,
+    /// Number of commits behind to go to the head to the action_head.
     pub behind: Option<usize>,
     /// URL of the submodule remote as configured in the .gitmodules file.
     pub config_url: Option<String>,
@@ -149,11 +155,13 @@ pub struct SubmoduleInfo {
 }
 
 impl SubmoduleInfo {
+    /// Obtain the absolute path of the submodule.
     pub fn abs_path(&self) -> PathBuf {
         self.main_repo_root.join(&self.sub_path)
     }
 }
 
+/// Get the submodules information.
 pub fn get<P: AsRef<Path>>(
     main_repo_root: P,
     main_repo_remote_url: Option<String>,

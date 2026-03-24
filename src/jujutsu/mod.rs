@@ -21,6 +21,8 @@ use jj_lib::{
 pub use prompt::prompt;
 pub use repo_state::get_repo_state;
 
+/// Get path to the jj repository, supporting the fact that the original
+/// repository is potentially a workspace.
 pub fn get_repo_dir<P: AsRef<Path>>(repo_path: P) -> io::Result<PathBuf> {
     let jj_dir = repo_path.as_ref().to_path_buf().join(".jj");
     let repo_dir = jj_dir.join("repo");

@@ -35,6 +35,7 @@ fn compute_local_path<P: AsRef<Path>>(
     }
 }
 
+/// Parse the remote URL, to capture the different parts.
 fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
     // scheme-based URLs, e.g.:
     //   https://github.com/owner/repo.git

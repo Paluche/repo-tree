@@ -18,6 +18,7 @@ pub struct RmArgs {
     force: bool,
 }
 
+/// Execute the `rt rm` command.
 pub fn run(config: &Config, args: RmArgs) -> i32 {
     if let Some(repository) = resolve(config, args.repo_id) {
         match &repository.state() {

@@ -1,3 +1,5 @@
+//! Define the repository identifier RepoId, it is obtained by parsing the URL
+//! of the remote associated with the repository.
 use std::fmt::Display;
 
 use colored::Colorize;
@@ -5,8 +7,12 @@ use colored::Colorize;
 /// State of a repository. Get information about the status of your job within
 /// the repository.
 pub struct RepoState {
+    /// The repository has commits with changes which are not pushed to the
+    /// remote.
     has_unpushed_commits: bool,
+    /// Some branches needs to be rebased to be kept up-to-date.
     needs_restack: bool,
+    /// Some commits have conflicts.
     has_conflicts: bool,
 }
 

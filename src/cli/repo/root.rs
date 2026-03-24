@@ -19,6 +19,7 @@ pub struct RootArgs {
     print_type: bool,
 }
 
+/// Execute the `rt repo root` command.
 pub fn run(_: &Config, args: RootArgs) -> i32 {
     let mut cwd = get_cwd();
 

@@ -1,3 +1,5 @@
+//! Obtain the path to the next or previous repository where there is something
+//! to be done by the user.
 use clap::{ArgAction, Args};
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
@@ -32,6 +34,7 @@ pub struct NextPrevArgs {
     names: Vec<String>,
 }
 
+/// Iterate the repositories, starting from the specified one.
 fn iter_repos_from(
     repositories: Vec<Repository>,
     start: Option<Repository>,
@@ -53,6 +56,7 @@ fn iter_repos_from(
     }
 }
 
+/// Execute the `rt todo next` or `rt todo prev` command.
 pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
     let repo_path = cwd_default_path(None);
     let current_repository = Repository::discover(config, repo_path.clone())
