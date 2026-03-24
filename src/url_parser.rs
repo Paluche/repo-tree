@@ -8,20 +8,6 @@ use crate::{
     error::ParseUrlError,
 };
 
-enum HostWorkDir {
-    Missing(String),
-    Resolved(Host),
-}
-
-impl HostWorkDir {
-    fn into_option(self) -> Option<Host> {
-        match self {
-            Self::Missing(_) => None,
-            Self::Resolved(res) => Some(res),
-        }
-    }
-}
-
 /// Either the repository is within the ${REPO_TREE_DIR}/local directory
 /// allowing the user to organize as see fits this directory.
 /// Or take the directory name.
@@ -44,13 +30,6 @@ fn compute_local_path<P: AsRef<Path>>(
     } else {
         repo_path.file_name().unwrap().to_str().unwrap().to_owned()
     }
-}
-
-fn get_host_work_dir(config: &Config, host_url: &str) -> HostWorkDir {
-    config.get_host(host_url).cloned().map_or_else(
-        || HostWorkDir::Missing(host_url.to_string()),
-        HostWorkDir::Resolved,
-    )
 }
 
 fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
@@ -102,16 +81,14 @@ pub fn parse_url(
     remote_url: &str,
 ) -> Result<(Option<Host>, String), ParseUrlError> {
     let remote_cap = capture_url(remote_url)?;
-    let host_repo_tree_dir = get_host_work_dir(config, &remote_cap["host"]);
+    let host_url = &remote_cap["host"];
 
-    if let HostWorkDir::Missing(host) = &host_repo_tree_dir {
-        eprintln!("Missing host configuration for {host}");
+    let host = config.get_host(host_url);
+
+    if host.is_none() {
+        eprintln!("Missing host configuration for {host_url}");
     }
-
-    Ok((
-        host_repo_tree_dir.into_option(),
-        remote_cap["path"].to_string(),
-    ))
+    Ok((host.cloned(), remote_cap["path"].to_string()))
 }
 
 /// Parse the provided repository remote URL into a host (as Host struct)
