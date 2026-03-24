@@ -143,14 +143,6 @@ pub struct SummarizeSubmoduleStatus {
 }
 
 impl SummarizeSubmoduleStatus {
-    fn new() -> Self {
-        Self {
-            commit_changed: 0,
-            tracked_changed: 0,
-            has_untracked: 0,
-        }
-    }
-
     fn increment(&mut self, submodule_status: &SubmoduleStatus) {
         if let &SubmoduleStatus::Submodule {
             commit_changed,
@@ -646,7 +638,7 @@ impl GitStatus {
     ) -> (SummarizeStatus, SummarizeStatus, SummarizeSubmoduleStatus) {
         let mut staged = SummarizeStatus::new();
         let mut unstaged = SummarizeStatus::new();
-        let mut submodules = SummarizeSubmoduleStatus::new();
+        let mut submodules = SummarizeSubmoduleStatus::default();
 
         for item in self.status.iter() {
             staged.increment(&item.staged);
