@@ -8,48 +8,11 @@ use std::{
 use pollster::FutureExt;
 
 use crate::{
-    Config, NotImplementedError, RepoState,
-    config::Host,
+    Config, NotImplementedError, RepoId, RepoState,
     git::{self, SubmoduleInfo},
-    jujutsu, parse_repo_url,
+    jujutsu,
     version_control_system::VersionControlSystem,
 };
-
-#[derive(Debug, Clone, Hash, PartialEq)]
-pub struct RepoId {
-    pub remote_url: Option<String>,
-    pub host: Option<Host>,
-    pub name: String,
-}
-
-pub fn location(repo_tree_dir: &Path, host: &Host, name: &String) -> PathBuf {
-    repo_tree_dir.to_path_buf().join(host.dir_name()).join(name)
-}
-
-impl RepoId {
-    pub fn expected_root(&self, config: &Config) -> Option<PathBuf> {
-        self.host
-            .clone()
-            .map(|host| location(&config.repo_tree_dir, &host, &self.name))
-    }
-}
-
-impl Display for RepoId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(host) = &self.host {
-            let dir_name = host.dir_name();
-            if dir_name != "." {
-                write!(f, "{dir_name} ")?;
-            }
-        }
-        write!(f, "{}", self.name)?;
-        if let Some(remote_url) = &self.remote_url {
-            write!(f, " {remote_url}")?;
-        }
-
-        Ok(())
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 /// Representation of a repository.
@@ -100,13 +63,7 @@ impl Repository {
             }
             VersionControlSystem::Jujutsu => jujutsu::get_remote_url(&root)?,
         };
-        let (host, name) = parse_repo_url(config, &root, remote_url.as_ref())?;
-
-        let id = RepoId {
-            remote_url,
-            host,
-            name,
-        };
+        let id = RepoId::parse_repo_url(config, &root, remote_url.as_ref())?;
 
         Ok(Some(Self {
             vcs,
@@ -123,7 +80,7 @@ impl Repository {
         if self.is_submodule {
             None
         } else {
-            self.id.expected_root(config)
+            self.id.location(config)
         }
     }
 

@@ -1,9 +1,7 @@
 //! Clone a repository into the repo tree.
 use clap::Args;
 
-use crate::{
-    Config, Host, VersionControlSystem, git, jujutsu, parse_url, repository,
-};
+use crate::{Config, RepoId, VersionControlSystem, git, jujutsu};
 
 /// Clone a repository within the repo tree.
 #[derive(Args, Debug, PartialEq)]
@@ -17,17 +15,18 @@ pub struct CloneArgs {
 
 fn do_clone(
     config: &Config,
-    remote_url: String,
-    host: Host,
-    name: String,
-    vcs: VersionControlSystem,
+    repo_id: &RepoId,
+    vcs: &VersionControlSystem,
 ) -> i32 {
-    let location = repository::location(&config.repo_tree_dir, &host, &name);
+    let Some(location) = repo_id.location(config) else {
+        eprintln!("Unknown host");
+        return 1;
+    };
 
     if location.exists() {
         if let Some((current_vcs, _)) = VersionControlSystem::try_new(&location)
         {
-            if current_vcs == vcs {
+            if &current_vcs == vcs {
                 eprintln!("{vcs} repository already cloned");
                 println!("{}", location.display());
                 0
@@ -48,44 +47,39 @@ fn do_clone(
             eprintln!("Clone location {} already exists", location.display());
             1
         }
-    } else {
+    } else if let Some(remote_url) = &repo_id.remote_url {
         let res = match vcs {
-            VersionControlSystem::Git => git::clone(&remote_url, &location),
+            VersionControlSystem::Git => git::clone(remote_url, &location),
             VersionControlSystem::JujutsuGit => {
-                let res = git::clone(&remote_url, &location);
+                let res = git::clone(remote_url, &location);
                 if res != 0 {
                     res
                 } else {
                     jujutsu::git::init_colocate(&location)
+                    // TODO Automatically track the trunk().
                 }
             }
             VersionControlSystem::Jujutsu => {
-                jujutsu::git::clone(&remote_url, &location)
+                jujutsu::git::clone(remote_url, &location)
             }
         };
         if res == 0 {
             println!("{}", location.display());
         }
         res
+    } else {
+        panic!(
+            "The RepoId should have a remote URL, since it has been provided \
+             by the CLI"
+        );
     }
 }
 
 pub fn run(config: &Config, args: CloneArgs) -> i32 {
-    let parsed_url = parse_url(config, &args.url);
+    let vcs = args.vcs.unwrap_or(config.command.clone.vcs);
 
-    if let Ok((host, name)) = parsed_url {
-        if let Some(host) = host {
-            do_clone(
-                config,
-                args.url,
-                host,
-                name,
-                args.vcs.unwrap_or(config.command.clone.vcs),
-            )
-        } else {
-            eprintln!("Unknown host");
-            1
-        }
+    if let Ok(repo_id) = RepoId::parse_url(config, &args.url) {
+        do_clone(config, &repo_id, &vcs)
     } else {
         eprintln!("Error parsing the provided URL");
         1
