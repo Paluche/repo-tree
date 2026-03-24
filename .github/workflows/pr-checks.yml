@@ -122,11 +122,17 @@ jobs:
               repo: context.repo.repo,
             };
 
+            const { data: pullRequest } = await github.rest.pulls.get(
+              pullRequestParams
+            );
             const { data: commits } = await github.rest.pulls.listCommits(
               pullRequestParams
             );
 
             core.setOutput('fetch-depth', commits.length + 1);
+            core.setOutput('total-commits', commits.length);
+            core.setOutput('base-ref-sha', pullRequest.base.sha);
+            core.setOutput('head-ref-sha', pullRequest.head.sha);
 
       - &checkout-pr
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -305,6 +311,73 @@ jobs:
 
             await core.summary.write();
 
+  check-build:
+    name: check (build)
+    permissions:
+      checks: write
+    runs-on: ubuntu-24.04
+    steps:
+      - *pr-details
+      - *checkout-pr
+      - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+      - env:
+          TOTAL_COMMITS: ${{ steps.pr-details.outputs.total-commits }}
+          BASE_REF_SHA: ${{ steps.pr-details.outputs.base-ref-sha }}
+          HEAD_REF_SHA: ${{ steps.pr-details.outputs.head-ref-sha }}
+        run: |
+          res=0
+          if ! commits=( $(git rev-list --reverse "${BASE_REF_SHA}..${HEAD_REF_SHA}") )
+          then
+              echo "::error::Failed to get the list of commits to check."
+              exit 1
+          fi
+          {
+              echo "# Build Validation Report"
+              echo ""
+              echo "**Total commits**: ${TOTAL_COMMITS}"
+              echo ""
+          } > "${GITHUB_STEP_SUMMARY}"
+
+          export RUST_BACKTRACE=1
+          export CARGO_TERM_COLOR=always
+          export RUSTFLAGS='-D warnings'
+          failed_count=0
+          error_log=/tmp/error_log.txt
+
+          for commit in "${commits[@]}"
+          do
+              echo "::group:: check ${commit}"
+              git checkout "${commit}"
+              if cargo +stable build --all-features --workspace --all-targets 2>&1 | tee "${error_log}"
+              then
+                  echo "::endgroup::"
+                  echo "✅"
+                  echo "- ✅ `${commitId}`: ${commitTitle}" > "${GITHUB_STEP_SUMMARY}"
+              else
+                  echo "::endgroup::"
+                  echo "❌ Develop group above for details"
+                  {
+                      echo "- ❌ `${commitId}`: ${commitTitle}"
+                      echo ""
+                      echo "<details><summary>Details</summary>"
+                      echo ""
+                      echo "```"
+                      cat "${error_log}"
+                      echo "```"
+                      echo "</details>"
+                  } > "${GITHUB_STEP_SUMMARY}"
+                  failed_count=$(( failed_count + 1 ))
+              fi
+          done
+
+          if [ "${failed_count}" -ne 0 ]
+          then
+              echo "::error::Build validation failed for ${failed_count} commit(s)."
+              exit 1
+          fi
+          echo "All commits passed build validation! 🎉" > "${GITHUB_STEP_SUMMARY}"
   check-prettier:
     name: check (prettier)
     permissions:
@@ -405,11 +478,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
           toolchain: stable
-      - name: build
-        env:
-          RUST_BACKTRACE: 1
-          CARGO_TERM_COLOR: always
-        run: cargo build
       - name: test
         env:
           RUST_BACKTRACE: 1
@@ -423,6 +491,7 @@ jobs:
       - check-gitlint
       - check-rustfmt
       - check-clippy
+      - check-build
       - check-prettier
       - check-tests
     runs-on: ubuntu-latest
