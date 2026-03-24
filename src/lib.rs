@@ -6,9 +6,9 @@ mod config;
 mod error;
 mod git;
 mod jujutsu;
+mod repo_id;
 mod repo_state;
 mod repository;
-mod url_parser;
 mod version_control_system;
 
 use std::path::PathBuf;
@@ -17,9 +17,9 @@ pub use crate::{
     cli::run,
     config::{Config, Host},
     error::NotImplementedError,
+    repo_id::RepoId,
     repo_state::RepoState,
     repository::Repository,
-    url_parser::{parse_repo_url, parse_url},
     version_control_system::VersionControlSystem,
 };
 
