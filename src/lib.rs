@@ -1,5 +1,6 @@
 //! Libraries for the repo-tools utils
 #![warn(missing_docs)]
+#![warn(clippy::missing_docs_in_private_items)]
 
 mod cli;
 mod config;
