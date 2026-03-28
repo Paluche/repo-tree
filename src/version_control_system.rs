@@ -6,8 +6,11 @@ use std::path::PathBuf;
 use clap::ValueEnum;
 use colored::Colorize;
 use serde::Deserialize;
+use serde::Serialize;
 
-#[derive(Debug, Copy, Clone, ValueEnum, PartialEq, Deserialize, Default)]
+#[derive(
+    Debug, Copy, Clone, ValueEnum, PartialEq, Deserialize, Serialize, Default,
+)]
 #[serde(rename_all = "kebab-case")]
 /// Representation of the different types of version control system supported.
 pub enum VersionControlSystem {
