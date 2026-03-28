@@ -206,7 +206,7 @@ pub fn resolve_completer(
     let Ok(config) = Config::load() else {
         return vec![];
     };
-    let repositories = Repositories::load(&config);
+    let repositories = Repositories::load_silent(&config, false);
     let candidates = get_candidates(&config, &repositories);
     let matcher = SkimMatcherV2::default();
     candidates

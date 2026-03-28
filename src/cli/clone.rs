@@ -5,6 +5,7 @@ use crate::config::Config;
 use crate::git;
 use crate::jujutsu;
 use crate::repo_id::RepoId;
+use crate::repository::Repositories;
 use crate::version_control_system::VersionControlSystem;
 
 /// Clone a repository within the repo tree.
@@ -74,6 +75,9 @@ fn do_clone(
              by the CLI"
         );
     }
+
+    // Refresh the cache.
+    Repositories::load(config, true);
 
     println!("{}", location.display());
     0

@@ -29,6 +29,9 @@ struct Args {
     /// Action to perform
     #[command(subcommand)]
     action: Action,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]

@@ -14,7 +14,11 @@ use crate::repository::Repository;
 
 /// Display a tree of your repo_tree.
 #[derive(Args, Debug, PartialEq)]
-pub struct TreeArgs {}
+pub struct TreeArgs {
+    /// Force recreating the cache.
+    #[arg(short, long, global = true)]
+    refresh_cache: bool,
+}
 
 /// The different states a directory entry in the tree might take.
 enum DirState {
@@ -278,10 +282,13 @@ impl<'config, 'repos> Display for RootDirectory<'config, 'repos> {
 }
 
 /// Execute the `rt tree` command.
-pub fn run(config: &Config, _: TreeArgs) -> i32 {
+pub fn run(config: &Config, args: TreeArgs) -> i32 {
     println!(
         "{}",
-        RootDirectory::new(config, &Repositories::load(config))
+        RootDirectory::new(
+            config,
+            &Repositories::load(config, args.refresh_cache)
+        )
     );
 
     0

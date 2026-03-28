@@ -15,6 +15,9 @@ use crate::config::Config;
 pub struct RepoArgs {
     #[command(subcommand)]
     action: RepoAction,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]

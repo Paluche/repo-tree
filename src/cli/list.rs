@@ -25,12 +25,16 @@ pub struct ListArgs {
     /// for this argument, and "github" as value of the --host argument.
     #[arg(short = 'N', long = "name", action=ArgAction::Append)]
     names: Vec<String>,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 /// Execute the `rt list` command.
 pub fn run(config: &Config, args: ListArgs) -> i32 {
-    for repository in
-        Repositories::load_filtered(config, args.hosts, args.names).iter()
+    for repository in Repositories::load(config, args.refresh_cache)
+        .filtered(config, args.hosts, args.names)
+        .iter()
     {
         println!("{}", repository.root.display());
     }

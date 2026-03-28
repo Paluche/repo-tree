@@ -13,6 +13,7 @@ use crate::error::NoRepositoryError;
 use crate::error::NotImplementedError;
 use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::utils::into_iter_from;
 
 /// Go to the next or previous repository where you have to do something to keep
 /// it up-to-date.
@@ -34,6 +35,9 @@ pub struct NextPrevArgs {
     /// specified multiple times.
     #[arg(short = 'N', long = "name", action=ArgAction::Append)]
     names: Vec<String>,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 /// Execute the `rt todo next` or `rt todo prev` command.
@@ -51,11 +55,14 @@ pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
             }
         };
 
-    let repositories =
-        Repositories::load_filtered(config, args.hosts, args.names);
+    let repositories = Repositories::load(config, args.refresh_cache);
 
     // Skip the current repository.
-    for repository in repositories.iter_from(&current_repository, reverse) {
+    for repository in into_iter_from(
+        repositories.filtered(config, args.hosts, args.names),
+        &current_repository,
+        reverse,
+    ) {
         if repository.id.remote.is_local() {
             continue;
         }

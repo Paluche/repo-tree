@@ -1,5 +1,9 @@
 //! Representation of a repository.
 use std::error::Error;
+use std::fs::File;
+use std::fs::create_dir_all;
+use std::fs::read_to_string;
+use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
 use std::slice::Iter;
@@ -11,6 +15,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::error::NoCacheError;
 use crate::error::NoRepositoryError;
 use crate::error::NotImplementedError;
 use crate::error::UnknownRemoteHostError;
@@ -40,6 +45,12 @@ impl RemoteConfig {
             file,
             last_modified,
         })
+    }
+
+    /// Does the file have been modified compared to the last_modified value we
+    /// have.
+    fn has_been_modified(&self) -> Result<bool, Box<dyn Error>> {
+        Ok(self.last_modified != get_last_modified(&self.file)?)
     }
 }
 
@@ -204,23 +215,23 @@ fn search(config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
     _search(config, &config.repo_tree_dir)
 }
 
-/// Load all the repositories present in the repo tree.
-/// Print a warning message if empty directories outside any repository are
-/// found in the repo tree.
-fn load_repositories(config: &Config) -> Vec<Repository> {
-    let (repositories, empty_dirs) = search(config);
-
-    for empty_dir in empty_dirs {
-        eprintln!("Empty directory in REPO_TREE_DIR: {}", empty_dir.display());
-    }
-
-    repositories
+/// Path to the repositories cache file.
+fn cache_file() -> PathBuf {
+    PathBuf::from(std::env::var("HOME").unwrap())
+        .join("repo-tree")
+        .join("repositories.toml")
 }
 
-/// Search for empty directories outside any repository are found in the
-/// repo tree.
-pub fn load_empty_dirs(config: &Config) -> Vec<PathBuf> {
-    search(config).1
+/// Load the repository list from the cache.
+fn load_cache() -> Result<Repositories, Box<dyn Error>> {
+    let cache_file = cache_file();
+    if !cache_file.is_file() {
+        Err(Box::new(NoCacheError()))
+    } else {
+        Ok(toml::from_str::<Repositories>(&read_to_string(
+            &cache_file,
+        )?)?)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -231,37 +242,70 @@ pub struct Repositories {
 }
 
 impl Repositories {
-    /// Load all the repositories present in the repo tree.
-    pub fn load_silent(config: &Config) -> Self {
-        Self {
-            repositories: search(config).0,
+    /// Load all the repositories present in the repo tree with a list of
+    /// detected empty directories within the repo tree. The list of empty
+    /// directories, is returned only if the cache has not been used. As the
+    /// cache exists to avoids us searching the repo tree, we should not do it
+    /// anyway for getting the empty directories.
+    pub fn load_silent_with_empty_dirs(
+        config: &Config,
+        refresh_cache: bool,
+    ) -> (Self, Option<Vec<PathBuf>>) {
+        if !refresh_cache {
+            match load_cache() {
+                Ok(repositories) => {
+                    if repositories.iter().all(|r| {
+                        !r.remote_config.has_been_modified().unwrap_or(true)
+                    }) {
+                        return (repositories, None);
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Failure to load cache {err}");
+                }
+            }
         }
+
+        eprintln!("Refreshing repositories cache...");
+
+        let (repositories, empty_dirs) = search(config);
+
+        (Self { repositories }, Some(empty_dirs))
+    }
+
+    /// Load all the repositories present in the repo tree.
+    pub fn load_silent(config: &Config, refresh_cache: bool) -> Self {
+        Self::load_silent_with_empty_dirs(config, refresh_cache).0
     }
 
     /// Load all the repositories present in the repo tree.
     /// Print a warning message if empty directories outside any repository are
     /// found in the repo tree.
-    pub fn load(config: &Config) -> Self {
-        let (repositories, empty_dirs) = search(config);
+    pub fn load(config: &Config, refresh_cache: bool) -> Self {
+        let (repositories, empty_dirs) =
+            Self::load_silent_with_empty_dirs(config, refresh_cache);
 
-        for empty_dir in empty_dirs {
-            eprintln!(
-                "Empty directory in REPO_TREE_DIR: {}",
-                empty_dir.display()
-            );
+        if let Some(empty_dirs) = empty_dirs {
+            for empty_dir in empty_dirs {
+                eprintln!(
+                    "Empty directory in REPO_TREE_DIR: {}",
+                    empty_dir.display()
+                );
+            }
         }
 
-        Self { repositories }
+        repositories
     }
 
     /// Load some of the repositories based on the provided filters.
-    pub fn load_filtered(
+    pub fn filtered<'repos>(
+        &'repos self,
         config: &Config,
         filter_hosts: Vec<String>,
         filter_names: Vec<String>,
-    ) -> Self {
-        let repositories = load_repositories(config)
-            .into_iter()
+    ) -> Vec<&'repos Repository> {
+        self.repositories
+            .iter()
             .filter(|r| {
                 (filter_hosts.is_empty()
                     || filter_hosts.iter().any(|host| {
@@ -278,45 +322,32 @@ impl Repositories {
                             .iter()
                             .any(|name| r.id.name.starts_with(name)))
             })
-            .collect();
-
-        Self { repositories }
-    }
-
-    /// Iterate the repositories, starting from the specified one.
-    pub fn iter_from<'a>(
-        &'a self,
-        start: &'a Option<Repository>,
-        reverse: bool,
-    ) -> Box<dyn Iterator<Item = &'a Repository> + 'a> {
-        if let Some(start) = start {
-            if reverse {
-                Box::new(
-                    self.repositories
-                        .iter()
-                        .cycle()
-                        .skip_while(|r| **r != start.clone())
-                        .take_while(|r| **r != start.clone()),
-                )
-            } else {
-                Box::new(
-                    self.repositories
-                        .iter()
-                        .rev()
-                        .cycle()
-                        .skip_while(|r| **r != start.clone())
-                        .take_while(|r| **r != start.clone()),
-                )
-            }
-        } else if reverse {
-            Box::new(self.repositories.iter().rev())
-        } else {
-            Box::new(self.repositories.iter())
-        }
+            .collect()
     }
 
     /// Obtain an iterator on the repositories.
     pub fn iter(&self) -> Iter<'_, Repository> {
         self.repositories.iter()
+    }
+}
+
+impl Drop for Repositories {
+    fn drop(&mut self) {
+        let cache_file = cache_file();
+        let parent = cache_file.parent().unwrap();
+
+        if !parent.exists()
+            && let Err(err) = create_dir_all(parent)
+        {
+            eprintln!(
+                "Unable to create cache directory \"{}\": {err}",
+                parent.display()
+            );
+        }
+        if let Err(err) = File::create(cache_file)
+            .map(|mut f| f.write_all(toml::to_string(self).unwrap().as_bytes()))
+        {
+            eprintln!("Unable to create cache file: {err}");
+        }
     }
 }
