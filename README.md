@@ -84,6 +84,23 @@ will be searched at `${XDG_CONFIG_HOME}/repo-tree/config.toml` if the
 environment variable `XDG_CONFIG_HOME` is set,
 `${HOME}/.config/repo-tree/config.toml` otherwise.
 
+### Color configuration
+
+On the following configuration, some fields are colors (`repr_color` for
+instance). You have several option to specify the color to use.
+
+- `string`: The valid values being: `"black"` `"red"`, `"green"`, `"yellow"`,
+  `"blue"`, `"magenta"`, `"purple"` (equivalent to `"magenta"`), `"cyan"`,
+  `"white"`, `"bright black"`, `"bright red"`, `"bright green"`,
+  `"bright yellow"`, `"bright blue"`, `"bright magenta"`, `"bright cyan"`,
+  `"bright white"`.
+- `int`: Value between 0 and 255 included, corresponding to the
+  [ANSI color](https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit) associated
+  with that number.
+- `map` specifying the three items with keys `r`, `g`, `b` and each a integer
+  value between 0 and 255 included. Each item respectively represent the red,
+  green and blue component of the color you want.
+
 ### Configuring known hosts
 
 In order to know how to organize the repositories, `rt` needs to know how. The
@@ -99,19 +116,10 @@ dir_name = '<DIR_NAME>'  # Name of the directory the host's repositories will
                          # 'name'.
 repr = '<REPR>' # Host representation used in the prompt. Optional, defaults to
                 # the value set to 'name'.
-repr_color = 'white'  # Color to use to colorize the 'repr' value. Optional,
-                      # defaults to no color.
+repr_color = <COLOR>  # Color to use to colorize the 'repr' value. Optional,
+                      # defaults to no color. See Color Configuration chapter
+                      # above.
 ```
-
-> [!NOTE]
-> `repr_color` can be specified as u8 (integer) or string.
->
-> If u8 then it will be the ANSI color associated with that number.
->
-> If string, the valid values are: "black", "red", "green", "yellow", "blue",
-> "magenta" | "purple", "cyan", "white", "bright black" "bright red",
-> "bright green", "bright yellow", "bright blue", "bright magenta",
-> "bright cyan", "bright white".
 
 The default configuration for the hosts is the following:
 
@@ -162,8 +170,9 @@ dir_name = '<DIR_NAME>'  # Name of the directory the local repositories will
                          # 'name'.
 repr = '<REPR>' # Host representation used in the prompt. Optional, defaults to
                 # the value set to 'name'.
-repr_color = 'white'  # Color to use to colorize the 'repr' value. Optional,
-                      # defaults to no color.
+repr_color = <COLOR>  # Color to use to colorize the 'repr' value. Optional,
+                      # defaults to no color. See Color Configuration chapter
+                      # above.
 ```
 
 The default configuration for the local host is the following:
