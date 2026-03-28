@@ -12,7 +12,7 @@ use crate::error::NotImplementedError;
 use crate::repository::Repositories;
 
 /// Custom git status. Concise, with all the data and without help text.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct ListArgs {
     /// Filter the repositories to list by their host. For example, "github" or
     /// "local". Can be specified multiple times.

@@ -11,7 +11,7 @@ use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 
 /// Remove a repository from the repo tree.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct RmArgs {
     /// Repository identifier identifying the repository to remove.
     #[arg(add=ArgValueCompleter::new(resolve_completer))]

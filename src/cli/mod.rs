@@ -25,7 +25,7 @@ mod tree;
 use crate::config::Config;
 
 #[allow(clippy::missing_docs_in_private_items)]
-#[derive(Parser, Debug, PartialEq)]
+#[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Args {
     /// Action to perform
@@ -37,7 +37,7 @@ struct Args {
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
-#[derive(Subcommand, Debug, PartialEq)]
+#[derive(Subcommand)]
 enum Action {
     Resolve(resolve::ResolveArgs),
     ResolveUrl(resolve_url::ResolveUrlArgs),

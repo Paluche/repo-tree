@@ -13,7 +13,7 @@ use crate::repository::Repositories;
 use crate::repository::Repository;
 
 /// Display a tree of your repo_tree.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct TreeArgs {
     /// Force recreating the cache.
     #[arg(short, long, global = true)]

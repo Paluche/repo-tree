@@ -16,7 +16,7 @@ use crate::repository::Repository;
 use crate::version_control_system::VersionControlSystem;
 
 /// Generate the prompt for your shell.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct PromptArgs {
     /// Path to within the repository to work with.
     #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]

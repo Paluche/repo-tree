@@ -11,7 +11,7 @@ use crate::config::Config;
 
 /// Actions for any type of repository.
 #[allow(clippy::missing_docs_in_private_items)]
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct RepoArgs {
     #[command(subcommand)]
     action: RepoAction,
@@ -21,7 +21,7 @@ pub struct RepoArgs {
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
-#[derive(Subcommand, Debug, PartialEq)]
+#[derive(Subcommand)]
 enum RepoAction {
     Root(root::RootArgs),
     Remote(remote::RemoteArgs),

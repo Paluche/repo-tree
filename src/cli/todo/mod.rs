@@ -10,7 +10,7 @@ use crate::config::Config;
 /// Commands related to the repository state. Find out if there is something to
 /// do in any of the repositories of your repo tree, and help tackles then down.
 #[allow(clippy::missing_docs_in_private_items)]
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct TodoArgs {
     #[command(subcommand)]
     action: TodoAction,
@@ -20,7 +20,7 @@ pub struct TodoArgs {
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
-#[derive(Subcommand, Debug, PartialEq)]
+#[derive(Subcommand)]
 enum TodoAction {
     List(list::ListArgs),
     /// Go to the next repository where you have to do something to keep it
