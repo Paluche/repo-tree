@@ -11,6 +11,7 @@ mod prompt_builder;
 mod repo_id;
 mod repo_state;
 mod repository;
+mod utils;
 mod version_control_system;
 
 pub use crate::cli::run;
