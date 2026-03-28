@@ -3,11 +3,9 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt::Display;
-use std::fs::metadata;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str::Chars;
-use std::time::SystemTime;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -18,6 +16,7 @@ use strum::EnumIter;
 use strum::IntoEnumIterator;
 
 use super::new_git_command;
+use crate::utils::get_last_modified;
 
 #[derive(Debug, Hash, PartialEq, Eq, EnumIter)]
 /// All the different entry status you can have in the porcelain v2 output of
@@ -598,17 +597,7 @@ impl HeadInfo {
 
 /// Find out when the repository was last fetched.
 fn get_last_fetched(git_dir: &Path) -> Option<DateTime<Utc>> {
-    DateTime::from_timestamp_millis(
-        metadata(git_dir.join("FETCH_HEAD"))
-            .ok()?
-            .modified()
-            .ok()?
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .ok()?
-            .as_millis()
-            .try_into()
-            .unwrap(),
-    )
+    get_last_modified(&git_dir.join("FETCH_HEAD")).ok()
 }
 
 #[derive(Debug, PartialEq)]
