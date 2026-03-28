@@ -28,21 +28,22 @@ fn do_clone(
         {
             if &current_vcs == vcs {
                 eprintln!("{vcs} repository already cloned");
-                println!("{}", location.display());
-                0
             } else if matches!(current_vcs, VersionControlSystem::Git)
                 && matches!(vcs, VersionControlSystem::JujutsuGit)
             {
                 eprintln!("Repository already cloned, initializing JJ into");
-                jujutsu::git::init_colocate(&location)
+                let res = jujutsu::git::init_colocate(&location);
+                if res != 0 {
+                    return res;
+                }
             } else {
                 eprintln!(
                     "{vcs} repository already cloned but is a {current_vcs} \
                      repository"
                 );
-                println!("{}", location.display());
-                0
             }
+            println!("{}", location.display());
+            0
         } else {
             eprintln!("Clone location {} already exists", location.display());
             1
@@ -51,16 +52,10 @@ fn do_clone(
         let res = match vcs {
             VersionControlSystem::Git => git::clone(remote_url, &location),
             VersionControlSystem::JujutsuGit => {
-                let res = git::clone(remote_url, &location);
-                if res != 0 {
-                    res
-                } else {
-                    jujutsu::git::init_colocate(&location)
-                    // TODO Automatically track the trunk().
-                }
+                jujutsu::git::clone(remote_url, &location, true)
             }
             VersionControlSystem::Jujutsu => {
-                jujutsu::git::clone(remote_url, &location)
+                jujutsu::git::clone(remote_url, &location, false)
             }
         };
         if res == 0 {
