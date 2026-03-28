@@ -15,6 +15,10 @@ pub struct StateArgs {
     /// Path to within the git repository to work with.
     #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
     repository: Option<String>,
+    /// Verbose mode, print all available information on the repository
+    /// alongside its state.
+    #[arg(short, long)]
+    verbose: bool,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
@@ -34,6 +38,23 @@ pub fn run(config: &Config, args: StateArgs) -> i32 {
                 return 1;
             }
         };
+
+    let host = repository.id.remote.host(config);
+
+    if args.verbose {
+        println!(
+            "{} {} {}{}",
+            host.name().unwrap_or(&"unknown".to_string()),
+            host.repr(),
+            repository.id.name,
+            repository
+                .id
+                .remote
+                .url()
+                .map_or("".to_string(), |u| format!(": {u}"))
+        );
+        println!("{} {}", repository.vcs, repository.vcs.short_display());
+    }
 
     let repo_state = match repository.state() {
         Ok(v) => Some(v),
