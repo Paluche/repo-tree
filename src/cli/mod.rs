@@ -24,6 +24,19 @@ mod tree;
 
 use crate::config::Config;
 
+/// Control of the colored output.
+#[derive(Default, Clone, clap::ValueEnum)]
+pub enum ColorBehavior {
+    /// Automatically enable or disable colors based on the type of output
+    /// (default).
+    #[default]
+    Auto,
+    /// Never color the colored output.
+    Never,
+    /// Always color the colored output.
+    Always,
+}
+
 #[allow(clippy::missing_docs_in_private_items)]
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -34,6 +47,9 @@ struct Args {
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
+    /// Force output color behavior.
+    #[arg(long, global = true, value_enum, default_value_t)]
+    color: ColorBehavior,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
@@ -93,6 +109,12 @@ pub fn run() -> i32 {
             return 1;
         }
     };
+
+    match args.color {
+        ColorBehavior::Auto => (),
+        ColorBehavior::Always => colored::control::set_override(true),
+        ColorBehavior::Never => colored::control::set_override(false),
+    }
 
     match args.action {
         Action::Resolve(args) => resolve::run(&config, args),
