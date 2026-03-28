@@ -6,6 +6,8 @@ use std::path::PathBuf;
 use std::slice::Iter;
 
 use pollster::FutureExt;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::Config;
 use crate::NotImplementedError;
@@ -18,7 +20,7 @@ use crate::git::{self};
 use crate::jujutsu;
 use crate::version_control_system::VersionControlSystem;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 /// Representation of a repository.
 pub struct Repository<'config> {
     /// Type of version control system the repository uses.
@@ -210,7 +212,7 @@ pub fn load_empty_dirs(config: &Config) -> Vec<PathBuf> {
     search(config).1
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 /// Repositories present in the repo tree.
 pub struct Repositories<'config> {
     /// The repositories in the repo tree.

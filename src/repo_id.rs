@@ -4,6 +4,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use regex::Regex;
+use serde::Deserialize;
+use serde::Serialize;
 
 use crate::config::Config;
 use crate::config::LocalHost;
@@ -12,7 +14,7 @@ use crate::config::UnknownHost;
 use crate::error::ParseUrlError;
 use crate::error::UnknownRemoteHostError;
 
-#[derive(Clone, Debug, PartialEq, Hash)]
+#[derive(Clone, Debug, PartialEq, Hash, Default)]
 /// The different type of host one repository can be associated with.
 pub enum Host<'config> {
     /// Repository is associated with a remote repository stored on the linked
@@ -23,6 +25,9 @@ pub enum Host<'config> {
     UnknownRemote(String, &'config UnknownHost),
     /// Repository exists only locally.
     Local(&'config LocalHost),
+    #[default]
+    /// Host not resolved.
+    NotResolved,
 }
 
 impl<'config> Host<'config> {
@@ -55,6 +60,7 @@ impl<'config> Host<'config> {
                 Err(UnknownRemoteHostError(host_url.to_owned()))
             }
             Self::Local(local_host) => Ok(&local_host.name),
+            Self::NotResolved => panic!("Error in the code"),
         }
     }
 
@@ -66,6 +72,7 @@ impl<'config> Host<'config> {
                 Err(UnknownRemoteHostError(host_url.to_owned()))
             }
             Self::Local(local_host) => Ok(local_host.dir_name()),
+            Self::NotResolved => panic!("Error in the code"),
         }
     }
 
@@ -83,6 +90,7 @@ impl<'config> Host<'config> {
             Self::Remote(remote_host) => remote_host.repr(),
             Self::UnknownRemote(_, unknown_host) => unknown_host.repr(),
             Self::Local(local_host) => local_host.repr(),
+            Self::NotResolved => panic!("Error in the code"),
         }
     }
 }
@@ -163,13 +171,14 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
     //.or(re_local.captures(url))
 }
 
-#[derive(Debug, Clone, Hash, PartialEq)]
+#[derive(Debug, Clone, Hash, PartialEq, Serialize, Deserialize, Default)]
 /// Repository Identifier
 pub struct RepoId<'config> {
     /// Remote URL of the repository. This is the URL of the remote which is
     /// used to deduce the repository path in the repo tree, in case your
     /// repository has several ones. None if the repository is local.
     pub remote_url: Option<String>,
+    #[serde(skip)]
     /// Information about the host associated with the repository.
     pub host: Host<'config>,
     /// Name of the repository.
