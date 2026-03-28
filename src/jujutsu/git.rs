@@ -32,11 +32,19 @@ fn new_jj_command() -> Command {
     Command::new(which("jj").expect("Jujutsu not installed"))
 }
 
-pub fn clone<P: AsRef<OsStr>>(remote_url: &str, location: P) -> i32 {
+pub fn clone<P: AsRef<OsStr>>(
+    remote_url: &str,
+    location: P,
+    colocated: bool,
+) -> i32 {
     new_jj_command()
         .arg("git")
         .arg("clone")
-        .arg("--no-colocate")
+        .arg(if colocated {
+            "--colocated"
+        } else {
+            "--no-colocate"
+        })
         .arg(remote_url)
         .arg(location)
         .status()
