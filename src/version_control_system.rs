@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[derive(
-    Debug, Copy, Clone, ValueEnum, PartialEq, Deserialize, Serialize, Default,
+    Debug, Copy, Clone, PartialEq, Default, ValueEnum, Serialize, Deserialize,
 )]
 #[serde(rename_all = "kebab-case")]
 /// Representation of the different types of version control system supported.
