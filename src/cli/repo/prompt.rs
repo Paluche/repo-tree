@@ -11,6 +11,7 @@ use crate::error::NoRepositoryError;
 use crate::git;
 use crate::jujutsu;
 use crate::prompt_builder::PromptBuilder;
+use crate::repository::Repositories;
 use crate::repository::Repository;
 use crate::version_control_system::VersionControlSystem;
 
@@ -20,10 +21,17 @@ pub struct PromptArgs {
     /// Path to within the repository to work with.
     #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
     repository: Option<String>,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 /// Execute `rt repo prompt` command.
 pub fn run(config: &Config, args: PromptArgs) -> i32 {
+    if args.refresh_cache {
+        Repositories::load(config, true);
+    }
+
     let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);
 

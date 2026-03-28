@@ -15,11 +15,14 @@ pub struct ResolveArgs {
     /// repo_tree.
     #[arg(add=ArgValueCompleter::new(resolve_completer))]
     repo_id: Option<String>,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 /// Execute the `rt resolve` command.
 pub fn run(config: &Config, args: ResolveArgs) -> i32 {
-    let repositories = Repositories::load(config);
+    let repositories = Repositories::load(config, args.refresh_cache);
     if let Some(repository) = match resolve(config, &repositories, args.repo_id)
     {
         Ok(r) => r,

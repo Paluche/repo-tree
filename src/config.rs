@@ -330,9 +330,9 @@ pub struct CommandConfig {
 /// Configuration of the rt executable.
 #[derive(Deserialize, Default, Debug)]
 pub struct Config {
-    // Value obtained through environment variable REPO_TREE_DIR.
-    /// Path the root of the repo tree.
-    #[serde(skip_deserializing)]
+    /// Path the root of the repo tree. Value obtained through environment
+    /// variable REPO_TREE_DIR.
+    #[serde(skip)]
     pub repo_tree_dir: PathBuf,
     /// Configuration related to the hosts we know how to organize repositories
     /// which host there remote.

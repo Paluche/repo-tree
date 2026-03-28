@@ -12,6 +12,9 @@ mod status;
 pub struct GitArgs {
     #[command(subcommand)]
     action: GitAction,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]

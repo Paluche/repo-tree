@@ -19,11 +19,14 @@ pub struct RmArgs {
     /// Force the removal of the repository, even if it is not empty.
     #[arg(short, long)]
     force: bool,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 /// Execute the `rt rm` command.
 pub fn run(config: &Config, args: RmArgs) -> i32 {
-    let repositories = Repositories::load(config);
+    let repositories = Repositories::load(config, args.refresh_cache);
     let repository = match resolve(config, &repositories, args.repo_id) {
         Ok(v) => match v {
             Some(repo) => repo,
@@ -82,6 +85,9 @@ pub fn run(config: &Config, args: RmArgs) -> i32 {
             break;
         }
     }
+
+    // Refresh the cache.
+    Repositories::load(config, true);
 
     0
 }

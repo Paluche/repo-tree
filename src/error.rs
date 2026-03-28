@@ -22,3 +22,8 @@ pub struct NoRepositoryError(pub PathBuf);
 #[error("Missing host configuration for {0}")]
 /// Error during the parsing of the remote URL.
 pub struct UnknownRemoteHostError(pub String);
+
+#[derive(Debug, Error)]
+#[error("No cache file to load")]
+/// Error during the parsing of the remote URL.
+pub struct NoCacheError();

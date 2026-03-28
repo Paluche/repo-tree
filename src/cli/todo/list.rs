@@ -33,6 +33,9 @@ pub struct ListArgs {
     /// Show a state for all repositories.
     #[arg(short, long, action=ArgAction::SetTrue)]
     verbose: bool,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 /// Execute the `rt todo list` command.
@@ -42,8 +45,9 @@ pub fn run(config: &Config, args: ListArgs) -> i32 {
     let mut n_a: usize = 0;
     let mut skipped: usize = 0;
 
-    for repository in
-        Repositories::load_filtered(config, args.hosts, args.names).iter()
+    for repository in Repositories::load(config, args.refresh_cache)
+        .filtered(config, args.hosts, args.names)
+        .iter()
     {
         let id = format!(
             "{} {:20}",

@@ -12,6 +12,7 @@ use crate::config::Config;
 use crate::git::GitStatus;
 use crate::git::SubmoduleStatus;
 use crate::git::{self};
+use crate::repository::Repositories;
 use crate::repository::Repository;
 
 /// Custom git status. Concise, with all the data and without help text.
@@ -25,6 +26,9 @@ pub struct StatusArgs {
     /// current working directory.
     #[arg(long, action=ArgAction::SetTrue)]
     no_relative_path: bool,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 /// Build the multi-line string representing a repository status.
@@ -122,6 +126,10 @@ fn format_repo_status(
 
 /// Execute the `rt git status` command.
 pub fn run(config: &Config, args: StatusArgs) -> i32 {
+    if args.refresh_cache {
+        Repositories::load(config, true);
+    }
+
     let repo_path = cwd_default_path(args.repository);
     let repository = match Repository::discover(config, repo_path.clone()) {
         Ok(r) => r,

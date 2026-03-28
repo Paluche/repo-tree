@@ -19,6 +19,9 @@ pub struct ResolveUrlArgs {
     /// repo_tree.
     #[arg(add=ArgValueCompleter::new(resolve_completer))]
     repo_id: String,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 /// Get the map associating remote URL to the repository present in the repo
@@ -31,7 +34,7 @@ fn get_candidates(repositories: &Repositories) -> BTreeMap<&String, &PathBuf> {
 
 /// Execute the `rt resolve-url` command.
 pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
-    let repositories = Repositories::load(config);
+    let repositories = Repositories::load(config, args.refresh_cache);
     let candidates = get_candidates(&repositories);
     if let Some(repo) = candidates.get(&args.repo_id) {
         println!("{}", repo.display());
@@ -84,7 +87,7 @@ fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
         return vec![];
     };
 
-    let repositories = Repositories::load_silent(&config);
+    let repositories = Repositories::load_silent(&config, false);
     let candidates = get_candidates(&repositories);
     let matcher = SkimMatcherV2::default();
 

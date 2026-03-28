@@ -10,7 +10,6 @@ use clap::Args;
 use crate::config::Config;
 use crate::repository::Repositories;
 use crate::repository::Repository;
-use crate::repository::load_empty_dirs;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
@@ -24,7 +23,9 @@ pub struct CleanArgs {
 
 /// Execute the `rt clean` command.
 pub fn run(config: &Config, args: CleanArgs) -> i32 {
-    let repositories = Repositories::load_silent(config);
+    // Do not use the cache, assure we have an up-to-date list of repositories
+    // before doing any action that will modify the directories.
+    let repositories = Repositories::load_silent(config, true);
     let repos_to_move: Vec<&Repository> = repositories
         .iter()
         .filter(|r| match r.expected_root(config) {
@@ -74,7 +75,16 @@ pub fn run(config: &Config, args: CleanArgs) -> i32 {
 
     let mut first = true;
     loop {
-        let empty_dirs = load_empty_dirs(config);
+        // Force the cache to be refreshed at the same time as loading the empty
+        // directories.
+        let (_, Some(empty_dirs)) =
+            Repositories::load_silent_with_empty_dirs(config, true)
+        else {
+            panic!(
+                "Cache forced to be refreshed so empty_dirs should be \
+                 available"
+            );
+        };
 
         if empty_dirs.is_empty() {
             if first {

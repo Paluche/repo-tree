@@ -14,6 +14,9 @@ use crate::config::Config;
 pub struct TodoArgs {
     #[command(subcommand)]
     action: TodoAction,
+    /// Force recreating the cache.
+    #[arg(short = 'R', long, global = true)]
+    refresh_cache: bool,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
