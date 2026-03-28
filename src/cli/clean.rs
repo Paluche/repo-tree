@@ -8,9 +8,9 @@ use std::fs::rename;
 use clap::Args;
 
 use crate::Config;
+use crate::Repositories;
 use crate::Repository;
 use crate::load_empty_dirs;
-use crate::load_repositories_silent;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
@@ -24,8 +24,9 @@ pub struct CleanArgs {
 
 /// Execute the `rt clean` command.
 pub fn run(config: &Config, args: CleanArgs) -> i32 {
-    let repositories = load_repositories_silent(config)
-        .into_iter()
+    let repositories = Repositories::load_silent(config);
+    let repos_to_move: Vec<&Repository> = repositories
+        .iter()
         .filter(|r| match r.expected_root(config) {
             Ok(v) => v.is_some_and(|p| p != r.root),
             Err(err) => {
@@ -33,15 +34,15 @@ pub fn run(config: &Config, args: CleanArgs) -> i32 {
                 false
             }
         })
-        .collect::<Vec<Repository>>();
+        .collect();
 
     let mut ret = 0;
 
-    if repositories.is_empty() {
+    if repos_to_move.is_empty() {
         println!("All repositories are where they belong");
     } else {
         println!("Repositories to move:");
-        for repository in repositories {
+        for repository in repos_to_move {
             let expected_root =
                 repository.expected_root(config).unwrap().unwrap();
             println!(
@@ -64,7 +65,7 @@ pub fn run(config: &Config, args: CleanArgs) -> i32 {
                 ret = 1;
             }
 
-            if let Err(err) = rename(repository.root, expected_root) {
+            if let Err(err) = rename(&repository.root, expected_root) {
                 eprintln!("{err}");
                 ret = 1;
             }

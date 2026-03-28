@@ -1,5 +1,6 @@
 //! Action to resolve the path to a repository from its name or alias.
 use std::collections::HashMap;
+use std::error::Error;
 use std::io::Write;
 use std::iter::zip;
 use std::process::Command;
@@ -15,8 +16,8 @@ use itertools::Itertools;
 use which::which;
 
 use crate::Config;
+use crate::Repositories;
 use crate::Repository;
-use crate::load_repositories;
 
 /// Resolve the name of a repository into its path.
 #[derive(Args, Debug, PartialEq)]
@@ -28,7 +29,7 @@ pub struct ResolveArgs {
 }
 
 /// Find the shortest end-path to identify two
-fn reduce(path_a: String, path_b: String) -> Option<(String, String)> {
+fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
     let mut ret_a = Vec::new();
     let mut ret_b = Vec::new();
     for (a, b) in zip(
@@ -53,32 +54,45 @@ fn reduce(path_a: String, path_b: String) -> Option<(String, String)> {
 
 /// Reduce the name of the repositories to the shortest path that identifies
 /// each repositories individually.
-fn reduce_repo_names(
-    repositories: Vec<Repository>,
-) -> HashMap<String, Repository> {
-    let mut ret: HashMap<String, Repository> = HashMap::new();
+fn reduce_repo_names<'config>(
+    repositories: &'config Repositories<'config>,
+) -> HashMap<String, &'config Repository<'config>> {
+    let mut ret: HashMap<String, &Repository> = HashMap::new();
 
-    for repository in repositories {
+    for repository in repositories.iter() {
         let name = repository.id.name.clone();
-        let name = String::from(name.split('/').next_back().unwrap());
-
-        if let Some(conflict) = ret.remove(&name) {
-            if let Some((conflict_name, name)) =
-                reduce(conflict.id.name.clone(), repository.id.name.clone())
-            {
-                ret.insert(conflict_name, conflict);
-                ret.insert(name, repository);
-            } else {
+        if let Ok(full_name) = repository
+            .id
+            .host
+            .name()
+            .inspect_err(|err| eprintln!("{err}"))
+            .map(|host_name| format!("{host_name}/{name}"))
+        {
+            if let Some(conflict) = ret.remove(&full_name) {
                 eprintln!(
                     "Duplicated repository with name {name}: {0} and {1}.
                     {1} is ignored!",
                     conflict.root.display(),
                     repository.root.display(),
                 );
-                ret.insert(name, conflict);
+            }
+            ret.insert(full_name, repository);
+        }
+        let short_name = String::from(name.split('/').next_back().unwrap());
+
+        if name != short_name {
+            ret.insert(name.clone(), repository);
+        }
+
+        if let Some(conflict) = ret.remove(&short_name) {
+            if let Some((conflict_reduced_name, reduced_name)) =
+                reduce(&conflict.id.name, &name)
+            {
+                ret.insert(conflict_reduced_name, conflict);
+                ret.insert(reduced_name, repository);
             }
         } else {
-            ret.insert(name, repository);
+            ret.insert(short_name, repository);
         }
     }
 
@@ -87,19 +101,15 @@ fn reduce_repo_names(
 
 /// Get the map associating valid repository identifiers to the associated
 /// repository present in the repo tree.
-fn get_repositories(config: &Config) -> HashMap<String, Repository<'_>> {
-    let repositories = load_repositories(config);
-
-    let mut ret = reduce_repo_names(repositories.clone());
-
-    ret.extend(repositories.iter().map(|r| (r.id.name.clone(), r.clone())));
+fn get_candidates<'config>(
+    config: &'config Config,
+    repositories: &'config Repositories<'config>,
+) -> HashMap<String, &'config Repository<'config>> {
+    let mut ret = reduce_repo_names(repositories);
 
     for (alias, repo_name) in config.command.resolve.aliases.iter() {
         if let Some(repo) = ret.get(repo_name) {
-            ret.insert(alias.clone(), repo.clone());
-            if let Some(repo) = ret.get(repo_name) {
-                ret.insert(alias.to_string(), repo.clone());
-            }
+            ret.insert(alias.to_string(), repo);
         } else {
             eprintln!(
                 "Configured alias \"{alias}\" => \"{repo_name}\", does not \
@@ -112,70 +122,56 @@ fn get_repositories(config: &Config) -> HashMap<String, Repository<'_>> {
 }
 
 /// Interactively ask the user to select the repository.
-fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
-    let fzf = which("fzf").expect(
-        "fzf not found, cannot interactively ask to select repository.",
-    );
+fn fzf_ask(
+    repositories: &HashMap<String, &Repository>,
+) -> Result<String, Box<dyn Error>> {
+    let fzf = which("fzf")?;
 
     // TODO: The preview of the values is not set, therefore it is displaying
     // bad information / errors.
     let mut child = Command::new(fzf)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .spawn()
-        .ok()?;
+        .spawn()?;
 
     // Provide choices on stdin
     {
         let stdin = child.stdin.as_mut().unwrap();
-        stdin
-            .write_all(&repositories.keys().join("\n").into_bytes())
-            .ok()?;
+        stdin.write_all(&repositories.keys().join("\n").into_bytes())?
     }
 
     // Wait and read selection
-    child.wait_with_output().ok().map(|output| {
-        let res = String::from_utf8_lossy(&output.stdout).into_owned();
-
-        if res.ends_with('\n') {
-            String::from(res.strip_suffix('\n').unwrap())
-        } else {
-            res
-        }
-    })
-}
-
-/// Execute the `rt resolve` command.
-pub fn run(config: &Config, args: ResolveArgs) -> i32 {
-    if let Some(repository) = resolve(config, args.repo_id) {
-        println!("{}", repository.root.display());
-        0
+    let output = child.wait_with_output()?;
+    let res = String::from_utf8_lossy(&output.stdout).into_owned();
+    if let Some(res) = res.strip_suffix('\n') {
+        Ok(res.to_string())
     } else {
-        2
+        Ok(res)
     }
 }
 
 /// Resolve a repository identifier into a local repository.
-pub fn resolve(
-    config: &Config,
+pub fn resolve<'config>(
+    config: &'config Config,
+    repositories: &'config Repositories<'config>,
     repo_id: Option<String>,
-) -> Option<Repository<'_>> {
-    let repositories = get_repositories(config);
+) -> Result<Option<&'config Repository<'config>>, Box<dyn Error>> {
+    let mut candidates = get_candidates(config, repositories);
 
-    let Some(repo_id) = repo_id.or_else(|| fzf_ask(&repositories)) else {
-        eprintln!("No repository selected");
-        return None;
+    let repo_id = match repo_id {
+        Some(repo_id) => repo_id,
+        None => fzf_ask(&candidates)?,
     };
 
-    let repo = repositories.get(&repo_id);
+    let repo = candidates.remove(&repo_id);
 
     if repo.is_some() {
-        return repo.cloned();
+        return Ok(repo);
     }
 
     let matcher = SkimMatcherV2::default();
 
-    let mut matches: Vec<_> = repositories
+    let mut matches: Vec<_> = candidates
         .keys()
         .filter_map(|item| {
             matcher
@@ -186,17 +182,16 @@ pub fn resolve(
 
     if matches.is_empty() {
         eprintln!("No match for {repo_id}");
-        return None;
+        return Ok(None);
     }
 
-    matches.dedup_by_key(|(_, name)| {
-        repositories.get(*name).unwrap().root.to_str()
-    });
+    matches
+        .dedup_by_key(|(_, name)| candidates.get(*name).unwrap().root.to_str());
 
     if matches.len() == 1 {
         let name = matches[0].1;
         eprintln!("Considering you meant {name}");
-        Some(repositories.get(name).unwrap().clone())
+        Ok(Some(candidates.get(name).unwrap()))
     } else {
         eprintln!("Several possible match:");
         // Sort by match score
@@ -206,7 +201,25 @@ pub fn resolve(
             eprintln!("- {name}");
         }
 
-        None
+        Ok(None)
+    }
+}
+
+/// Execute the `rt resolve` command.
+pub fn run(config: &Config, args: ResolveArgs) -> i32 {
+    let repositories = Repositories::load(config);
+    if let Some(repository) = match resolve(config, &repositories, args.repo_id)
+    {
+        Ok(r) => r,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
+    } {
+        println!("{}", repository.root.display());
+        0
+    } else {
+        2
     }
 }
 
@@ -220,13 +233,14 @@ pub fn resolve_completer(
     let Ok(config) = Config::load() else {
         return vec![];
     };
-    let repositories = get_repositories(&config);
+    let repositories = Repositories::load(&config);
+    let candidates = get_candidates(&config, &repositories);
     let matcher = SkimMatcherV2::default();
-    repositories
+    candidates
         .keys()
         .filter_map(|item| {
             matcher.fuzzy_match(item, current).map(|_| {
-                let repository = repositories.get(item).unwrap();
+                let repository = candidates.get(item).unwrap();
 
                 CompletionCandidate::new(item)
                     .tag(

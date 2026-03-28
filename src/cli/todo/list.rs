@@ -9,7 +9,7 @@ use crossterm::terminal::ClearType;
 use crate::NotImplementedError;
 use crate::config::Config;
 use crate::config::list_host_completer;
-use crate::load_filtered_repositories;
+use crate::repository::Repositories;
 
 /// Custom git status. Concise, with all the data and without help text.
 #[derive(Args, Debug, PartialEq)]
@@ -42,7 +42,8 @@ pub fn run(config: &Config, args: ListArgs) -> i32 {
     let mut n_a: usize = 0;
     let mut skipped: usize = 0;
 
-    for repository in load_filtered_repositories(config, args.hosts, args.names)
+    for repository in
+        Repositories::load_filtered(config, args.hosts, args.names).iter()
     {
         let id =
             format!("{} {:20}", repository.id.host.repr(), repository.id.name);

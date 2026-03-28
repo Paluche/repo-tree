@@ -7,12 +7,12 @@ use crossterm::terminal::Clear;
 use crossterm::terminal::ClearType;
 
 use crate::NotImplementedError;
+use crate::Repositories;
 use crate::Repository;
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::config::list_host_completer;
 use crate::error::NoRepositoryError;
-use crate::load_filtered_repositories;
 
 /// Go to the next or previous repository where you have to do something to keep
 /// it up-to-date.
@@ -36,28 +36,6 @@ pub struct NextPrevArgs {
     names: Vec<String>,
 }
 
-/// Iterate the repositories, starting from the specified one.
-fn iter_repos_from<'config>(
-    repositories: Vec<Repository<'config>>,
-    start: Option<Repository<'config>>,
-) -> Box<dyn DoubleEndedIterator<Item = Repository<'config>> + 'config> {
-    if let Some(start) = start {
-        // Use partition_in_place when stable.
-        let mut start_found = false;
-        let (start, end): (Vec<Repository>, Vec<Repository>) =
-            repositories.into_iter().partition(move |r| {
-                if r == &start {
-                    start_found = true;
-                }
-                start_found
-            });
-
-        Box::new(start.into_iter().skip(1).chain(end))
-    } else {
-        Box::new(repositories.into_iter())
-    }
-}
-
 /// Execute the `rt todo next` or `rt todo prev` command.
 pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
     let repo_path = cwd_default_path(None);
@@ -74,16 +52,10 @@ pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
         };
 
     let repositories =
-        load_filtered_repositories(config, args.hosts, args.names);
-
-    let mut repositories = iter_repos_from(repositories, current_repository);
-
-    if reverse {
-        repositories = Box::new(repositories.rev());
-    }
+        Repositories::load_filtered(config, args.hosts, args.names);
 
     // Skip the current repository.
-    for repository in repositories {
+    for repository in repositories.iter_from(&current_repository, reverse) {
         if repository.id.remote_url.is_none() {
             // Local repository.
             continue;
