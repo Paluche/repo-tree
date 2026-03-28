@@ -16,7 +16,7 @@ use crate::repository::Repositories;
 use crate::repository::Repository;
 
 /// Custom git status. Concise, with all the data and without help text.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct StatusArgs {
     /// Path to within the git repository to work with.
     #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]

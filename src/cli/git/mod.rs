@@ -8,7 +8,7 @@ mod status;
 
 /// Actions for git repositories.
 #[allow(clippy::missing_docs_in_private_items)]
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct GitArgs {
     #[command(subcommand)]
     action: GitAction,
@@ -18,7 +18,7 @@ pub struct GitArgs {
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
-#[derive(Subcommand, Debug, PartialEq)]
+#[derive(Subcommand)]
 enum GitAction {
     Status(status::StatusArgs),
 }

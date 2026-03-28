@@ -5,7 +5,7 @@ use crate::config::Config;
 use crate::repository::Repositories;
 
 /// Refresh the repositories cache.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct RefreshCacheArgs {}
 
 /// Execute the `rt refresh-cache` command.

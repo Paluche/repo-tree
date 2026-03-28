@@ -17,7 +17,7 @@ use crate::utils::into_iter_from;
 
 /// Go to the next or previous repository where you have to do something to keep
 /// it up-to-date.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct NextPrevArgs {
     /// Filter the repositories to list by their host. For example, "github" or
     /// "local". Can be specified multiple times.

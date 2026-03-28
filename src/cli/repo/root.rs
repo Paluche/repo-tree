@@ -8,7 +8,7 @@ use crate::version_control_system::VersionControlSystem;
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct RootArgs {
     /// Get the root of the repository the parent directory of the current
     /// working directory is in.

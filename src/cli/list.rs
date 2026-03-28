@@ -8,7 +8,7 @@ use crate::config::list_host_completer;
 use crate::repository::Repositories;
 
 /// List all repositories in the repo_tree.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct ListArgs {
     /// Filter the repositories to list by their host. For example, "github" or
     /// "local". Can be specified multiple times.

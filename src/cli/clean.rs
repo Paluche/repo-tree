@@ -13,7 +13,7 @@ use crate::repository::Repository;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct CleanArgs {
     /// Do not perform any change on the repo_tree. Simply print what would be
     /// done.

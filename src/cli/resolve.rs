@@ -9,7 +9,7 @@ use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 
 /// Resolve the name of a repository into its path.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct ResolveArgs {
     /// Repository identifier to resolve into the actual path within the
     /// repo_tree.

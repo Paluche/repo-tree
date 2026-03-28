@@ -12,7 +12,7 @@ use crate::repository::Repository;
 use crate::version_control_system::VersionControlSystem;
 
 /// Fetch all the repositories within the repo_tree.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct FetchArgs {
     /// Suppress output to the minimum, only the final summary will be printed.
     #[arg(short, long)]

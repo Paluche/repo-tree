@@ -10,7 +10,7 @@ use crate::repository::Repository;
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct RemoteArgs {
     /// Path to within the git repository to work with.
     #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]

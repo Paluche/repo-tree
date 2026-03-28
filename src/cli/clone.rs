@@ -9,7 +9,7 @@ use crate::repository::Repositories;
 use crate::version_control_system::VersionControlSystem;
 
 /// Clone a repository within the repo tree.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct CloneArgs {
     /// Url of the repository to clone.
     url: String,

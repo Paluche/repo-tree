@@ -13,7 +13,7 @@ use crate::repository::Repositories;
 use crate::repository::Repository;
 
 /// Clone a repository within the repo tree.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct InsertArgs {
     /// Path to the repository to insert.
     #[arg(add=ArgValueCompleter::new(PathCompleter::dir()))]

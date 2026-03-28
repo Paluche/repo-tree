@@ -13,7 +13,7 @@ use crate::config::Config;
 use crate::repository::Repositories;
 
 /// Resolve the URL of a repository into its path.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct ResolveUrlArgs {
     /// Repository identifier to resolve into the actual path within the
     /// repo_tree.

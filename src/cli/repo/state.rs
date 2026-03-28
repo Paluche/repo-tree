@@ -10,7 +10,7 @@ use crate::repository::Repository;
 
 /// Find out if there is something to do by the user in order to keep this
 /// repository updated.
-#[derive(Args, Debug, PartialEq)]
+#[derive(Args)]
 pub struct StateArgs {
     /// Path to within the git repository to work with.
     #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
