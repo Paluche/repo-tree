@@ -32,6 +32,13 @@ struct Color {
     color: Option<colored::Color>,
 }
 
+impl Color {
+    #[cfg(test)]
+    fn new_color(color: colored::Color) -> Self {
+        Self { color: Some(color) }
+    }
+}
+
 impl FromStr for Color {
     type Err = ();
 
@@ -91,83 +98,25 @@ impl<'de> Deserialize<'de> for Color {
                     .map(Color::from)
             }
 
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
             where
-                A: serde::de::MapAccess<'de>,
+                A: serde::de::SeqAccess<'de>,
             {
-                let mut r: Option<u8> = None;
-                let mut g: Option<u8> = None;
-                let mut b: Option<u8> = None;
+                let r = seq.next_element()?;
+                let g = seq.next_element()?;
+                let b = seq.next_element()?;
 
-                while let Some((key, value)) = map.next_entry::<&str, i64>()? {
-                    match key {
-                        "r" => {
-                            let value = u8::try_from(value).map_err(|_| {
-                                serde::de::Error::custom(format!(
-                                    "r (red) color value out of range: {value}"
-                                ))
-                            })?;
-                            r = Some(value);
-                        }
-                        "g" => {
-                            let value = u8::try_from(value).map_err(|_| {
-                                serde::de::Error::custom(format!(
-                                    "g (green) color value out of range: \
-                                     {value}"
-                                ))
-                            })?;
-                            g = Some(value);
-                        }
-                        "b" => {
-                            let value = u8::try_from(value).map_err(|_| {
-                                serde::de::Error::custom(format!(
-                                    "b (blue) color value out of range: \
-                                     {value}"
-                                ))
-                            })?;
-                            b = Some(value);
-                        }
-                        key => {
-                            return Err(serde::de::Error::custom(format!(
-                                "Unexpected key {key}"
-                            )));
-                        }
-                    }
-                }
-
-                let mut msg = String::new();
-
-                if r.is_none() {
-                    msg.push('r');
-                }
-                if g.is_none() {
-                    if !msg.is_empty() {
-                        msg.push_str(", ")
-                    }
-                    msg.push('g')
-                }
-                if b.is_none() {
-                    if !msg.is_empty() {
-                        msg.push_str(", ")
-                    }
-                    msg.push('b')
-                }
-
-                if msg.is_empty() {
-                    Ok(Color::true_color(r.unwrap(), g.unwrap(), b.unwrap()))
-                } else {
-                    Err(serde::de::Error::custom(format!(
-                        "Missing keys: {msg}"
-                    )))
-                }
+                Ok(Color::true_color(r.unwrap(), g.unwrap(), b.unwrap()))
             }
 
             fn expecting(
                 &self,
                 formatter: &mut std::fmt::Formatter,
             ) -> std::fmt::Result {
-                formatter
-                    .write_str("a string or an integer representing a color")
+                formatter.write_str(
+                    "a string, an integer or an array of 3 elements \
+                     representing a color",
+                )
             }
         }
 
@@ -501,7 +450,7 @@ mod tests {
 
     #[test]
     fn full_config() -> Result<(), Box<dyn Error>> {
-        let _: Config = toml::from_str(indoc! {r#"
+        let config: Config = toml::from_str(indoc! {r#"
         [host."my.custom-domain.fr"]
         name = 'mine'
         repr = '󱘎'
@@ -515,8 +464,6 @@ mod tests {
 
         [host."busybox.net"]
         name = 'busybox'
-        repr = ''
-        repr_color = 'green'
 
         [host."blabla.net"]
         name = 'blabla'
@@ -526,10 +473,7 @@ mod tests {
         [host."alice-and-bob.net"]
         name = 'alice-and-bob'
         repr = ''
-        [host."alice-and-bob.net".repr_color]
-        r = 48
-        g = 15
-        b = 16
+        repr_color = [48, 15, 16]
 
         [local]
         name = 'local'
@@ -546,6 +490,133 @@ mod tests {
         default_vcs = 'jujutsu'
         "#
         })?;
+
+        let expected_keys = [
+            "my.custom-domain.fr",
+            "git.buildroot.net",
+            "busybox.net",
+            "blabla.net",
+            "alice-and-bob.net",
+        ];
+
+        for key in config.remote_hosts.keys() {
+            assert!(
+                expected_keys.iter().find(|v| v == &key).is_some(),
+                "Host \"{key}\" not expected"
+            );
+        }
+
+        for key in expected_keys.iter() {
+            assert!(
+                config.remote_hosts.keys().find(|v| v == key).is_some(),
+                "Missing host \"{key}\""
+            );
+        }
+
+        #[allow(clippy::too_many_arguments)]
+        fn check_remote_host(
+            config: &Config,
+            key: &str,
+            name: &str,
+            dir_name: Option<&str>,
+            actual_dir_name: &str,
+            repr: Option<&str>,
+            repr_color: Color,
+            actual_repr: String,
+        ) {
+            let remote_host =
+                config.remote_hosts.get(key).unwrap_or_else(|| {
+                    panic!("Missing expected remote host \"{key}\"")
+                });
+            assert_eq!(remote_host.name, name);
+            assert_eq!(remote_host.dir_name, dir_name.map(|v| v.to_string()));
+            assert_eq!(remote_host.dir_name(), actual_dir_name);
+            assert_eq!(remote_host.repr, repr.map(|v| v.to_string()));
+            assert_eq!(remote_host.repr_color, repr_color);
+            assert_eq!(remote_host.repr(), actual_repr);
+        }
+
+        check_remote_host(
+            &config,
+            "my.custom-domain.fr",
+            "mine",
+            None,
+            "mine",
+            Some("󱘎"),
+            Color::new_color(colored::Color::Blue),
+            "󱘎".blue().to_string(),
+        );
+        check_remote_host(
+            &config,
+            "git.buildroot.net",
+            "buildroot",
+            Some("."),
+            ".",
+            Some("󰥯"),
+            Color::new_color(colored::Color::Yellow),
+            "󰥯".yellow().to_string(),
+        );
+        check_remote_host(
+            &config,
+            "busybox.net",
+            "busybox",
+            None,
+            "busybox",
+            None,
+            Color::default(),
+            "busybox".to_string(),
+        );
+        check_remote_host(
+            &config,
+            "blabla.net",
+            "blabla",
+            None,
+            "blabla",
+            Some(""),
+            Color::new_color(colored::Color::AnsiColor(124)),
+            "".ansi_color(124).to_string(),
+        );
+        check_remote_host(
+            &config,
+            "alice-and-bob.net",
+            "alice-and-bob",
+            None,
+            "alice-and-bob",
+            Some(""),
+            Color::true_color(48, 15, 16),
+            ""
+                .color(colored::Color::TrueColor {
+                    r: 48,
+                    g: 15,
+                    b: 16,
+                })
+                .to_string(),
+        );
+        // Check local
+        assert_eq!(config.local.name, "local");
+        assert_eq!(config.local.dir_name, None);
+        assert_eq!(config.local.dir_name(), "local");
+        assert_eq!(config.local.repr, Some("󰋊".to_string()));
+        assert_eq!(
+            config.local.repr_color,
+            Color::new_color(colored::Color::White)
+        );
+        assert_eq!(config.local.repr(), "󰋊".white().to_string());
+        // Check resolve command configuration
+        assert_eq!(
+            config.command.resolve.aliases,
+            BTreeMap::from_iter(
+                vec![("rt".to_string(), "repo-tree".to_string())].into_iter()
+            )
+        );
+        // Check todo command configuration
+        assert_eq!(config.command.todo.ignore, vec!["Paluche/jj-test-repo"]);
+        // Check clone command configuration
+        assert_eq!(
+            config.command.clone.default_vcs,
+            VersionControlSystem::Jujutsu
+        );
+
         Ok(())
     }
 }
