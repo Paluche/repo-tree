@@ -23,6 +23,8 @@ use colored::Colorize;
 use colored::{self};
 use globset::Glob;
 use serde::Deserialize;
+use serde::Serialize;
+use serde::ser::SerializeSeq;
 
 use crate::version_control_system::VersionControlSystem;
 
@@ -125,6 +127,61 @@ impl<'de> Deserialize<'de> for Color {
     }
 }
 
+impl Serialize for Color {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self.color {
+            Some(c) => match c {
+                colored::Color::Black => serializer.serialize_str("black"),
+                colored::Color::Red => serializer.serialize_str("red"),
+                colored::Color::Green => serializer.serialize_str("green"),
+                colored::Color::Yellow => serializer.serialize_str("yellow"),
+                colored::Color::Blue => serializer.serialize_str("blue"),
+                colored::Color::Magenta => serializer.serialize_str("magenta"),
+                colored::Color::Cyan => serializer.serialize_str("cyan"),
+                colored::Color::White => serializer.serialize_str("white"),
+                colored::Color::BrightBlack => {
+                    serializer.serialize_str("bright black")
+                }
+                colored::Color::BrightRed => {
+                    serializer.serialize_str("bright red")
+                }
+                colored::Color::BrightGreen => {
+                    serializer.serialize_str("bright green")
+                }
+                colored::Color::BrightYellow => {
+                    serializer.serialize_str("bright yellow")
+                }
+                colored::Color::BrightBlue => {
+                    serializer.serialize_str("bright blue")
+                }
+                colored::Color::BrightMagenta => {
+                    serializer.serialize_str("bright magenta")
+                }
+                colored::Color::BrightCyan => {
+                    serializer.serialize_str("bright cyan")
+                }
+                colored::Color::BrightWhite => {
+                    serializer.serialize_str("bright white")
+                }
+                colored::Color::AnsiColor(n) => {
+                    serializer.serialize_i64(n.into())
+                }
+                colored::Color::TrueColor { r, g, b } => {
+                    let mut seq = serializer.serialize_seq(Some(3))?;
+                    seq.serialize_element(&r)?;
+                    seq.serialize_element(&g)?;
+                    seq.serialize_element(&b)?;
+                    seq.end()
+                }
+            },
+            None => serializer.serialize_none(),
+        }
+    }
+}
+
 impl Hash for Color {
     fn hash<H: Hasher>(&self, state: &mut H) {
         state.write_u32(match self.color {
@@ -194,7 +251,7 @@ trait HostInfoRaw {
 /// RemoteHost and LocalHost follows the same content and functions.
 macro_rules! define_host_struct {
     ($name:ident, $def:ident ) => {
-        #[derive(Deserialize, Clone, Debug, PartialEq, Hash)]
+        #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Hash)]
         /// Representation of a repository $def host.
         pub struct $name {
             /// Name of the remote host.
@@ -310,7 +367,7 @@ impl Default for LocalHost {
 
 /// Configuration when having to handle an unknown host (unknown from the
 /// configuration).
-#[derive(Deserialize, Hash, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, Hash, PartialEq, Debug)]
 pub struct UnknownHost {
     /// Short representation to use is the host is unknown
     repr: String,
@@ -337,7 +394,7 @@ impl Default for UnknownHost {
 }
 
 /// Configuration regardin allowed the repository location.
-#[derive(Deserialize, Hash, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Hash, PartialEq, Debug)]
 pub struct RepositoryLocation {
     /// List of glob patterns, any repositories path matching one of the
     /// defined pattern will be allowed to live outside the repo tree. No
@@ -385,7 +442,7 @@ impl Default for RepositoryLocation {
 }
 
 /// Configuration for the `rt clone` command.
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct CloneCommandConfig {
     /// Default version control system to use to clone a repository in the repo
     /// tree.
@@ -394,7 +451,7 @@ pub struct CloneCommandConfig {
 }
 
 /// Configuration for the `rt resolve` command.
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct ResolveCommandConfig {
     /// Resolution aliases.
     #[serde(default)]
@@ -402,7 +459,7 @@ pub struct ResolveCommandConfig {
 }
 
 /// Configuration for the `rt todo` command.
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct TodoCommandConfig {
     /// List of ID of repositories to be ignored by the command.
     #[serde(default)]
@@ -410,7 +467,7 @@ pub struct TodoCommandConfig {
 }
 
 /// Configuration for `rt` commands.
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct CommandConfig {
     /// Configuration for `rt clone`.
     pub clone: CloneCommandConfig,
@@ -421,7 +478,7 @@ pub struct CommandConfig {
 }
 
 /// Configuration of the rt executable.
-#[derive(Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Config {
     /// Path the root of the repo tree. Value obtained through environment
     /// variable REPO_TREE_DIR.
@@ -734,12 +791,59 @@ mod tests {
             VersionControlSystem::JujutsuGit
         );
 
+        // Check the serialized output if the expected one.
+        insta::assert_snapshot!(toml::to_string(&config)?, @r#"
+        [host."bitbucket.org"]
+        name = "bitbucket"
+        repr = ""
+        repr_color = "blue"
+
+        [host."codeberg.org"]
+        name = "codeberg"
+        repr = ""
+        repr_color = "blue"
+
+        [host."git.kernel.org"]
+        name = "kernel"
+        repr = ""
+        repr_color = "white"
+
+        [host."github.com"]
+        name = "github"
+        repr = ""
+        repr_color = "white"
+
+        [host."gitlab.com"]
+        name = "gitlab"
+        repr = "󰮠"
+        repr_color = 166
+
+        [local]
+        name = "local"
+        repr = "󰋊"
+        repr_color = "white"
+
+        [repository]
+        ignore = ["/tmp/**", "**/.*/**"]
+        extend_ignore = []
+
+        [unknown_host]
+        repr = ""
+        repr_color = "red"
+
+        [command.clone]
+        default_vcs = "jujutsu-git"
+
+        [command.resolve.aliases]
+
+        [command.todo]
+        ignore = []
+        "#);
+
         Ok(())
     }
 
-    #[test]
-    fn full_config() -> Result<(), Box<dyn Error>> {
-        let config = Config::load_internal(indoc! {r#"
+    const FULL_TEST_CONFIG: &str = indoc! {r#"
         [host."my.custom-domain.fr"]
         name = 'mine'
         repr = '󱘎'
@@ -778,7 +882,11 @@ mod tests {
         [command.clone]
         default_vcs = 'jujutsu'
         "#
-        })?;
+    };
+
+    #[test]
+    fn full_config() -> Result<(), Box<dyn Error>> {
+        let config = Config::load_internal(FULL_TEST_CONFIG)?;
 
         check_remote_hosts(
             &config,
@@ -928,6 +1036,60 @@ mod tests {
             config.command.clone.default_vcs,
             VersionControlSystem::Jujutsu
         );
+        Ok(())
+    }
+
+    #[test]
+    fn serialize_deserialize() -> Result<(), Box<dyn Error>> {
+        let config: Config = toml::from_str(FULL_TEST_CONFIG)?;
+
+        insta::assert_snapshot!(toml::to_string(&config)?, @r#"
+        [host."alice-and-bob.net"]
+        name = "alice-and-bob"
+        repr = ""
+        repr_color = [48, 15, 16]
+
+        [host."blabla.net"]
+        name = "blabla"
+        repr = ""
+        repr_color = 124
+
+        [host."busybox.net"]
+        name = "busybox"
+
+        [host."git.buildroot.net"]
+        name = "buildroot"
+        dir_name = "."
+        repr = "󰥯"
+        repr_color = "yellow"
+
+        [host."my.custom-domain.fr"]
+        name = "mine"
+        repr = "󱘎"
+        repr_color = "blue"
+
+        [local]
+        name = "local"
+        repr = "󰋊"
+        repr_color = "white"
+
+        [repository]
+        ignore = ["/tmp/**", "**/.*/**"]
+        extend_ignore = []
+
+        [unknown_host]
+        repr = ""
+        repr_color = "red"
+
+        [command.clone]
+        default_vcs = "jujutsu"
+
+        [command.resolve.aliases]
+        rt = "repo-tree"
+
+        [command.todo]
+        ignore = ["Paluche/jj-test-repo"]
+        "#);
 
         Ok(())
     }
