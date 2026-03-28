@@ -121,6 +121,12 @@ fn fzf_ask(
     // TODO: The preview of the values is not set, therefore it is displaying
     // bad information / errors.
     let mut child = Command::new(fzf)
+        .arg("--preview")
+        .arg(
+            "rt repo state --color always --verbose --repository \"$(rt \
+             resolve {})\"",
+        )
+        .arg("--preview-label=STATE")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
