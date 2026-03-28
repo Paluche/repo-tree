@@ -166,13 +166,12 @@ repr_color = 'white'  # Color to use to colorize the 'repr' value. Optional,
                       # defaults to no color.
 ```
 
+The default configuration for the local host is the following:
+
 ```toml
 [local]
 name = 'local'
 repr = '󰋊'
-
-[command.clone]
-vcs = 'jujutsu-git'
 ```
 
 ### Configuring `rt resolve` command
