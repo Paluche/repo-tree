@@ -97,9 +97,9 @@ instance). You have several option to specify the color to use.
 - `int`: Value between 0 and 255 included, corresponding to the
   [ANSI color](https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit) associated
   with that number.
-- `map` specifying the three items with keys `r`, `g`, `b` and each a integer
-  value between 0 and 255 included. Each item respectively represent the red,
-  green and blue component of the color you want.
+- `[int, int, int]`: Corresponding to the three color components, respectively
+  red, green and blue, of the color you want. Each component value being
+  between 0 and 255 included.
 
 ### Configuring known hosts
 
