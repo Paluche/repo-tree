@@ -5,6 +5,7 @@ pub mod submodules;
 
 use std::ffi::OsStr;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 pub use prompt::prompt;
@@ -19,17 +20,19 @@ use which::which;
 /// defined remote.
 pub fn get_remote_url_repo(
     repo: &git2::Repository,
-) -> Result<Option<String>, git2::Error> {
-    Ok(repo
-        .find_remote("origin")
-        .map_or(
-            match repo.remotes()?.get(0) {
-                Some(name) => Some(repo.find_remote(name)?),
-                None => None,
-            },
-            Some,
-        )
-        .and_then(|r| r.url().map(String::from)))
+) -> Result<(PathBuf, Option<String>), git2::Error> {
+    Ok((
+        repo.path().join("config"),
+        repo.find_remote("origin")
+            .map_or(
+                match repo.remotes()?.get(0) {
+                    Some(name) => Some(repo.find_remote(name)?),
+                    None => None,
+                },
+                Some,
+            )
+            .and_then(|r| r.url().map(String::from)),
+    ))
 }
 
 /// Start a new git command line.
@@ -42,10 +45,8 @@ fn new_git_command() -> Command {
 /// defined remote.
 pub fn get_remote_url<P: AsRef<Path>>(
     repo_path: P,
-) -> Result<Option<String>, git2::Error> {
-    let repo = git2::Repository::discover(repo_path)?;
-
-    get_remote_url_repo(&repo)
+) -> Result<(PathBuf, Option<String>), git2::Error> {
+    git2::Repository::discover(repo_path).and_then(|r| get_remote_url_repo(&r))
 }
 
 /// Clone a Git repository.

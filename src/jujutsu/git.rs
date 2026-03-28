@@ -4,6 +4,7 @@ use std::ffi::OsStr;
 use std::fs::canonicalize;
 use std::fs::read_to_string;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 
 use which::which;
@@ -25,7 +26,7 @@ pub fn get_git_backend_repo<P: AsRef<Path>>(
 /// Get the remote URL of the repository.
 pub fn get_remote_url<P: AsRef<Path>>(
     repo_path: P,
-) -> Result<Option<String>, Box<dyn Error>> {
+) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {
     Ok(git::get_remote_url_repo(&get_git_backend_repo(repo_path)?)?)
 }
 
