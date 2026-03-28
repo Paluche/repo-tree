@@ -1,10 +1,12 @@
-//! Representation of a .
+//! Representation of a repository.
 use std::error::Error;
 use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 use std::slice::Iter;
 
+use chrono::DateTime;
+use chrono::Utc;
 use pollster::FutureExt;
 use serde::Deserialize;
 use serde::Serialize;
@@ -18,7 +20,29 @@ use crate::error::UnknownRemoteHostError;
 use crate::git::SubmoduleInfo;
 use crate::git::{self};
 use crate::jujutsu;
+use crate::utils::get_last_modified;
 use crate::version_control_system::VersionControlSystem;
+
+/// Metadata about the file containing the
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+struct RemoteConfig {
+    /// Path to the file containing the remote information.
+    file: PathBuf,
+    /// Last time the file was modified.
+    last_modified: DateTime<Utc>,
+}
+
+impl RemoteConfig {
+    /// Create a new RemoteConfig structure.
+    fn new(file: PathBuf) -> Result<Self, Box<dyn Error>> {
+        let last_modified = get_last_modified(&file)?;
+
+        Ok(Self {
+            file,
+            last_modified,
+        })
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 /// Representation of a repository.
@@ -31,6 +55,8 @@ pub struct Repository<'config> {
     pub root: PathBuf,
     /// Identifier of the repository.
     pub id: RepoId<'config>,
+    /// Path to the file containing the remote information.
+    remote_config: RemoteConfig,
 }
 
 impl<'config> Repository<'config> {
@@ -90,7 +116,7 @@ impl<'config> Repository<'config> {
             return Err(Box::new(NoRepositoryError(root)));
         }
         let (vcs, is_submodule) = vcs.unwrap();
-        let remote_url = match vcs {
+        let (remote_config, remote_url) = match vcs {
             VersionControlSystem::Git | VersionControlSystem::JujutsuGit => {
                 git::get_remote_url(&root)?
             }
@@ -103,6 +129,7 @@ impl<'config> Repository<'config> {
             is_submodule,
             root,
             id,
+            remote_config: RemoteConfig::new(remote_config)?,
         })
     }
 
