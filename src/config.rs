@@ -35,7 +35,7 @@
 //! ```
 
 use core::str::FromStr;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
 use std::ffi::OsStr;
@@ -280,7 +280,7 @@ macro_rules! define_host_struct {
 define_host_struct!(RemoteHost, remote);
 
 /// A group of host as map indexed by the URL of the host.
-type RemoteHosts = HashMap<String, RemoteHost>;
+type RemoteHosts = BTreeMap<String, RemoteHost>;
 
 /// Obtain the default host to add to the configuration if they are not already
 /// configured by the user.
@@ -396,7 +396,7 @@ pub struct CloneCommandConfig {
 pub struct ResolveCommandConfig {
     /// Resolution aliases.
     #[serde(default)]
-    pub aliases: HashMap<String, String>,
+    pub aliases: BTreeMap<String, String>,
 }
 
 /// Configuration for the `rt todo` command.
