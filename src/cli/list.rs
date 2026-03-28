@@ -3,9 +3,9 @@ use clap::ArgAction;
 use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 
+use crate::Repositories;
 use crate::config::Config;
 use crate::config::list_host_completer;
-use crate::load_filtered_repositories;
 
 /// List all repositories in the repo_tree.
 #[derive(Args, Debug, PartialEq)]
@@ -29,7 +29,8 @@ pub struct ListArgs {
 
 /// Execute the `rt list` command.
 pub fn run(config: &Config, args: ListArgs) -> i32 {
-    for repository in load_filtered_repositories(config, args.hosts, args.names)
+    for repository in
+        Repositories::load_filtered(config, args.hosts, args.names).iter()
     {
         println!("{}", repository.root.display());
     }

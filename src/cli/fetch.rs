@@ -5,11 +5,11 @@ use std::error::Error;
 use clap::Args;
 
 use crate::Config;
+use crate::Repositories;
 use crate::Repository;
 use crate::VersionControlSystem;
 use crate::git;
 use crate::jujutsu;
-use crate::load_repositories;
 
 /// Fetch all the repositories within the repo_tree.
 #[derive(Args, Debug, PartialEq)]
@@ -75,7 +75,7 @@ pub fn fetch_repo(
 
 /// Execute `rt fetch` command.
 pub fn run(config: &Config, args: FetchArgs) -> i32 {
-    let repositories = load_repositories(config);
+    let repositories = Repositories::load(config);
 
     let (ok, total) = repositories
         .iter()

@@ -9,8 +9,8 @@ use colored::ColoredString;
 use colored::Colorize;
 
 use crate::Config;
+use crate::Repositories;
 use crate::Repository;
-use crate::load_repositories;
 
 /// Display a tree of your repo_tree.
 #[derive(Args, Debug, PartialEq)]
@@ -52,7 +52,7 @@ struct Directory<'config> {
     /// Childs directories within this directory.
     childs: BTreeMap<String, Self>,
     /// Repository present in this directory.
-    repository: Option<Repository<'config>>,
+    repository: Option<&'config Repository<'config>>,
 }
 
 impl<'config> Directory<'config> {
@@ -75,7 +75,7 @@ impl<'config> Directory<'config> {
     /// repository.
     fn new<T>(
         mut components: T,
-        repository: Repository<'config>,
+        repository: &'config Repository<'config>,
     ) -> Directory<'config>
     where
         T: Iterator<Item = String>,
@@ -99,7 +99,7 @@ impl<'config> Directory<'config> {
     fn insert_internal<T>(
         &mut self,
         mut components: T,
-        repository: Repository<'config>,
+        repository: &'config Repository<'config>,
     ) where
         T: Iterator<Item = String>,
     {
@@ -119,10 +119,10 @@ impl<'config> Directory<'config> {
     fn insert(
         &mut self,
         config: &'config Config,
-        repository: Repository<'config>,
+        repository: &'config Repository<'config>,
     ) {
         self.insert_internal(
-            Self::get_repo_components(config, &repository).into_iter(),
+            Self::get_repo_components(config, repository).into_iter(),
             repository,
         );
     }
@@ -256,10 +256,13 @@ struct RootDirectory<'config> {
 
 impl<'config> RootDirectory<'config> {
     /// Instantiate a RootDirectory.
-    fn new(config: &'config Config) -> Self {
+    fn new(
+        config: &'config Config,
+        repositories: &'config Repositories<'config>,
+    ) -> Self {
         let mut directory: Directory<'config> = Directory::default();
 
-        for repository in load_repositories(config) {
+        for repository in repositories.iter() {
             directory.insert(config, repository);
         }
 
@@ -283,7 +286,10 @@ impl<'config> Display for RootDirectory<'config> {
 
 /// Execute the `rt tree` command.
 pub fn run(config: &Config, _: TreeArgs) -> i32 {
-    println!("{}", RootDirectory::new(config));
+    println!(
+        "{}",
+        RootDirectory::new(config, &Repositories::load(config))
+    );
 
     0
 }

@@ -8,6 +8,7 @@ use super::resolve::resolve;
 use super::resolve::resolve_completer;
 use crate::Config;
 use crate::NotImplementedError;
+use crate::Repositories;
 
 /// Remove a repository from the repo tree.
 #[derive(Args, Debug, PartialEq)]
@@ -22,7 +23,15 @@ pub struct RmArgs {
 
 /// Execute the `rt rm` command.
 pub fn run(config: &Config, args: RmArgs) -> i32 {
-    if let Some(repository) = resolve(config, args.repo_id) {
+    let repositories = Repositories::load(config);
+    if let Some(repository) = match resolve(config, &repositories, args.repo_id)
+    {
+        Ok(v) => v,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
+    } {
         match &repository.state() {
             Ok(repo_state) => {
                 if repo_state.has_unpushed_commits() {
@@ -61,7 +70,7 @@ pub fn run(config: &Config, args: RmArgs) -> i32 {
             .expect("Failed to remove the repository");
 
         // Remove parent directories if they are empty.
-        let parent = repository.root;
+        let parent = &repository.root;
         while let Some(parent) = parent.parent() {
             if parent.read_dir().unwrap().next().is_none() {
                 std::fs::remove_dir(parent).unwrap();

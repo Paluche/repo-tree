@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
+use std::slice::Iter;
 
 use pollster::FutureExt;
 
@@ -186,6 +187,121 @@ fn _search<'config>(
 }
 
 /// Search repositories in the repo tree.
-pub fn search(config: &Config) -> (Vec<Repository<'_>>, Vec<PathBuf>) {
+fn search(config: &Config) -> (Vec<Repository<'_>>, Vec<PathBuf>) {
     _search(config, &config.repo_tree_dir)
+}
+
+/// Load all the repositories present in the repo tree.
+/// Print a warning message if empty directories outside any repository are
+/// found in the repo tree.
+fn load_repositories(config: &Config) -> Vec<Repository<'_>> {
+    let (repositories, empty_dirs) = search(config);
+
+    for empty_dir in empty_dirs {
+        eprintln!("Empty directory in REPO_TREE_DIR: {}", empty_dir.display());
+    }
+
+    repositories
+}
+
+/// Search for empty directories outside any repository are found in the
+/// repo tree.
+pub fn load_empty_dirs(config: &Config) -> Vec<PathBuf> {
+    search(config).1
+}
+
+#[derive(Debug, Clone, PartialEq)]
+/// Repositories present in the repo tree.
+pub struct Repositories<'config> {
+    /// The repositories in the repo tree.
+    repositories: Vec<Repository<'config>>,
+}
+
+impl<'config> Repositories<'config> {
+    /// Load all the repositories present in the repo tree.
+    pub fn load_silent(config: &'config Config) -> Self {
+        Self {
+            repositories: search(config).0,
+        }
+    }
+
+    /// Load all the repositories present in the repo tree.
+    /// Print a warning message if empty directories outside any repository are
+    /// found in the repo tree.
+    pub fn load(config: &'config Config) -> Self {
+        let (repositories, empty_dirs) = search(config);
+
+        for empty_dir in empty_dirs {
+            eprintln!(
+                "Empty directory in REPO_TREE_DIR: {}",
+                empty_dir.display()
+            );
+        }
+
+        Self { repositories }
+    }
+
+    /// Load some of the repositories based on the provided filters.
+    pub fn load_filtered(
+        config: &'config Config,
+        filter_hosts: Vec<String>,
+        filter_names: Vec<String>,
+    ) -> Self {
+        let repositories = load_repositories(config)
+            .into_iter()
+            .filter(|r| {
+                (filter_hosts.is_empty()
+                    || filter_hosts.iter().any(|host| match r.id.host.name() {
+                        Ok(name) => name == host,
+                        Err(err) => {
+                            eprintln!("{err}");
+                            false
+                        }
+                    }))
+                    && (filter_names.is_empty()
+                        || filter_names
+                            .iter()
+                            .any(|name| r.id.name.starts_with(name)))
+            })
+            .collect();
+
+        Self { repositories }
+    }
+
+    /// Iterate the repositories, starting from the specified one.
+    pub fn iter_from(
+        &'config self,
+        start: &'config Option<Repository<'config>>,
+        reverse: bool,
+    ) -> Box<dyn Iterator<Item = &'config Repository<'config>> + 'config> {
+        if let Some(start) = start {
+            if reverse {
+                Box::new(
+                    self.repositories
+                        .iter()
+                        .cycle()
+                        .skip_while(|r| **r != start.clone())
+                        .take_while(|r| **r != start.clone()),
+                )
+            } else {
+                Box::new(
+                    self.repositories
+                        .iter()
+                        .rev()
+                        .cycle()
+                        .skip_while(|r| **r != start.clone())
+                        .take_while(|r| **r != start.clone()),
+                )
+            }
+        } else if reverse {
+            Box::new(self.repositories.iter().rev())
+        } else {
+            Box::new(self.repositories.iter())
+        }
+    }
+
+    /// Obtain an iterator on the repositories.
+    pub fn iter(&self) -> Iter<'_, Repository<'_>> {
+        self.repositories.iter()
+    }
 }

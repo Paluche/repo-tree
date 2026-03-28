@@ -10,7 +10,7 @@ use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 
 use crate::Config;
-use crate::load_repositories;
+use crate::Repositories;
 
 /// Resolve the URL of a repository into its path.
 #[derive(Args, Debug, PartialEq)]
@@ -23,29 +23,28 @@ pub struct ResolveUrlArgs {
 
 /// Get the map associating remote URL to the repository present in the repo
 /// tree.
-fn get_repositories(config: &Config) -> BTreeMap<String, PathBuf> {
-    BTreeMap::from_iter(load_repositories(config).iter().filter_map(
-        |repository| {
-            repository
-                .id
-                .remote_url
-                .clone()
-                .map(|u| (u, repository.root.clone()))
-        },
-    ))
+fn get_candidates(repositories: &Repositories) -> BTreeMap<String, PathBuf> {
+    BTreeMap::from_iter(repositories.iter().filter_map(|repository| {
+        repository
+            .id
+            .remote_url
+            .clone()
+            .map(|u| (u, repository.root.clone()))
+    }))
 }
 
 /// Execute the `rt resolve-url` command.
 pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
-    let repositories = get_repositories(config);
-    if let Some(repo) = repositories.get(&args.repo_id) {
+    let repositories = Repositories::load(config);
+    let candidates = get_candidates(&repositories);
+    if let Some(repo) = candidates.get(&args.repo_id) {
         println!("{}", repo.display());
         return 0;
     }
 
     let matcher = SkimMatcherV2::default();
 
-    let mut matches: Vec<_> = repositories
+    let mut matches: Vec<_> = candidates
         .keys()
         .filter_map(|item| {
             matcher
@@ -59,12 +58,12 @@ pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
         return 1;
     }
 
-    matches.dedup_by_key(|(_, name)| repositories.get(*name).unwrap().to_str());
+    matches.dedup_by_key(|(_, name)| candidates.get(*name).unwrap().to_str());
 
     if matches.len() == 1 {
         let name = matches[0].1;
         eprintln!("Considering you meant {name}");
-        println!("{}", repositories.get(name).unwrap().display());
+        println!("{}", candidates.get(name).unwrap().display());
         0
     } else {
         eprintln!("Several possible match:");
@@ -89,9 +88,11 @@ fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
         return vec![];
     };
 
-    let repositories = get_repositories(&config);
+    let repositories = Repositories::load_silent(&config);
+    let candidates = get_candidates(&repositories);
     let matcher = SkimMatcherV2::default();
-    repositories
+
+    candidates
         .iter()
         .filter_map(|(item, path)| {
             matcher.fuzzy_match(item, current).map(|_| {
