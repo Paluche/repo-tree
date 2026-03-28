@@ -74,6 +74,15 @@ impl From<u8> for Color {
     }
 }
 
+impl Color {
+    /// True RGB color.
+    fn true_color(r: u8, g: u8, b: u8) -> Self {
+        Self {
+            color: Some(colored::Color::TrueColor { r, g, b }),
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for Color {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -104,6 +113,77 @@ impl<'de> Deserialize<'de> for Color {
                         ))
                     })
                     .map(Color::from)
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut r: Option<u8> = None;
+                let mut g: Option<u8> = None;
+                let mut b: Option<u8> = None;
+
+                while let Some((key, value)) = map.next_entry::<&str, i64>()? {
+                    match key {
+                        "r" => {
+                            let value = u8::try_from(value).map_err(|_| {
+                                serde::de::Error::custom(format!(
+                                    "r (red) color value out of range: {value}"
+                                ))
+                            })?;
+                            r = Some(value);
+                        }
+                        "g" => {
+                            let value = u8::try_from(value).map_err(|_| {
+                                serde::de::Error::custom(format!(
+                                    "g (green) color value out of range: \
+                                     {value}"
+                                ))
+                            })?;
+                            g = Some(value);
+                        }
+                        "b" => {
+                            let value = u8::try_from(value).map_err(|_| {
+                                serde::de::Error::custom(format!(
+                                    "b (blue) color value out of range: \
+                                     {value}"
+                                ))
+                            })?;
+                            b = Some(value);
+                        }
+                        key => {
+                            return Err(serde::de::Error::custom(format!(
+                                "Unexpected key {key}"
+                            )));
+                        }
+                    }
+                }
+
+                let mut msg = String::new();
+
+                if r.is_none() {
+                    msg.push('r');
+                }
+                if g.is_none() {
+                    if !msg.is_empty() {
+                        msg.push_str(", ")
+                    }
+                    msg.push('g')
+                }
+                if b.is_none() {
+                    if !msg.is_empty() {
+                        msg.push_str(", ")
+                    }
+                    msg.push('b')
+                }
+
+                if msg.is_empty() {
+                    Ok(Color::true_color(r.unwrap(), g.unwrap(), b.unwrap()))
+                } else {
+                    Err(serde::de::Error::custom(format!(
+                        "Missing keys: {msg}"
+                    )))
+                }
             }
 
             fn expecting(
@@ -435,6 +515,14 @@ mod tests {
             name = 'blabla'
             repr = ''
             repr_color = 124
+
+            [hosts."alice-and-bob.net"]
+            name = 'alice-and-bob'
+            repr = ''
+            [hosts."alice-and-bob.net".repr_color]
+            r = 48
+            g = 15
+            b = 16
 
             [local]
             name = 'local'
