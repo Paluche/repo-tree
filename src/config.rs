@@ -1,28 +1,33 @@
 //! Format of the configuration file.
-//! Should be located in `${XDG_CONFIG_HOME}/repo-tree/config.yml`.
+//! Should be located in `${XDG_CONFIG_HOME}/repo-tree/config.toml`.
 //! If `XDG_CONFIG_HOME` is not set, then we will use the value
 //! `${HOME}/.config` in place.
 //!
-//! Configuration Yaml file has the following syntax:
-//! ```yaml
-//! vcs: <VCS>  # Default VCS used to clone repositories
-//! hosts:
-//!    <URL>:
-//!       name: <HOST PRETTY NAME>
-//!       dir_name: <HOST DIR NAME IN TREE>
-//!       repr: <PROMPT REPRESENTATION>
-//!       repr_COLOR: <COLOR FOR PROMPT REPRESENTATION>
-//! local:
-//!   name: <LOCAL REPOS PRETTY NAME>
+//! The TOML configuration file has the following syntax:
+//! ```toml
+//! [hosts."URL"]
+//! name = 'host_pretty_name'
+//! dir_name: 'host_dir_name_in_tree'  # Optional, defaults to 'name' value.
+//! repr = [PROMPT REPRESENTATION]  # Optional, defaults to 'name' value.
+//! repr_color = 'prompt representation color'  # Optional, as int (ANSI color) or string
+//!                                             # (literal), defaults to no color
+//! [local]  # Optional
+//! name = 'host_pretty_name'  # Defaults, to 'local'.
+//! dir_name: 'host_dir_name_in_tree'  # Optional, defaults to 'name' value.
+//! repr = [PROMPT REPRESENTATION]  # Optional, defaults to 'name' value.
+//! repr_color = 'prompt representation color'  # Optional, as int (ANSI color) or string
+//!                                             # (literal), defaults to no color
+//! [command.resolve.aliases]
+//! alias_name = 'full/repository/id'
+//!
+//! [command.todo]
+//! ignore = [  # List of repositories to ignore.
+//!   'full/repository/id'
+//! ]
+//!
+//! [command.clone]
+//! vcs = '' # Default VCS to clone: 'jujutsu', 'git' or 'jujutsu-git' (default)
 //!   dir_name: <LOCAL REPOS DIR NAME IN TREE>
-//!   repr: <PROMPT REPRESENTATION>
-//!   repr_COLOR: <COLOR FOR PROMPT REPRESENTATION>
-//! vcs: <DEFAULT VCS TO USE>
-//! repo_aliases:
-//!       <alias>: <repo_name>
-//! todo:
-//!   ignore:
-//!      - <repo_name>
 //! ```
 
 use core::str::FromStr;
@@ -30,467 +35,277 @@ use std::{
     collections::HashMap,
     env,
     error::Error,
-    fmt::Display,
+    ffi::OsStr,
     fs,
+    hash::{Hash, Hasher},
     path::{Path, PathBuf},
-    process::exit,
 };
 
-use clap::{ValueEnum, builder::StyledStr};
+use clap::builder::StyledStr;
 use clap_complete::engine::CompletionCandidate;
-use colored::{Color, Colorize};
-use indoc::indoc;
-use yaml_rust2::{Yaml, YamlLoader, yaml::Hash};
+use colored::{self, Colorize};
+use serde::Deserialize;
 
 use crate::VersionControlSystem;
 
-fn get_host_format_help(key: &str, host_key: &str) -> String {
-    format!(
-        indoc! {r#"
-            Expecting "{}" entries in the format
-            {}:
-                name: <string>
-                dir_name: <string> (optional defaults to name)
-                repr: <string> (optional)
-                expr_color: <u8> (color as text or ANSI color number, optional)
-            "#},
-        key, host_key
-    )
+#[derive(Default, Clone, Debug, PartialEq)]
+struct Color {
+    color: Option<colored::Color>,
 }
 
-#[derive(Debug, Clone)]
-struct ParseError {
-    path: PathBuf,
-    msg: String,
+impl FromStr for Color {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self {
+            color: Some(colored::Color::from_str(s)?),
+        })
+    }
 }
 
-impl ParseError {
-    fn new(path: &Path, msg: String) -> Self {
+impl From<u8> for Color {
+    fn from(value: u8) -> Self {
         Self {
-            path: path.to_path_buf(),
-            msg,
-        }
-    }
-
-    fn hosts_error(path: &Path) -> Self {
-        Self::new(path, get_host_format_help("hosts", "<host URL (string)>"))
-    }
-
-    fn local_host_error(path: &Path) -> Self {
-        Self::new(path, get_host_format_help("local", "local"))
-    }
-}
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.path.display(), self.msg)
-    }
-}
-
-impl Error for ParseError {}
-
-fn parser_assert(
-    cond: bool,
-    parse_error: ParseError,
-) -> Result<(), ParseError> {
-    if cond { Ok(()) } else { Err(parse_error) }
-}
-
-#[derive(Clone, Hash, Debug, PartialEq)]
-/// Representation of a repository remote Host.
-pub struct Host {
-    /// Name of the remote host.
-    pub name: String,
-    /// Name of the directory for that host in the repo tree.
-    pub dir_name: String,
-    /// Short representation of the host.
-    pub repr: String,
-}
-
-impl Host {
-    fn new(
-        name: String,
-        dir_name: Option<String>,
-        repr: Option<String>,
-    ) -> Self {
-        let dir_name = dir_name.unwrap_or(name.clone());
-        let repr = repr.unwrap_or(name.clone());
-        Host {
-            name,
-            dir_name,
-            repr,
+            color: Some(colored::Color::AnsiColor(value)),
         }
     }
 }
 
-pub type Hosts = HashMap<String, Host>;
+impl<'de> Deserialize<'de> for Color {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ColorVisitor;
 
-fn parse_hosts(
-    config_path: &Path,
-    hosts: &mut Hosts,
-    value: &Yaml,
-) -> Result<(), ParseError> {
-    let hash = value.as_hash().ok_or_else(|| {
-        ParseError::new(
-            config_path,
-            "B: Expecting only entries in the format: `string: string`"
-                .to_string(),
-        )
-    })?;
+        impl<'de> serde::de::Visitor<'de> for ColorVisitor {
+            type Value = Color;
 
-    for (key, value) in hash {
-        let Some(url) = key.as_str() else {
-            return Err(ParseError::hosts_error(config_path));
-        };
-        let Some(value) = value.as_hash() else {
-            return Err(ParseError::hosts_error(config_path));
-        };
-        let host = parse_host(value, |s: &str| {
-            ParseError::new(
-                config_path,
-                format!(
-                    "Host \"{url}\": {s}.\n{}",
-                    get_host_format_help("hosts", "<host URL (string)>")
-                ),
-            )
-        })?;
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Color::from_str(value).map_err(|_| {
+                    E::custom(format!("Invalid color string: {value}"))
+                })
+            }
 
-        hosts.insert(url.to_string(), host);
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                u8::try_from(value)
+                    .map_err(|_| {
+                        E::custom(format!(
+                            "ANSI Color value out of range: {value}"
+                        ))
+                    })
+                    .map(Color::from)
+            }
+
+            fn expecting(
+                &self,
+                formatter: &mut std::fmt::Formatter,
+            ) -> std::fmt::Result {
+                formatter
+                    .write_str("a string or an integer representing a color")
+            }
+        }
+
+        deserializer.deserialize_any(ColorVisitor)
     }
-
-    Ok(())
 }
 
-fn parse_local_host(
-    config_path: &Path,
-    local: &mut Host,
-    value: &Yaml,
-) -> Result<(), ParseError> {
-    let Some(value) = value.as_hash() else {
-        return Err(ParseError::local_host_error(config_path));
+impl Hash for Color {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u32(match self.color {
+            Some(c) => match c {
+                colored::Color::Black => 0,
+                colored::Color::Red => 1,
+                colored::Color::Green => 2,
+                colored::Color::Yellow => 3,
+                colored::Color::Blue => 4,
+                colored::Color::Magenta => 5,
+                colored::Color::Cyan => 6,
+                colored::Color::White => 7,
+                colored::Color::BrightBlack => 8,
+                colored::Color::BrightRed => 9,
+                colored::Color::BrightGreen => 10,
+                colored::Color::BrightYellow => 11,
+                colored::Color::BrightBlue => 12,
+                colored::Color::BrightMagenta => 13,
+                colored::Color::BrightCyan => 14,
+                colored::Color::BrightWhite => 15,
+                colored::Color::AnsiColor(n) => 15 + n as u32,
+                colored::Color::TrueColor { r, g, b } => {
+                    r as u32 + g as u32 + b as u32
+                }
+            },
+            None => u32::MAX,
+        });
+    }
+}
+
+impl Color {
+    fn colorize(&self, text: &str) -> String {
+        if let Some(c) = self.color {
+            text.color(c).to_string()
+        } else {
+            text.to_string()
+        }
+    }
+}
+
+macro_rules! define_host_struct {
+    ($name:ident, $def:ident ) => {
+        #[derive(Deserialize, Clone, Debug, PartialEq, Hash)]
+        /// Representation of a repository $def Host.
+        pub struct $name {
+            /// Name of the remote host.
+            pub name: String,
+            /// Name of the directory for that host in the repo tree.
+            dir_name: Option<String>,
+            /// Short representation of the host.
+            repr: Option<String>,
+            #[serde(default)]
+            /// Color for the short representation of the host.
+            repr_color: Color,
+        }
+
+        impl $name {
+            /// Get the directory name for that host in the repo tree.
+            pub fn dir_name(&self) -> String {
+                self.dir_name.clone().unwrap_or(self.name.clone())
+            }
+
+            /// Get the short representation of the host.
+            pub fn repr(&self) -> String {
+                self.repr_color
+                    .colorize(self.repr.as_deref().unwrap_or(&self.name))
+            }
+        }
     };
-
-    *local = parse_host(value, |s: &str| {
-        ParseError::new(
-            config_path,
-            format!(
-                "\"local\" host configuration: {s}.\n{}",
-                get_host_format_help("local", "local")
-            ),
-        )
-    })?;
-    Ok(())
 }
 
-fn parse_host<F: Fn(&str) -> ParseError>(
-    value: &Hash,
-    parse_error: F,
-) -> Result<Host, ParseError> {
-    let mut name: Option<String> = None;
-    let mut dir_name: Option<String> = None;
-    let mut repr: Option<String> = None;
-    let mut repr_color: Option<Color> = None;
+define_host_struct!(Host, remote);
+type Hosts = HashMap<String, Host>;
 
-    for (key, value) in value {
-        let Some(key) = key.as_str() else {
-            return Err(parse_error("Invalid non-str key"));
-        };
-
-        match key {
-            "name" => {
-                name = Some(match value.as_str() {
-                    None => {
-                        return Err(parse_error(
-                            "Invalid value for \"name\" key",
-                        ));
-                    }
-                    Some(v) => v.to_string(),
-                });
-            }
-            "dir_name" => {
-                dir_name = Some(match value.as_str() {
-                    None => {
-                        return Err(parse_error(
-                            "Invalid value for \"dir_name\" key",
-                        ));
-                    }
-                    Some(v) => v.to_string(),
-                });
-            }
-            "repr" => {
-                repr = Some(match value.as_str() {
-                    None => {
-                        return Err(parse_error(
-                            "Invalid value for \"repr\" key",
-                        ));
-                    }
-                    Some(v) => v.to_string(),
-                });
-            }
-            "repr_color" => {
-                repr_color = Some(match value.as_i64() {
-                    Some(v) => match TryInto::<u8>::try_into(v)
-                        .ok()
-                        .map(Color::AnsiColor)
-                    {
-                        Some(c) => c,
-                        None => {
-                            return Err(parse_error(&format!(
-                                "Invalid value \"{v}\" for \"repr_color\" key \
-                                 as integer, must be between 0 and 255 \
-                                 included."
-                            )));
-                        }
-                    },
-                    None => match value.as_str() {
-                        Some(v) => match Color::from_str(v).ok() {
-                            Some(c) => c,
-                            None => {
-                                return Err(parse_error(&format!(
-                                    "Invalid value \"{v}\" for \"repr_color\" \
-                                     key as string"
-                                )));
-                            }
-                        },
-                        None => {
-                            return Err(parse_error(
-                                "Invalid value for \"repr_color\" key being \
-                                 not an integer nor string",
-                            ));
-                        }
-                    },
-                });
-            }
-            key => {
-                return Err(parse_error(&format!("Unknown key \"{key}\"")));
-            }
-        }
-    }
-
-    Ok(Host::new(
-        name.ok_or(parse_error("Missing \"name\" entry"))?,
-        dir_name,
-        repr.map(|r| {
-            repr_color.map_or_else(|| r.clone(), |c| r.color(c).to_string())
-        }),
-    ))
-}
-
-fn parse_vcs(
-    config_path: &Path,
-    value: &Yaml,
-) -> Result<VersionControlSystem, ParseError> {
-    VersionControlSystem::from_str(
-        value.as_str().ok_or(ParseError::new(
-            config_path,
-            "Invalid value for \"vcs\" key".to_string(),
-        ))?,
-        true,
-    )
-    .map_err(|e| {
-        ParseError::new(
-            config_path,
-            format!("Invalid value for \"vcs\" key: {e}"),
+fn default_hosts() -> Vec<(String, Host)> {
+    let msg = "Hardcoded value must be valid";
+    [
+        (
+            "github.com",
+            "github",
+            "",
+            Color::from_str("white").expect(msg),
+        ),
+        ("gitlab.com", "gitlab", "󰮠", Color::from(166)),
+        (
+            "git.kernel.org",
+            "kernel",
+            "",
+            Color::from_str("white").expect(msg),
+        ),
+        (
+            "bitbucket.org",
+            "bitbucket",
+            "",
+            Color::from_str("blue").expect(msg),
+        ),
+        (
+            "codeberg.org",
+            "codeberg",
+            "",
+            Color::from_str("blue").expect(msg),
+        ),
+    ]
+    .into_iter()
+    .map(|(u, n, r, repr_color)| {
+        (
+            u.to_string(),
+            Host {
+                name: n.to_string(),
+                dir_name: None,
+                repr: Some(r.to_string()),
+                repr_color,
+            },
         )
     })
+    .collect()
 }
 
-pub type RepoAliases = HashMap<String, String>;
+define_host_struct!(Local, remote);
 
-fn parse_repo_aliases(
-    config_path: &Path,
-    repo_aliases: &mut RepoAliases,
-    value: &Yaml,
-) -> Result<(), ParseError> {
-    let hash = value.as_hash().ok_or_else(|| {
-        ParseError::new(
-            config_path,
-            "\"repo_aliases\": Expecting only entries in the format: `string: \
-             string`"
-                .to_string(),
-        )
-    })?;
-
-    for (key, value) in hash {
-        let Some(key) = key.as_str() else {
-            return Err(ParseError::new(
-                config_path,
-                "\"repo_aliases\": Unexpected non-string key".to_string(),
-            ));
-        };
-        let Some(value) = value.as_str() else {
-            return Err(ParseError::new(
-                config_path,
-                format!(
-                    "\"repo_aliases\": Unexepected non-string value for key \
-                     \"{key}\""
-                ),
-            ));
-        };
-
-        repo_aliases.insert(key.to_string(), value.to_string());
-    }
-    Ok(())
-}
-
-fn parse_todo(
-    config_path: &Path,
-    todo_ignore: &mut Vec<String>,
-    value: &Yaml,
-) -> Result<(), ParseError> {
-    let hash = value.as_hash().ok_or_else(|| {
-        ParseError::new(
-            config_path,
-            "\"todo\": Expecting only entries in the format: `string: string`"
-                .to_string(),
-        )
-    })?;
-
-    for (key, value) in hash {
-        let key = String::from(key.as_str().ok_or(ParseError::new(
-            config_path,
-            "\"todo\": Unexpected non-string key".to_string(),
-        ))?);
-
-        match key.as_str() {
-            "ignore" => parse_todo_ignore(config_path, todo_ignore, value)?,
-            key => Err(ParseError::new(
-                config_path,
-                format!("Unknown key \"todo.{key}\""),
-            ))?,
+impl Local {
+    pub fn as_host(&self) -> Host {
+        Host {
+            name: self.name.clone(),
+            dir_name: self.dir_name.clone(),
+            repr: self.repr.clone(),
+            repr_color: self.repr_color.clone(),
         }
     }
-
-    Ok(())
 }
 
-fn parse_todo_ignore(
-    config_path: &Path,
-    todo_ignore: &mut Vec<String>,
-    value: &Yaml,
-) -> Result<(), ParseError> {
-    let list = value.as_vec().ok_or(ParseError::new(
-        config_path,
-        "\"todo.ignore\": Expecting as list as value".to_string(),
-    ))?;
-
-    for item in list {
-        todo_ignore.push(String::from(item.as_str().ok_or(ParseError::new(
-            config_path,
-            "\"todo.ignore\": Unexpected non-string key".to_string(),
-        ))?))
+impl Default for Local {
+    fn default() -> Self {
+        Self {
+            name: "local".to_string(),
+            dir_name: None,
+            repr: Some("󰋊".to_string()),
+            repr_color: Color::from_str("white")
+                .expect("Hardcoded value must be valid"),
+        }
     }
-    Ok(())
 }
 
-/// rt configuration content.
-pub struct Config {
-    /// Path the root of the repo tree.
-    pub repo_tree_dir: PathBuf,
-    /// Configured known hosts.
-    pub hosts: Hosts,
-    /// "Host" configuration for local repositories.
-    pub local: Host,
-    /// Default version control system to use to clone the repositories.
+#[derive(Deserialize, Default)]
+pub struct CloneCommandConfig {
+    #[serde(default)]
     pub vcs: VersionControlSystem,
-    /// List of repository resolution aliases.
-    pub repo_aliases: RepoAliases,
-    /// List of ID of the repository to not take into account in the todo
-    /// commands.
-    pub todo_ignore: Vec<String>,
+}
+
+#[derive(Deserialize, Default)]
+pub struct ResolveCommandConfig {
+    #[serde(default)]
+    pub aliases: HashMap<String, String>,
+}
+
+#[derive(Deserialize, Default)]
+pub struct TodoCommandConfig {
+    #[serde(default)]
+    pub ignore: Vec<String>,
+}
+
+#[derive(Deserialize, Default)]
+pub struct CommandConfig {
+    pub clone: CloneCommandConfig,
+    pub resolve: ResolveCommandConfig,
+    pub todo: TodoCommandConfig,
+}
+
+/// Configuration of the rt executable.
+#[derive(Deserialize, Default)]
+pub struct Config {
+    // Value obtained through environment variable REPO_TREE_DIR.
+    /// Path the root of the repo tree.
+    #[serde(skip_deserializing)]
+    pub repo_tree_dir: PathBuf,
+    /// Configuration related to the hosts we know how to organize repositories
+    /// which host there remote.
+    #[serde(default)]
+    pub hosts: Hosts,
+    /// Configuration for local only repositories.
+    #[serde(default)]
+    pub local: Local,
+    /// Configuration for the different rt sub-commands.
+    #[serde(default)]
+    pub command: CommandConfig,
 }
 
 impl Config {
-    fn load_config(
-        hosts: Hosts,
-        local: Host,
-        vcs: VersionControlSystem,
-    ) -> Result<Self, Box<dyn Error>> {
-        let repo_tree_dir = PathBuf::from(
-            &env::var("REPO_TREE_DIR")
-                .expect("Missing REPO_TREE_DIR environment variable"),
-        );
-
-        assert!(
-            repo_tree_dir.is_absolute(),
-            "REPO_TREE_DIR value must be an absolute path"
-        );
-
-        let mut ret = Self {
-            repo_tree_dir,
-            hosts,
-            local,
-            vcs,
-            repo_aliases: HashMap::new(),
-            todo_ignore: Vec::new(),
-        };
-
-        let config_path = std::env::var("XDG_CONFIG_HOME")
-            .map_or(
-                std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
-                |x| Ok(PathBuf::from(x)),
-            )?
-            .join("repo-tree")
-            .join("config.yml");
-
-        if !config_path.is_file() {
-            // No configuration file present.
-            return Ok(ret);
-        }
-
-        let config =
-            YamlLoader::load_from_str(&fs::read_to_string(&config_path)?)?;
-
-        parser_assert(
-            config.len() == 1,
-            ParseError::new(
-                &config_path,
-                "A: Expecting only entries in the format `string: string`"
-                    .to_string(),
-            ),
-        )?;
-
-        let hash = config.first().unwrap().as_hash().ok_or(ParseError::new(
-            &config_path,
-            "B: Expecting only entries in the format `string: string`"
-                .to_string(),
-        ))?;
-
-        for (key, value) in hash {
-            let key = String::from(key.as_str().ok_or(ParseError::new(
-                &config_path,
-                "Expecting configuration keys to be strings".to_string(),
-            ))?);
-
-            match key.as_str() {
-                "hosts" => parse_hosts(&config_path, &mut ret.hosts, value)?,
-                "local" => {
-                    parse_local_host(&config_path, &mut ret.local, value)?
-                }
-                "vcs" => ret.vcs = parse_vcs(&config_path, value)?,
-                "repo_aliases" => parse_repo_aliases(
-                    &config_path,
-                    &mut ret.repo_aliases,
-                    value,
-                )?,
-                "todo" => {
-                    parse_todo(&config_path, &mut ret.todo_ignore, value)?
-                }
-                key => Err(ParseError::new(
-                    &config_path,
-                    format!("Unknown key \"{key}\""),
-                ))?,
-            };
-        }
-
-        Ok(ret)
-    }
-
     /// Obtain completion candidates for a CLI host argument.
-    pub fn host_completer(
-        &self,
-        current: &std::ffi::OsStr,
-    ) -> Vec<CompletionCandidate> {
+    pub fn host_completer(&self, current: &OsStr) -> Vec<CompletionCandidate> {
         let mut ret: Vec<CompletionCandidate> = self
             .hosts
             .iter()
@@ -510,45 +325,109 @@ impl Config {
 
         ret
     }
-}
 
-impl Default for Config {
-    fn default() -> Self {
-        let mut hosts = HashMap::new();
-
-        [
-            ("github.com", "github", "".white()),
-            ("gitlab.com", "gitlab", "󰮠".ansi_color(166)),
-            ("git.kernel.org", "kernel", "".white()),
-            ("bitbucket.org", "bitbucket", "".blue()),
-            ("codeberg.org", "codeberg", "".blue()),
-        ]
-        .iter()
-        .map(|(u, n, r)| (u.to_string(), n.to_string(), r.to_string()))
-        .for_each(|(url, name, repr)| {
-            hosts.insert(url, Host::new(name, None, Some(repr)));
-        });
-
-        let local = Host::new("local".to_string(), None, Some("󰋊".to_string()));
-
-        Self::load_config(hosts, local, VersionControlSystem::JujutsuGit)
-            .inspect_err(|e| {
-                eprintln!("{e}");
-                exit(1);
-            })
-            .unwrap()
-    }
-}
-
-impl Config {
     /// Get the specified Host struct for a given host.
     pub fn get_host(&self, host: &str) -> Option<&Host> {
         self.hosts.get(host)
     }
 }
 
-pub fn list_host_completer(
-    current: &std::ffi::OsStr,
-) -> Vec<CompletionCandidate> {
-    Config::default().host_completer(current)
+impl Config {
+    /// Load the configuration.
+    pub fn load() -> Result<Self, Box<dyn Error>> {
+        let repo_tree_dir = PathBuf::from(
+            &env::var("REPO_TREE_DIR")
+                .expect("Missing REPO_TREE_DIR environment variable"),
+        );
+
+        assert!(
+            repo_tree_dir.is_absolute(),
+            "REPO_TREE_DIR value must be an absolute path"
+        );
+
+        let config_path = std::env::var("XDG_CONFIG_HOME")
+            .map_or(
+                std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
+                |x| Ok(PathBuf::from(x)),
+            )?
+            .join("repo-tree")
+            .join("config.toml");
+
+        let mut ret: Self = if config_path.is_file() {
+            toml::from_str(&fs::read_to_string(&config_path)?)?
+        } else {
+            Self::default()
+        };
+
+        ret.repo_tree_dir = repo_tree_dir;
+
+        for (url, host) in default_hosts() {
+            if ret.hosts.contains_key(&url) {
+                continue;
+            }
+            ret.hosts.entry(url).or_insert(host);
+        }
+
+        Ok(ret)
+    }
+}
+
+pub fn list_host_completer(current: &OsStr) -> Vec<CompletionCandidate> {
+    Config::load().map_or(Vec::new(), |c| c.host_completer(current))
+}
+
+#[cfg(test)]
+mod tests {
+    use indoc::indoc;
+
+    use super::*;
+
+    #[test]
+    fn empty_config() -> Result<(), Box<dyn Error>> {
+        let _: Config = toml::from_str("")?;
+        Ok(())
+    }
+
+    #[test]
+    fn full_config() -> Result<(), Box<dyn Error>> {
+        let _: Config = toml::from_str(indoc! {
+        r#"
+            [hosts."my.custom-domain.fr"]
+            name = 'mine'
+            repr = '󱘎'
+            repr_color = 'blue'
+
+            [hosts."git.buildroot.net"]
+            name = 'buildroot'
+            dir_name = '.'
+            repr = '󰥯'
+            repr_color = 'yellow'
+
+            [hosts."busybox.net"]
+            name = 'busybox'
+            repr = ''
+            repr_color = 'green'
+
+            [hosts."blabla.net"]
+            name = 'blabla'
+            repr = ''
+            repr_color = 124
+
+            [local]
+            name = 'local'
+            repr = '󰋊'
+            repr_color = 'white'
+
+            [command.resolve.aliases]
+            rt = 'repo-tree'
+
+            [command.todo]
+            ignore = [ 'Paluche/jj-test-repo' ]
+
+            [command.clone]
+            vcs = 'jujutsu'
+            "#
+        })?;
+        Ok(())
+    }
 }

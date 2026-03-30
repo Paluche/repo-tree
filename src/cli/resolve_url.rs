@@ -68,7 +68,6 @@ fn fzf_ask(repositories: &BTreeMap<String, PathBuf>) -> Option<String> {
 
 pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
     let repositories = get_repositories(config);
-
     let Some(query) = args.repo_id.or_else(|| fzf_ask(&repositories)) else {
         eprintln!("No repository selected");
         return 2;
@@ -119,7 +118,10 @@ fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
     let Some(current) = current.to_str() else {
         return vec![];
     };
-    let config = Config::default();
+    let Ok(config) = Config::load() else {
+        return vec![];
+    };
+
     let repositories = get_repositories(&config);
     let matcher = SkimMatcherV2::default();
     repositories

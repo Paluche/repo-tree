@@ -79,66 +79,147 @@ list`).
 
 ## Configuration
 
-The tool has the following defaults values to associate an URL host to a folder
-name and prompt representation:
+You can configure `rt` by editing the TOML configuration file. The file
+will be searched at `${XDG_CONFIG_HOME}/repo-tree/config.toml` if the
+environment variable `XDG_CONFIG_HOME` is set,
+`${HOME}/.config/repo-tree/config.toml` otherwise.
 
-```yaml
-hosts:
-  github.com:
-    name: github
-    repr: 
-    repr_color: white
-  gitlab.com:
-    name: gitlab
-    repr: 󰮠
-    repr_color: 166 # Orange
-  git.kernel.org:
-    name: kernel
-    repr: 
-    repr_color: white
-  bitbucket.org:
-    name: bitbucket
-    repr: 
-    repr_color: blue
-  codeberg.org:
-    name: codeberg
-    repr: 
-    repr_color: blue
+### Configuring known hosts
 
-local:
-  name: local
-  repr: 󰋊
+In order to know how to organize the repositories, `rt` needs to know how. The
+repositories are organized based on their remotes, for each remote host (e.g.
+`github.com`) we need to know which directory name to use (e.g. `github`),
+where all the associated repositories will be stored in.
 
-vcs: jujutsu-git
+```toml
+[hosts."<URL>"]
+name = '<NAME>'  # Pretty name for the host.
+dir_name = '<DIR_NAME>'  # Name of the directory the host's repositories will
+                         # be stored. Optional, defaults to the value set to
+                         # 'name'.
+repr = '<REPR>' # Host representation used in the prompt. Optional, defaults to
+                # the value set to 'name'.
+repr_color = 'white'  # Color to use to colorize the 'repr' value. Optional,
+                      # defaults to no color.
 ```
 
-The special characters comes from the [NerdFonts](https://www.nerdfonts.com/)
-extra characters.
+> [!NOTE]
+> `repr_color` can be specified as u8 (integer) or string.
+>
+> If u8 then it will be the ANSI color associated with that number.
+>
+> If string, the valid values are: "black", "red", "green", "yellow", "blue",
+> "magenta" | "purple", "cyan", "white", "bright black" "bright red",
+> "bright green", "bright yellow", "bright blue", "bright magenta",
+> "bright cyan", "bright white".
 
-You can override or extend this configuration with editing the configuration
-file `${HOME}/.config/repo-tree/config.yml`, for example:
+The default configuration for the hosts is the following:
 
-```yaml
-hosts:
-  bitbucket.org:
-    name: atlassian
-    dir_name: bitbucket
-  my_company.gitlab.org:
-    name: my_company
-    repr: 󰮠
-    repr_color: 40 # Green
+```toml
+[hosts."github.com"]
+name = 'github'
+repr = ''
+repr_color = 'white'
+
+[hosts."gitlab.com"]
+name = 'gitlab'
+repr = '󰮠'
+repr_color = 166 # Orange
+
+[hosts."git.kernel.org"]
+name = 'kernel'
+repr = ''
+repr_color = 'white'
+
+[hosts."bitbucket.org"]
+name = 'bitbucket'
+repr = ''
+repr_color = 'blue'
+
+[hosts."codeberg.org"]
+name = 'codeberg'
+repr = ''
+repr_color = 'blue'
 ```
 
-You can also configure repository aliases, allowing to set other names to
-reference a specific repository. For example:
+The special `repr` characters comes from the
+[NerdFonts](https://www.nerdfonts.com/) extra characters.
 
-```yaml
-repo_aliases:
-  rt: repo-tree
+> [!NOTE]
+> You can override these configuration. If you are doing so, you need to
+> redefine the whole host, you cannot override specific elements.
+
+### Configuring local repositories
+
+For repositories which exists only locally, you can define too the directory
+name as similar host configuration.
+
+```toml
+[local]  # Optional, see default configuration below.
+name = '<NAME>'  # Pretty name for the local "host".
+dir_name = '<DIR_NAME>'  # Name of the directory the local repositories will
+                         # be stored. Optional, defaults to the value set to
+                         # 'name'.
+repr = '<REPR>' # Host representation used in the prompt. Optional, defaults to
+                # the value set to 'name'.
+repr_color = 'white'  # Color to use to colorize the 'repr' value. Optional,
+                      # defaults to no color.
 ```
 
-Which will allow you to do `rt resolve rt` instead of `rt resolve repo-tree`,
-which obviously applies for utils using `rt resolve` such as `rcd`.
+```toml
+[local]
+name = 'local'
+repr = '󰋊'
+
+[command.clone]
+vcs = 'jujutsu-git'
+```
+
+### Configuring `rt resolve` command
+
+Configure repository ID aliases for repository resolution.
+
+```toml
+[command.resolve.aliases]
+'<alias_name>' = 'full/repository/id'
+```
+
+For instance the following configuration will allow you to do `rt resolve rt`
+instead of `rt resolve repo-tree`.
+
+```toml
+[command.resolve.aliases]
+rt = 'Paluche/repo-tree'
+```
+
+These aliases would obviously applies for utils using `rt resolve` such as
+`rcd`.
+
+### Configuring `rt clone` command
+
+Configuring the default version control system to use to clone the repositories
+using `rt clone`.
+
+```toml
+[command.clone]
+vcs = '' # 'jujutsu', 'git' or 'jujutsu-git' (default)
+```
+
+### Configuring `rt todo` command
+
+Configuring repositories to be ignored by the `rt todo` command.
+
+```toml
+[command.todo]
+ignore = [  # List of repositories to ignore.
+  'full/repository/id'
+]
+```
+
+```
+[command.clone]
+vcs = 'jujutsu-git'
+```
 
 ## Completion and utils
 

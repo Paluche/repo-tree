@@ -80,7 +80,7 @@ pub fn run(config: &Config, args: CloneArgs) -> i32 {
                 args.url,
                 host,
                 name,
-                args.vcs.unwrap_or(config.vcs),
+                args.vcs.unwrap_or(config.command.clone.vcs),
             )
         } else {
             eprintln!("Unknown host");

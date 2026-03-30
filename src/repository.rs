@@ -23,7 +23,7 @@ pub struct RepoId {
 }
 
 pub fn location(repo_tree_dir: &Path, host: &Host, name: &String) -> PathBuf {
-    repo_tree_dir.to_path_buf().join(&host.dir_name).join(name)
+    repo_tree_dir.to_path_buf().join(host.dir_name()).join(name)
 }
 
 impl RepoId {
@@ -36,10 +36,11 @@ impl RepoId {
 
 impl Display for RepoId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(host) = &self.host
-            && host.dir_name != "."
-        {
-            write!(f, "{} ", host.dir_name)?;
+        if let Some(host) = &self.host {
+            let dir_name = host.dir_name();
+            if dir_name != "." {
+                write!(f, "{dir_name} ")?;
+            }
         }
         write!(f, "{}", self.name)?;
         if let Some(remote_url) = &self.remote_url {

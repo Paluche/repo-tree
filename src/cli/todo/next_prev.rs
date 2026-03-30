@@ -92,7 +92,10 @@ pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
             eprintln!(
                 "\r{}{} {:20} {}",
                 Clear(ClearType::CurrentLine),
-                repository.id.host.map_or("".red().to_string(), |h| h.repr),
+                repository
+                    .id
+                    .host
+                    .map_or("".red().to_string(), |h| h.repr()),
                 repository.id.name,
                 repo_state
             );

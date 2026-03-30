@@ -47,7 +47,7 @@ pub fn run(config: &Config, args: ListArgs) -> i32 {
                 .id
                 .host
                 .clone()
-                .map_or("".red().to_string(), |h| h.repr),
+                .map_or("".red().to_string(), |h| h.repr()),
             repository.id.name
         );
 
@@ -60,7 +60,7 @@ pub fn run(config: &Config, args: ListArgs) -> i32 {
             continue;
         }
 
-        if config.todo_ignore.contains(&repository.id.name) {
+        if config.command.todo.ignore.contains(&repository.id.name) {
             if args.verbose {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
                 println!("{id} {}", "Ignored (configuration)".bright_black());

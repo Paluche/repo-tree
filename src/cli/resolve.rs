@@ -88,9 +88,12 @@ fn get_repositories(config: &Config) -> HashMap<String, Repository> {
 
     ret.extend(repositories.iter().map(|r| (r.id.name.clone(), r.clone())));
 
-    for (alias, repo_name) in config.repo_aliases.iter() {
+    for (alias, repo_name) in config.command.resolve.aliases.iter() {
         if let Some(repo) = ret.get(repo_name) {
             ret.insert(alias.clone(), repo.clone());
+            if let Some(repo) = ret.get(repo_name) {
+                ret.insert(alias.to_string(), repo.clone());
+            }
         } else {
             eprintln!(
                 "Configured alias \"{alias}\" => \"{repo_name}\", does not \
@@ -199,7 +202,9 @@ pub fn resolve_completer(
     let Some(current) = current.to_str() else {
         return vec![];
     };
-    let config = Config::default();
+    let Ok(config) = Config::load() else {
+        return vec![];
+    };
     let repositories = get_repositories(&config);
     let matcher = SkimMatcherV2::default();
     repositories
@@ -214,7 +219,7 @@ pub fn resolve_completer(
                             .id
                             .host
                             .clone()
-                            .map(|h| StyledStr::from(h.dir_name)),
+                            .map(|h| StyledStr::from(h.dir_name())),
                     )
                     .help(repository.id.remote_url.clone().map(StyledStr::from))
             })
