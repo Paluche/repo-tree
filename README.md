@@ -64,7 +64,7 @@ list`).
 - [ ] Manage all submodule as `jj` workspaces. Reduce risk of desynchronization
       from one repository and the copies as submodules.
 - [x] Fetch all your repositories (`rt fetch`)
-- [ ] Get a status of your repositories. The main idea is to find out if there
+- [x] Get a status of your repositories. The main idea is to find out if there
       is user required action to be done on some repositories to keep them
       updated (`rt todo`)
 
