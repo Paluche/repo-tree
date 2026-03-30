@@ -6,8 +6,10 @@ use std::{
 
 use clap::ValueEnum;
 use colored::Colorize;
+use serde::Deserialize;
 
-#[derive(Debug, Copy, Clone, ValueEnum, PartialEq)]
+#[derive(Debug, Copy, Clone, ValueEnum, PartialEq, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
 /// Representation of the different types of version control system supported.
 pub enum VersionControlSystem {
     /// git
@@ -15,6 +17,7 @@ pub enum VersionControlSystem {
     /// jj
     Jujutsu,
     /// Jujutsu collocated with Git.
+    #[default]
     JujutsuGit,
 }
 

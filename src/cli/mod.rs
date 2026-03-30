@@ -75,7 +75,13 @@ pub fn run() -> i32 {
     complete_env::complete();
 
     let args = Args::parse();
-    let config = Config::default();
+    let config = match Config::load() {
+        Ok(c) => c,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
+    };
 
     match args.action {
         Action::Resolve(args) => resolve::run(&config, args),

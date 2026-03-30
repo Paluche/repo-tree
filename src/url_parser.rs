@@ -128,7 +128,7 @@ pub fn parse_repo_url<P: AsRef<Path>>(
         parse_url(config, remote_url)
     } else {
         Ok((
-            Some(config.local.clone()),
+            Some(config.local.as_host()),
             compute_local_path(&config.repo_tree_dir, repo_path),
         ))
     }

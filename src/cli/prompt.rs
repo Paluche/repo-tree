@@ -35,7 +35,7 @@ impl PromptBuilder {
                     .id
                     .host
                     .clone()
-                    .map_or("".red().to_string(), |h| h.repr),
+                    .map_or("".red().to_string(), |h| h.repr()),
                 repository.id.name.green()
             ),
             sep,
