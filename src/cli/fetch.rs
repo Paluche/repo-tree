@@ -59,13 +59,12 @@ pub fn fetch_repo(
     Ok((ok, total))
 }
 
-pub fn run(args: FetchArgs) -> i32 {
-    let config = Config::default();
-    let repositories = load_repositories(&config);
+pub fn run(config: &Config, args: FetchArgs) -> i32 {
+    let repositories = load_repositories(config);
 
     let (ok, total) = repositories
         .iter()
-        .map(|r| fetch_repo(&config, args.quiet, r).unwrap_or((0, 1)))
+        .map(|r| fetch_repo(config, args.quiet, r).unwrap_or((0, 1)))
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
         .unwrap_or((0, 0));
 

@@ -3,6 +3,8 @@ use clap::{Args, Subcommand};
 mod list;
 mod next_prev;
 
+use crate::Config;
+
 /// Actions for git repositories.
 #[derive(Args, Debug, PartialEq)]
 pub struct TodoArgs {
@@ -17,10 +19,10 @@ enum TodoAction {
     Prev(next_prev::NextPrevArgs),
 }
 
-pub fn run(args: TodoArgs) -> i32 {
+pub fn run(config: &Config, args: TodoArgs) -> i32 {
     match args.action {
-        TodoAction::List(args) => list::run(args),
-        TodoAction::Next(args) => next_prev::run(args, false),
-        TodoAction::Prev(args) => next_prev::run(args, true),
+        TodoAction::List(args) => list::run(config, args),
+        TodoAction::Next(args) => next_prev::run(config, args, false),
+        TodoAction::Prev(args) => next_prev::run(config, args, true),
     }
 }

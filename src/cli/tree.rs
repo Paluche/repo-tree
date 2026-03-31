@@ -206,11 +206,9 @@ impl Display for RootDirectory {
     }
 }
 
-pub fn run(_: TreeArgs) -> i32 {
-    let config = Config::default();
-
-    let repositories = load_repositories(&Config::default());
-    let mut root = RootDirectory::new(config.repo_tree_dir);
+pub fn run(config: &Config, _: TreeArgs) -> i32 {
+    let repositories = load_repositories(config);
+    let mut root = RootDirectory::new(config.repo_tree_dir.clone());
 
     for repository in repositories {
         root.insert(repository);

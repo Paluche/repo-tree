@@ -13,12 +13,11 @@ pub struct StateArgs {
     repository: Option<String>,
 }
 
-pub fn run(args: StateArgs) -> i32 {
-    let Some(repository) = Repository::discover(
-        &Config::default(),
-        cwd_default_path(args.repository),
-    )
-    .expect("Error loading the repository") else {
+pub fn run(config: &Config, args: StateArgs) -> i32 {
+    let Some(repository) =
+        Repository::discover(config, cwd_default_path(args.repository))
+            .expect("Error loading the repository")
+    else {
         eprintln!("Not within a repository");
         return 1;
     };

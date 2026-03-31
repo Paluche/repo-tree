@@ -53,14 +53,13 @@ fn iter_repos_from(
     }
 }
 
-pub fn run(args: NextPrevArgs, reverse: bool) -> i32 {
+pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
     let repo_path = cwd_default_path(None);
-    let config = Config::default();
-    let current_repository = Repository::discover(&config, repo_path.clone())
+    let current_repository = Repository::discover(config, repo_path.clone())
         .expect("Error loading the repository");
 
     let repositories =
-        load_filtered_repositories(&config, args.hosts, args.names);
+        load_filtered_repositories(config, args.hosts, args.names);
 
     let mut repositories = iter_repos_from(repositories, current_repository);
 

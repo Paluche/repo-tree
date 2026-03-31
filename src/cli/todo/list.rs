@@ -33,15 +33,13 @@ pub struct ListArgs {
     verbose: bool,
 }
 
-pub fn run(args: ListArgs) -> i32 {
-    let config = Config::default();
+pub fn run(config: &Config, args: ListArgs) -> i32 {
     let mut todo: usize = 0;
     let mut ok: usize = 0;
     let mut n_a: usize = 0;
     let mut skipped: usize = 0;
 
-    for repository in
-        load_filtered_repositories(&config, args.hosts, args.names)
+    for repository in load_filtered_repositories(config, args.hosts, args.names)
     {
         let id = format!(
             "{} {:20}",
