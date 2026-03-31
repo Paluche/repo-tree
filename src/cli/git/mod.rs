@@ -1,5 +1,7 @@
 use clap::{Args, Subcommand};
 
+use crate::Config;
+
 mod status;
 
 /// Actions for git repositories.
@@ -14,8 +16,8 @@ enum GitAction {
     Status(status::StatusArgs),
 }
 
-pub fn run(args: GitArgs) -> i32 {
+pub fn run(config: &Config, args: GitArgs) -> i32 {
     match args.action {
-        GitAction::Status(args) => status::run(args),
+        GitAction::Status(args) => status::run(config, args),
     }
 }

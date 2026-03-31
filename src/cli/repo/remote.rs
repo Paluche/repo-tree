@@ -13,11 +13,10 @@ pub struct RemoteArgs {
     repository: Option<String>,
 }
 
-pub fn run(args: RemoteArgs) -> i32 {
+pub fn run(config: &Config, args: RemoteArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
-    if let Some(repository) =
-        Repository::discover(&Config::default(), repo_path.clone())
-            .expect("Error loading the repository")
+    if let Some(repository) = Repository::discover(config, repo_path.clone())
+        .expect("Error loading the repository")
     {
         if let Some(remote_url) = repository.id.remote_url {
             println!("{remote_url}");

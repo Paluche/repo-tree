@@ -81,17 +81,16 @@ fn reduce_repo_names(
     ret
 }
 
-fn get_repositories() -> HashMap<String, Repository> {
-    let config = Config::default();
-    let repositories = load_repositories(&config);
+fn get_repositories(config: &Config) -> HashMap<String, Repository> {
+    let repositories = load_repositories(config);
 
     let mut ret = reduce_repo_names(repositories.clone());
 
     ret.extend(repositories.iter().map(|r| (r.id.name.clone(), r.clone())));
 
-    for (alias, repo_name) in config.repo_aliases {
-        if let Some(repo) = ret.get(&repo_name) {
-            ret.insert(alias, repo.clone());
+    for (alias, repo_name) in config.repo_aliases.iter() {
+        if let Some(repo) = ret.get(repo_name) {
+            ret.insert(alias.clone(), repo.clone());
         } else {
             eprintln!(
                 "Configured alias \"{alias}\" => \"{repo_name}\", does not \
@@ -134,8 +133,8 @@ fn fzf_ask(repositories: &HashMap<String, Repository>) -> Option<String> {
     })
 }
 
-pub fn run(args: ResolveArgs) -> i32 {
-    if let Some(repository) = resolve(args.repo_id) {
+pub fn run(config: &Config, args: ResolveArgs) -> i32 {
+    if let Some(repository) = resolve(config, args.repo_id) {
         println!("{}", repository.root.display());
         0
     } else {
@@ -143,8 +142,8 @@ pub fn run(args: ResolveArgs) -> i32 {
     }
 }
 
-pub fn resolve(repo_id: Option<String>) -> Option<Repository> {
-    let repositories = get_repositories();
+pub fn resolve(config: &Config, repo_id: Option<String>) -> Option<Repository> {
+    let repositories = get_repositories(config);
 
     let Some(repo_id) = repo_id.or_else(|| fzf_ask(&repositories)) else {
         eprintln!("No repository selected");
@@ -200,8 +199,8 @@ pub fn resolve_completer(
     let Some(current) = current.to_str() else {
         return vec![];
     };
-
-    let repositories = get_repositories();
+    let config = Config::default();
+    let repositories = get_repositories(&config);
     let matcher = SkimMatcherV2::default();
     repositories
         .keys()

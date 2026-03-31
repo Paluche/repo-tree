@@ -5,7 +5,7 @@ use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 
 use super::resolve::{resolve, resolve_completer};
-use crate::NotImplementedError;
+use crate::{Config, NotImplementedError};
 
 /// Remove a repository from the repo tree.
 #[derive(Args, Debug, PartialEq)]
@@ -18,8 +18,8 @@ pub struct RmArgs {
     force: bool,
 }
 
-pub fn run(args: RmArgs) -> i32 {
-    if let Some(repository) = resolve(args.repo_id) {
+pub fn run(config: &Config, args: RmArgs) -> i32 {
+    if let Some(repository) = resolve(config, args.repo_id) {
         match &repository.state() {
             Ok(repo_state) => {
                 if repo_state.has_unpushed_commits() {

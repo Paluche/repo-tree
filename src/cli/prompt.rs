@@ -72,11 +72,11 @@ impl Display for PromptBuilder {
     }
 }
 
-pub fn run(args: PromptArgs) -> i32 {
+pub fn run(config: &Config, args: PromptArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);
 
-    let repo = Repository::discover(&Config::default(), repo_path)
+    let repo = Repository::discover(config, repo_path)
         .expect("Error loading the repository");
 
     if repo.is_none() {

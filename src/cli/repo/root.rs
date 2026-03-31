@@ -2,7 +2,7 @@
 use clap::Args;
 
 use super::super::get_cwd;
-use crate::VersionControlSystem;
+use crate::{Config, VersionControlSystem};
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.
@@ -19,7 +19,7 @@ pub struct RootArgs {
     print_type: bool,
 }
 
-pub fn run(args: RootArgs) -> i32 {
+pub fn run(_: &Config, args: RootArgs) -> i32 {
     let mut cwd = get_cwd();
 
     if args.parent

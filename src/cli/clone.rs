@@ -70,14 +70,13 @@ fn do_clone(
     }
 }
 
-pub fn run(args: CloneArgs) -> i32 {
-    let config = Config::default();
-    let parsed_url = parse_url(&config, &args.url);
+pub fn run(config: &Config, args: CloneArgs) -> i32 {
+    let parsed_url = parse_url(config, &args.url);
 
     if let Ok((host, name)) = parsed_url {
         if let Some(host) = host {
             do_clone(
-                &config,
+                config,
                 args.url,
                 host,
                 name,

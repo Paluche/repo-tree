@@ -19,6 +19,8 @@ mod util;
 
 pub use prompt::PromptBuilder;
 
+use crate::Config;
+
 #[derive(Parser, Debug, PartialEq)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -73,20 +75,21 @@ pub fn run() -> i32 {
     complete_env::complete();
 
     let args = Args::parse();
+    let config = Config::default();
 
     match args.action {
-        Action::Resolve(args) => resolve::run(args),
-        Action::ResolveUrl(args) => resolve_url::run(args),
-        Action::List(args) => list::run(args),
-        Action::Tree(args) => tree::run(args),
-        Action::Clean(args) => clean::run(args),
-        Action::Fetch(args) => fetch::run(args),
-        Action::Todo(args) => todo::run(args),
-        Action::Repo(args) => repo::run(args),
-        Action::Git(args) => git::run(args),
-        Action::Prompt(args) => prompt::run(args),
-        Action::Clone(args) => clone::run(args),
-        Action::Util(args) => util::run(args),
-        Action::Rm(args) => rm::run(args),
+        Action::Resolve(args) => resolve::run(&config, args),
+        Action::ResolveUrl(args) => resolve_url::run(&config, args),
+        Action::List(args) => list::run(&config, args),
+        Action::Tree(args) => tree::run(&config, args),
+        Action::Clean(args) => clean::run(&config, args),
+        Action::Fetch(args) => fetch::run(&config, args),
+        Action::Todo(args) => todo::run(&config, args),
+        Action::Repo(args) => repo::run(&config, args),
+        Action::Git(args) => git::run(&config, args),
+        Action::Prompt(args) => prompt::run(&config, args),
+        Action::Clone(args) => clone::run(&config, args),
+        Action::Util(args) => util::run(&config, args),
+        Action::Rm(args) => rm::run(&config, args),
     }
 }

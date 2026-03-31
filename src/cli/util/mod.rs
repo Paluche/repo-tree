@@ -1,5 +1,7 @@
 use clap::{Args, CommandFactory, Subcommand};
 
+use crate::Config;
+
 pub mod completion;
 
 /// Actions for git repositories.
@@ -14,7 +16,7 @@ enum UtilAction {
     Completion(completion::CompletionArgs),
 }
 
-pub fn run(args: UtilArgs) -> i32 {
+pub fn run(_: &Config, args: UtilArgs) -> i32 {
     match args.action {
         UtilAction::Completion(args) => {
             completion::run(&mut crate::cli::Args::command(), args)

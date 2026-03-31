@@ -26,9 +26,8 @@ pub struct ListArgs {
     names: Vec<String>,
 }
 
-pub fn run(args: ListArgs) -> i32 {
-    for repository in
-        load_filtered_repositories(&Config::default(), args.hosts, args.names)
+pub fn run(config: &Config, args: ListArgs) -> i32 {
+    for repository in load_filtered_repositories(config, args.hosts, args.names)
     {
         println!("{}", repository.root.display());
     }
