@@ -283,43 +283,12 @@ To disable completions, you can set `COMPLETE=` or `COMPLETE=0`
 
 ### Having a cron to periodically fetch all your repositories
 
-The following script, will call `rt fetch` to have all your repositories
-fetched. It will print some information as desktop notification.
+The script [rt_fetch_notify.sh](/scripts/rt_fetch_notify.sh), will call
+`rt fetch` to have all your repositories fetched. Then `rt todo` to indicate
+your repositories state.
 
-It will be enhance to give you as summary the information if you need to check
-some repositories to update them following the fetch.
+Information are showed to the user using desktop notification (`notify-send`).
 
-```bash
-#!/usr/bin/env bash
-
-# Optional, sourcing a file which will enrich default environment variables.
-source "${HOME}/<file containing env variables>"
-
-XDG_RUNTIME_DIR=/run/user/$(id -u)
-export XDG_RUNTIME_DIR
-
-# Search for the ssh-agent socket to utilize the unlocked SSH key to use to
-# fetch your repositories
-if [ -z "${SSH_AUTH_SOCK}" ]
-then
-    SSH_AUTH_SOCK=$(find /tmp -path "/tmp/ssh-*/agent.*" -uid 1001 2> /dev/null)
-
-    export SSH_AUTH_SOCK
-fi
-
-notify-send "Fetching repositories" --expire-time 20000
-
-# Optional, check that SSH agent socket has been found.
-if [ -z "${SSH_AUTH_SOCK}" ]
-then
-    notify-send "ssh agent not started" --expire-time 10000 --urgency critical
-fi
-
-# stderr is dumped in a temporary file.
-# In quiet mode, stdout is limited to a summary log describing what has happen.
-SUMMARY=$(rt fetch --quiet 2> "/tmp/rt_fetch.log")
-
-notify-send "Fetching done" "${SUMMARY}" --expire-time 20000
-```
-
-Then use `crontab -e` to have the script executed once in a while.
+Install the script where you want (for instance
+`~/.local/tools/rt_fetch_notify.sh`) make it executable, then use `crontab -e`
+to have the script executed once in a while.
