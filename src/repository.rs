@@ -1,4 +1,4 @@
-//! Representation of a repository.
+//! Representation of a .
 use std::error::Error;
 use std::fmt::Display;
 use std::path::Path;
@@ -30,8 +30,9 @@ pub struct Repository {
 }
 
 impl Repository {
-    /// Search for a repository at the given path.
-    pub fn discover(
+    /// Search for a repository at the given path without printing any warning
+    /// about the repository location.
+    pub fn discover_silent(
         config: &Config,
         path: PathBuf,
     ) -> Result<Self, Box<dyn Error>> {
@@ -52,6 +53,27 @@ impl Repository {
         }
 
         Err(Box::new(NoRepositoryError(path)))
+    }
+
+    /// Search for a repository at the given path.
+    pub fn discover(
+        config: &Config,
+        path: PathBuf,
+    ) -> Result<Self, Box<dyn Error>> {
+        let repository = Self::discover_silent(config, path)?;
+
+        if let Some(expected_root) = repository.expected_root(config)
+            && repository.root != expected_root
+        {
+            eprintln!(
+                "⚠️Unexpected location for the repository {}. Currently in \
+                 \"{}\" should be in \"{}\". Run `rt clean` to fix it.",
+                repository.id.name,
+                repository.root.display(),
+                expected_root.display(),
+            );
+        }
+        Ok(repository)
     }
 
     /// Try loading a repository which root is the one provided.
