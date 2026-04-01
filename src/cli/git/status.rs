@@ -131,20 +131,6 @@ pub fn run(config: &Config, args: StatusArgs) -> i32 {
         }
     };
 
-    let expected_root = repository.expected_root(config);
-
-    if let Some(expected_root) = expected_root
-        && repository.root != expected_root
-    {
-        eprintln!(
-            "⚠️Unexpected location for the repository {}. Currently in \"{}\" \
-             should be in \"{}\".",
-            repository.id.name,
-            repository.root.display(),
-            expected_root.display(),
-        );
-    }
-
     if !repository.vcs.is_git() {
         eprintln!("Status not implemented for {}", repository.vcs);
         return 1;
