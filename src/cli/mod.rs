@@ -8,7 +8,6 @@ mod complete_env;
 mod fetch;
 mod git;
 mod list;
-mod prompt;
 mod repo;
 mod resolve;
 mod resolve_url;
@@ -39,7 +38,6 @@ enum Action {
     Todo(todo::TodoArgs),
     Repo(repo::RepoArgs),
     Git(git::GitArgs),
-    Prompt(prompt::PromptArgs),
     Util(util::UtilArgs),
     Rm(rm::RmArgs),
 }
@@ -91,7 +89,6 @@ pub fn run() -> i32 {
         Action::Todo(args) => todo::run(&config, args),
         Action::Repo(args) => repo::run(&config, args),
         Action::Git(args) => git::run(&config, args),
-        Action::Prompt(args) => prompt::run(&config, args),
         Action::Clone(args) => clone::run(&config, args),
         Action::Util(args) => util::run(&config, args),
         Action::Rm(args) => rm::run(&config, args),

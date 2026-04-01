@@ -1,3 +1,4 @@
+mod prompt;
 mod remote;
 mod root;
 mod state;
@@ -18,6 +19,7 @@ enum RepoAction {
     Root(root::RootArgs),
     Remote(remote::RemoteArgs),
     State(state::StateArgs),
+    Prompt(prompt::PromptArgs),
 }
 
 pub fn run(config: &Config, args: RepoArgs) -> i32 {
@@ -25,5 +27,6 @@ pub fn run(config: &Config, args: RepoArgs) -> i32 {
         RepoAction::Root(args) => root::run(config, args),
         RepoAction::Remote(args) => remote::run(config, args),
         RepoAction::State(args) => state::run(config, args),
+        RepoAction::Prompt(args) => prompt::run(config, args),
     }
 }
