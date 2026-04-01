@@ -161,7 +161,7 @@ impl Color {
 }
 
 /// Define a host-like struct, this is here to assure simple that the struct
-/// Host and Local follows the same content and functions.
+/// RemoteHost and LocalHost follows the same content and functions.
 macro_rules! define_host_struct {
     ($name:ident, $def:ident ) => {
         #[derive(Deserialize, Clone, Debug, PartialEq, Hash)]
@@ -193,14 +193,14 @@ macro_rules! define_host_struct {
     };
 }
 
-define_host_struct!(Host, remote);
+define_host_struct!(RemoteHost, remote);
 
 /// A group of host as map indexed by the URL of the host.
-type Hosts = HashMap<String, Host>;
+type RemoteHosts = HashMap<String, RemoteHost>;
 
 /// Obtain the default host to add to the configuration if they are not already
 /// configured by the user.
-fn default_hosts() -> Vec<(String, Host)> {
+fn default_remote_hosts() -> Vec<(String, RemoteHost)> {
     let msg = "Hardcoded value must be valid";
     [
         (
@@ -233,7 +233,7 @@ fn default_hosts() -> Vec<(String, Host)> {
     .map(|(u, n, r, repr_color)| {
         (
             u.to_string(),
-            Host {
+            RemoteHost {
                 name: n.to_string(),
                 dir_name: None,
                 repr: Some(r.to_string()),
@@ -244,12 +244,12 @@ fn default_hosts() -> Vec<(String, Host)> {
     .collect()
 }
 
-define_host_struct!(Local, remote);
+define_host_struct!(LocalHost, local);
 
-impl Local {
-    /// Clone the Local struct into a Host.
-    pub fn as_host(&self) -> Host {
-        Host {
+impl LocalHost {
+    /// Clone the LocalHost struct into a RemoteHost.
+    pub fn as_host(&self) -> RemoteHost {
+        RemoteHost {
             name: self.name.clone(),
             dir_name: self.dir_name.clone(),
             repr: self.repr.clone(),
@@ -258,7 +258,7 @@ impl Local {
     }
 }
 
-impl Default for Local {
+impl Default for LocalHost {
     fn default() -> Self {
         Self {
             name: "local".to_string(),
@@ -316,10 +316,10 @@ pub struct Config {
     /// Configuration related to the hosts we know how to organize repositories
     /// which host there remote.
     #[serde(default)]
-    pub hosts: Hosts,
+    pub remote_hosts: RemoteHosts,
     /// Configuration for local only repositories.
     #[serde(default)]
-    pub local: Local,
+    pub local: LocalHost,
     /// Configuration for the different rt sub-commands.
     #[serde(default)]
     pub command: CommandConfig,
@@ -329,7 +329,7 @@ impl Config {
     /// Obtain completion candidates for a CLI host argument.
     pub fn host_completer(&self, current: &OsStr) -> Vec<CompletionCandidate> {
         let mut ret: Vec<CompletionCandidate> = self
-            .hosts
+            .remote_hosts
             .iter()
             .filter(|(host, _)| {
                 host.starts_with(current.to_str().unwrap_or(""))
@@ -348,9 +348,9 @@ impl Config {
         ret
     }
 
-    /// Get the specified Host struct for a given host.
-    pub fn get_host(&self, host: &str) -> Option<&Host> {
-        self.hosts.get(host)
+    /// Get the specified RemoteHost struct for a given host.
+    pub fn get_remote_host(&self, host: &str) -> Option<&RemoteHost> {
+        self.remote_hosts.get(host)
     }
 }
 
@@ -383,11 +383,11 @@ impl Config {
 
         ret.repo_tree_dir = repo_tree_dir;
 
-        for (url, host) in default_hosts() {
-            if ret.hosts.contains_key(&url) {
+        for (url, host) in default_remote_hosts() {
+            if ret.remote_hosts.contains_key(&url) {
                 continue;
             }
-            ret.hosts.entry(url).or_insert(host);
+            ret.remote_hosts.entry(url).or_insert(host);
         }
 
         Ok(ret)

@@ -23,11 +23,7 @@ impl PromptBuilder {
                 "{}{}{sep}{}{sep}{}",
                 "┣━┫".cyan(),
                 repository.vcs.short_display(),
-                repository
-                    .id
-                    .host
-                    .clone()
-                    .map_or("".red().to_string(), |h| h.repr()),
+                repository.id.host.repr(),
                 repository.id.name.green()
             ),
             sep,

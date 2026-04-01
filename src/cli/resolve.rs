@@ -87,7 +87,7 @@ fn reduce_repo_names(
 
 /// Get the map associating valid repository identifiers to the associated
 /// repository present in the repo tree.
-fn get_repositories(config: &Config) -> HashMap<String, Repository> {
+fn get_repositories(config: &Config) -> HashMap<String, Repository<'_>> {
     let repositories = load_repositories(config);
 
     let mut ret = reduce_repo_names(repositories.clone());
@@ -156,7 +156,10 @@ pub fn run(config: &Config, args: ResolveArgs) -> i32 {
 }
 
 /// Resolve a repository identifier into a local repository.
-pub fn resolve(config: &Config, repo_id: Option<String>) -> Option<Repository> {
+pub fn resolve(
+    config: &Config,
+    repo_id: Option<String>,
+) -> Option<Repository<'_>> {
     let repositories = get_repositories(config);
 
     let Some(repo_id) = repo_id.or_else(|| fzf_ask(&repositories)) else {
@@ -227,11 +230,7 @@ pub fn resolve_completer(
 
                 CompletionCandidate::new(item)
                     .tag(
-                        repository
-                            .id
-                            .host
-                            .clone()
-                            .map(|h| StyledStr::from(h.dir_name())),
+                        repository.id.host.dir_name().ok().map(StyledStr::from),
                     )
                     .help(repository.id.remote_url.clone().map(StyledStr::from))
             })

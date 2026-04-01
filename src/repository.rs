@@ -11,6 +11,7 @@ use crate::NotImplementedError;
 use crate::RepoId;
 use crate::RepoState;
 use crate::error::NoRepositoryError;
+use crate::error::UnknownRemoteHostError;
 use crate::git::SubmoduleInfo;
 use crate::git::{self};
 use crate::jujutsu;
@@ -18,7 +19,7 @@ use crate::version_control_system::VersionControlSystem;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Representation of a repository.
-pub struct Repository {
+pub struct Repository<'config> {
     /// Type of version control system the repository uses.
     pub vcs: VersionControlSystem,
     /// Boolean indicating if the repository is a git submodule or not.
@@ -26,14 +27,14 @@ pub struct Repository {
     /// Path to the root of the repository.
     pub root: PathBuf,
     /// Identifier of the repository.
-    pub id: RepoId,
+    pub id: RepoId<'config>,
 }
 
-impl Repository {
+impl<'config> Repository<'config> {
     /// Search for a repository at the given path without printing any warning
     /// about the repository location.
     pub fn discover_silent(
-        config: &Config,
+        config: &'config Config,
         path: PathBuf,
     ) -> Result<Self, Box<dyn Error>> {
         let mut current_path = Some(path.clone());
@@ -57,12 +58,12 @@ impl Repository {
 
     /// Search for a repository at the given path.
     pub fn discover(
-        config: &Config,
+        config: &'config Config,
         path: PathBuf,
     ) -> Result<Self, Box<dyn Error>> {
         let repository = Self::discover_silent(config, path)?;
 
-        if let Some(expected_root) = repository.expected_root(config)
+        if let Some(expected_root) = repository.expected_root(config)?
             && repository.root != expected_root
         {
             eprintln!(
@@ -78,7 +79,7 @@ impl Repository {
 
     /// Try loading a repository which root is the one provided.
     pub fn try_new(
-        config: &Config,
+        config: &'config Config,
         root: PathBuf,
     ) -> Result<Self, Box<dyn Error>> {
         let vcs = VersionControlSystem::try_new(&root);
@@ -105,12 +106,15 @@ impl Repository {
     /// Get the expected path to the root of the repository within the repo
     /// tree. If the repository is a submodule then, it has to be at its place
     /// within its main repository and therefore we return None.
-    pub fn expected_root(&self, config: &Config) -> Option<PathBuf> {
-        if self.is_submodule {
+    pub fn expected_root(
+        &self,
+        config: &Config,
+    ) -> Result<Option<PathBuf>, UnknownRemoteHostError> {
+        Ok(if self.is_submodule {
             None
         } else {
-            self.id.location(config)
-        }
+            Some(self.id.location(config)?)
+        })
     }
 
     /// Get the git submodules present in the repository.
@@ -136,7 +140,7 @@ impl Repository {
     }
 }
 
-impl Display for Repository {
+impl<'config> Display for Repository<'config> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -149,7 +153,10 @@ impl Display for Repository {
 }
 
 /// Search recursively repositories in a directory.
-fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
+fn _search<'config>(
+    config: &'config Config,
+    dir: &Path,
+) -> (Vec<Repository<'config>>, Vec<PathBuf>) {
     let mut repositories = Vec::new();
     let mut empty_dirs = Vec::new();
     if !dir.is_dir() {
@@ -179,6 +186,6 @@ fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
 }
 
 /// Search repositories in the repo tree.
-pub fn search(config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
+pub fn search(config: &Config) -> (Vec<Repository<'_>>, Vec<PathBuf>) {
     _search(config, &config.repo_tree_dir)
 }

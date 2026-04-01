@@ -20,7 +20,11 @@ pub struct TodoArgs {
 #[derive(Subcommand, Debug, PartialEq)]
 enum TodoAction {
     List(list::ListArgs),
+    /// Go to the next repository where you have to do something to keep it
+    /// up-to-date.
     Next(next_prev::NextPrevArgs),
+    /// Go to the previous repository where you have to do something to keep it
+    /// up-to-date.
     Prev(next_prev::NextPrevArgs),
 }
 
