@@ -3,10 +3,14 @@ mod prompt;
 mod status;
 pub mod submodules;
 
-use std::{ffi::OsStr, path::Path, process::Command};
+use std::ffi::OsStr;
+use std::path::Path;
+use std::process::Command;
 
 pub use prompt::prompt;
-pub use status::{GitStatus, SubmoduleStatus, status};
+pub use status::GitStatus;
+pub use status::SubmoduleStatus;
+pub use status::status;
 pub use submodules::SubmoduleInfo;
 use which::which;
 

@@ -4,20 +4,19 @@ mod prompt;
 mod repo_state;
 mod revsets;
 
-use std::{
-    error::Error,
-    fs::read_to_string,
-    io,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::error::Error;
+use std::fs::read_to_string;
+use std::io;
+use std::path::Path;
+use std::path::PathBuf;
+use std::sync::Arc;
 
 pub use git::get_remote_url;
-use jj_lib::{
-    config::StackedConfig,
-    repo::{ReadonlyRepo, RepoLoader, StoreFactories},
-    settings::UserSettings,
-};
+use jj_lib::config::StackedConfig;
+use jj_lib::repo::ReadonlyRepo;
+use jj_lib::repo::RepoLoader;
+use jj_lib::repo::StoreFactories;
+use jj_lib::settings::UserSettings;
 pub use prompt::prompt;
 pub use repo_state::get_repo_state;
 

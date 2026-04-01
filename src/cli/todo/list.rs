@@ -1,14 +1,15 @@
 //! List the operation to be done by the user in each repository.
-use clap::{ArgAction, Args};
+use clap::ArgAction;
+use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
-use crossterm::terminal::{Clear, ClearType};
+use crossterm::terminal::Clear;
+use crossterm::terminal::ClearType;
 
-use crate::{
-    NotImplementedError,
-    config::{Config, list_host_completer},
-    load_filtered_repositories,
-};
+use crate::NotImplementedError;
+use crate::config::Config;
+use crate::config::list_host_completer;
+use crate::load_filtered_repositories;
 
 /// Custom git status. Concise, with all the data and without help text.
 #[derive(Args, Debug, PartialEq)]

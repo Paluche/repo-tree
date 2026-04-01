@@ -1,5 +1,6 @@
 //! rt todo subcommands.
-use clap::{Args, Subcommand};
+use clap::Args;
+use clap::Subcommand;
 
 mod list;
 mod next_prev;

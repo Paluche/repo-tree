@@ -6,7 +6,8 @@
 //!   immutables ones.
 //! - repo has conflicts
 //! - repo has unpushed commits
-use std::{error::Error, path::Path};
+use std::error::Error;
+use std::path::Path;
 
 use super::revsets;
 use crate::RepoState;

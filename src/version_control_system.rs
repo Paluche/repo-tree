@@ -1,8 +1,7 @@
 //! Enumeration listing the different type of Version Control System we support.
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::fmt::Display;
+use std::path::Path;
+use std::path::PathBuf;
 
 use clap::ValueEnum;
 use colored::Colorize;

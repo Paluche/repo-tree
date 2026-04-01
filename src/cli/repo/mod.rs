@@ -4,7 +4,8 @@ mod remote;
 mod root;
 mod state;
 
-use clap::{Args, Subcommand};
+use clap::Args;
+use clap::Subcommand;
 
 use crate::Config;
 

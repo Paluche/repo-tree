@@ -1,5 +1,6 @@
 //! Sub-commands dedicated for Git repositories.
-use clap::{Args, Subcommand};
+use clap::Args;
+use clap::Subcommand;
 
 use crate::Config;
 

@@ -1,11 +1,10 @@
 //! Function to interact with a Jujutsu repository which uses a git backend.
-use std::{
-    error::Error,
-    ffi::OsStr,
-    fs::{canonicalize, read_to_string},
-    path::Path,
-    process::Command,
-};
+use std::error::Error;
+use std::ffi::OsStr;
+use std::fs::canonicalize;
+use std::fs::read_to_string;
+use std::path::Path;
+use std::process::Command;
 
 use which::which;
 

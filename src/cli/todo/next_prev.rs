@@ -1,16 +1,18 @@
 //! Obtain the path to the next or previous repository where there is something
 //! to be done by the user.
-use clap::{ArgAction, Args};
+use clap::ArgAction;
+use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
-use crossterm::terminal::{Clear, ClearType};
+use crossterm::terminal::Clear;
+use crossterm::terminal::ClearType;
 
-use crate::{
-    NotImplementedError, Repository,
-    cli::cwd_default_path,
-    config::{Config, list_host_completer},
-    load_filtered_repositories,
-};
+use crate::NotImplementedError;
+use crate::Repository;
+use crate::cli::cwd_default_path;
+use crate::config::Config;
+use crate::config::list_host_completer;
+use crate::load_filtered_repositories;
 
 /// Go to the next or previous repository where you have to do something to keep
 /// it up-to-date.

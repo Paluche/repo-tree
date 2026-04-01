@@ -1,13 +1,17 @@
 //! Generate Prompt line for a repository.
 use clap::Args;
-use clap_complete::{ArgValueCompleter, PathCompleter};
+use clap_complete::ArgValueCompleter;
+use clap_complete::PathCompleter;
 use colored::control::SHOULD_COLORIZE;
 use pollster::FutureExt;
 
-use crate::{
-    Config, PromptBuilder, Repository, cli::cwd_default_path, git, jujutsu,
-    version_control_system::VersionControlSystem,
-};
+use crate::Config;
+use crate::PromptBuilder;
+use crate::Repository;
+use crate::cli::cwd_default_path;
+use crate::git;
+use crate::jujutsu;
+use crate::version_control_system::VersionControlSystem;
 
 /// Generate the prompt for your shell.
 #[derive(Args, Debug, PartialEq)]

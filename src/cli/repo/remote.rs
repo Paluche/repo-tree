@@ -1,8 +1,11 @@
 //! Compute the root to the repository.
 use clap::Args;
-use clap_complete::{PathCompleter, engine::ArgValueCompleter};
+use clap_complete::PathCompleter;
+use clap_complete::engine::ArgValueCompleter;
 
-use crate::{Config, Repository, cli::cwd_default_path};
+use crate::Config;
+use crate::Repository;
+use crate::cli::cwd_default_path;
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.

@@ -1,15 +1,19 @@
 //! Enhanced git status.
-use std::{path::Path, process::exit};
+use std::path::Path;
+use std::process::exit;
 
-use clap::{ArgAction, Args};
-use clap_complete::{PathCompleter, engine::ArgValueCompleter};
+use clap::ArgAction;
+use clap::Args;
+use clap_complete::PathCompleter;
+use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
 
-use crate::{
-    Config, Repository,
-    cli::cwd_default_path,
-    git::{self, GitStatus, SubmoduleStatus},
-};
+use crate::Config;
+use crate::Repository;
+use crate::cli::cwd_default_path;
+use crate::git::GitStatus;
+use crate::git::SubmoduleStatus;
+use crate::git::{self};
 
 /// Custom git status. Concise, with all the data and without help text.
 #[derive(Args, Debug, PartialEq)]

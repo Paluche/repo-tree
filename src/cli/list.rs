@@ -1,11 +1,11 @@
 //! List your repositories.
-use clap::{ArgAction, Args};
+use clap::ArgAction;
+use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 
-use crate::{
-    config::{Config, list_host_completer},
-    load_filtered_repositories,
-};
+use crate::config::Config;
+use crate::config::list_host_completer;
+use crate::load_filtered_repositories;
 
 /// List all repositories in the repo_tree.
 #[derive(Args, Debug, PartialEq)]

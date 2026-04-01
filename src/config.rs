@@ -31,19 +31,20 @@
 //! ```
 
 use core::str::FromStr;
-use std::{
-    collections::HashMap,
-    env,
-    error::Error,
-    ffi::OsStr,
-    fs,
-    hash::{Hash, Hasher},
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
+use std::env;
+use std::error::Error;
+use std::ffi::OsStr;
+use std::fs;
+use std::hash::Hash;
+use std::hash::Hasher;
+use std::path::Path;
+use std::path::PathBuf;
 
 use clap::builder::StyledStr;
 use clap_complete::engine::CompletionCandidate;
-use colored::{self, Colorize};
+use colored::Colorize;
+use colored::{self};
 use serde::Deserialize;
 
 use crate::VersionControlSystem;
