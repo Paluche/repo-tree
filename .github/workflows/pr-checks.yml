@@ -342,7 +342,7 @@ jobs:
               echo ""
               echo "**Total commits**: ${TOTAL_COMMITS}"
               echo ""
-          } > "${GITHUB_STEP_SUMMARY}"
+          } >> "${GITHUB_STEP_SUMMARY}"
 
           export RUST_BACKTRACE=1
           export CARGO_TERM_COLOR=always
@@ -352,18 +352,19 @@ jobs:
 
           for commit in "${commits[@]}"
           do
+              commit_desc=$(git log -n 1 --pretty='`%H`: %s')
               echo "::group:: check ${commit}"
               git checkout "${commit}"
               if cargo +stable build --all-features --workspace --all-targets 2>&1 | tee "${error_log}"
               then
                   echo "::endgroup::"
                   echo "✅"
-                  echo "- ✅ `${commitId}`: ${commitTitle}" > "${GITHUB_STEP_SUMMARY}"
+                  echo "- ✅ ${commit_desc}" >> "${GITHUB_STEP_SUMMARY}"
               else
                   echo "::endgroup::"
                   echo "❌ Develop group above for details"
                   {
-                      echo "- ❌ `${commitId}`: ${commitTitle}"
+                      echo "- ❌ ${commit_desc}"
                       echo ""
                       echo "<details><summary>Details</summary>"
                       echo ""
@@ -371,7 +372,7 @@ jobs:
                       cat "${error_log}"
                       echo "```"
                       echo "</details>"
-                  } > "${GITHUB_STEP_SUMMARY}"
+                  } >> "${GITHUB_STEP_SUMMARY}"
                   failed_count=$(( failed_count + 1 ))
               fi
           done
@@ -381,7 +382,7 @@ jobs:
               echo "::error::Build validation failed for ${failed_count} commit(s)."
               exit 1
           fi
-          echo "All commits passed build validation! 🎉" > "${GITHUB_STEP_SUMMARY}"
+          echo "All commits passed build validation! 🎉" >> "${GITHUB_STEP_SUMMARY}"
 
   check-tests:
     name: check (cargo test)
