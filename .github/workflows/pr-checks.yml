@@ -38,7 +38,8 @@ jobs:
               repo: context.repo.repo,
             };
 
-            const { data: commits } = await github.rest.pulls.listCommits(
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
               pullRequestParams
             );
 
@@ -125,7 +126,8 @@ jobs:
             const { data: pullRequest } = await github.rest.pulls.get(
               pullRequestParams
             );
-            const { data: commits } = await github.rest.pulls.listCommits(
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
               pullRequestParams
             );
 
@@ -155,7 +157,8 @@ jobs:
               repo: context.repo.repo,
             };
 
-            const { data: commits } = await github.rest.pulls.listCommits(
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
               pullRequestParams
             );
 
@@ -239,7 +242,8 @@ jobs:
               repo: context.repo.repo,
             };
 
-            const { data: commits } = await github.rest.pulls.listCommits(
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
               pullRequestParams
             );
 
@@ -414,7 +418,8 @@ jobs:
               repo: context.repo.repo,
             };
 
-            const { data: commits } = await github.rest.pulls.listCommits(
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
               pullRequestParams
             );
 
