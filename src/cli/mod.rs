@@ -17,8 +17,6 @@ mod todo;
 mod tree;
 mod util;
 
-pub use prompt::PromptBuilder;
-
 use crate::Config;
 
 #[derive(Parser, Debug, PartialEq)]

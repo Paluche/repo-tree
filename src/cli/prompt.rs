@@ -1,12 +1,10 @@
-use std::fmt::Display;
-
 use clap::Args;
 use clap_complete::{ArgValueCompleter, PathCompleter};
-use colored::{ColoredString, Colorize, control::SHOULD_COLORIZE};
+use colored::control::SHOULD_COLORIZE;
 use pollster::FutureExt;
 
 use crate::{
-    Config, Repository, cli::cwd_default_path, git, jujutsu,
+    Config, PromptBuilder, Repository, cli::cwd_default_path, git, jujutsu,
     version_control_system::VersionControlSystem,
 };
 
@@ -16,60 +14,6 @@ pub struct PromptArgs {
     /// Path to within the repository to work with.
     #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
     repository: Option<String>,
-}
-
-pub struct PromptBuilder {
-    prompt: String,
-    sep: String,
-}
-
-impl PromptBuilder {
-    fn new(repository: &Repository) -> Self {
-        let sep = format!("{}", "|".cyan());
-        Self {
-            prompt: format!(
-                "{}{}{sep}{}{sep}{}",
-                "┣━┫".cyan(),
-                repository.vcs.short_display(),
-                repository
-                    .id
-                    .host
-                    .clone()
-                    .map_or("".red().to_string(), |h| h.repr()),
-                repository.id.name.green()
-            ),
-            sep,
-        }
-    }
-    pub fn push_colored_string(&mut self, colored_string: ColoredString) {
-        if !colored_string.is_empty() {
-            self.prompt
-                .push_str(&format!("{}{}", self.sep, colored_string));
-        }
-    }
-
-    pub fn push_string(&mut self, string: &str) {
-        if !string.is_empty() {
-            self.prompt.push_str(&self.sep);
-            self.prompt.push_str(string);
-        }
-    }
-
-    pub fn join_vec_str(sep: char, list: &[String]) -> String {
-        list.iter().fold(String::new(), |mut acc, element| {
-            if !acc.is_empty() {
-                acc.push(sep);
-            }
-            acc.push_str(element);
-            acc
-        })
-    }
-}
-
-impl Display for PromptBuilder {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.prompt)
-    }
 }
 
 pub fn run(config: &Config, args: PromptArgs) -> i32 {

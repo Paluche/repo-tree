@@ -2,7 +2,7 @@ use std::path::Path;
 
 use colored::Colorize;
 
-use crate::{cli::PromptBuilder, git};
+use crate::{PromptBuilder, git};
 
 pub fn prompt(
     root: &Path,
