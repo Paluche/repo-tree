@@ -1,16 +1,9 @@
 //! Action to resolve the path to a repository from a remote URL.
-use std::{
-    collections::BTreeMap,
-    io::Write,
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::{collections::BTreeMap, path::PathBuf};
 
 use clap::{Args, builder::StyledStr};
 use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
 use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
-use itertools::Itertools;
-use which::which;
 
 use crate::{Config, load_repositories};
 
@@ -20,7 +13,7 @@ pub struct ResolveUrlArgs {
     /// Repository identifier to resolve into the actual path within the
     /// repo_tree.
     #[arg(add=ArgValueCompleter::new(resolve_completer))]
-    repo_id: Option<String>,
+    repo_id: String,
 }
 
 fn get_repositories(config: &Config) -> BTreeMap<String, PathBuf> {
@@ -35,45 +28,9 @@ fn get_repositories(config: &Config) -> BTreeMap<String, PathBuf> {
     ))
 }
 
-fn fzf_ask(repositories: &BTreeMap<String, PathBuf>) -> Option<String> {
-    let fzf = which("fzf").expect(
-        "fzf not found, cannot interactively ask to select repository.",
-    );
-
-    let mut child = Command::new(fzf)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .spawn()
-        .ok()?;
-
-    // Provide choices on stdin
-    {
-        let stdin = child.stdin.as_mut().unwrap();
-        stdin
-            .write_all(&repositories.keys().join("\n").into_bytes())
-            .ok()?;
-    }
-
-    // Wait and read selection
-    child.wait_with_output().ok().map(|output| {
-        let res = String::from_utf8_lossy(&output.stdout).into_owned();
-
-        if res.ends_with('\n') {
-            String::from(res.strip_suffix('\n').unwrap())
-        } else {
-            res
-        }
-    })
-}
-
 pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
     let repositories = get_repositories(config);
-    let Some(query) = args.repo_id.or_else(|| fzf_ask(&repositories)) else {
-        eprintln!("No repository selected");
-        return 2;
-    };
-
-    if let Some(repo) = repositories.get(&query) {
+    if let Some(repo) = repositories.get(&args.repo_id) {
         println!("{}", repo.display());
         return 0;
     }
@@ -84,13 +41,13 @@ pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
         .keys()
         .filter_map(|item| {
             matcher
-                .fuzzy_match(item, query.as_str())
+                .fuzzy_match(item, args.repo_id.as_str())
                 .map(|score| (score, item))
         })
         .collect();
 
     if matches.is_empty() {
-        eprintln!("No match for {query}");
+        eprintln!("No match for {}", args.repo_id);
         return 1;
     }
 
@@ -114,6 +71,8 @@ pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
     }
 }
 
+/// Get auto-completion candidate resolution for a valid repository URL
+/// argument.
 fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
     let Some(current) = current.to_str() else {
         return vec![];
