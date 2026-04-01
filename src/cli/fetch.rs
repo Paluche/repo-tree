@@ -38,13 +38,11 @@ pub fn fetch_repo(
     }
     for submodule in repository.submodules()? {
         let root = submodule.abs_path();
-        if let Some(repo) = &Repository::try_new(config, root.clone())? {
-            let (_ok, _total) = fetch_repo(config, quiet, repo)?;
-            ok += _ok;
-            total += _total;
-        } else {
-            eprintln!("No repository found in {}", root.display());
-        }
+        let repository = Repository::try_new(config, root.clone())?;
+
+        let (_ok, _total) = fetch_repo(config, quiet, &repository)?;
+        ok += _ok;
+        total += _total;
     }
 
     ok += if match repository.vcs {

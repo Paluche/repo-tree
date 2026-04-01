@@ -9,6 +9,7 @@ use crate::Config;
 use crate::PromptBuilder;
 use crate::Repository;
 use crate::cli::cwd_default_path;
+use crate::error::NoRepositoryError;
 use crate::git;
 use crate::jujutsu;
 use crate::version_control_system::VersionControlSystem;
@@ -26,14 +27,17 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);
 
-    let repo = Repository::discover(config, repo_path)
-        .expect("Error loading the repository");
+    let repository = match Repository::discover(config, repo_path) {
+        Ok(r) => r,
+        Err(err) => {
+            if err.downcast_ref::<NoRepositoryError>().is_some() {
+                return 0;
+            }
+            eprintln!("{err}");
+            return 1;
+        }
+    };
 
-    if repo.is_none() {
-        return 0;
-    }
-
-    let repository = repo.unwrap();
     let mut info = PromptBuilder::new(&repository);
 
     let ret = match repository.vcs {

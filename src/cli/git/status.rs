@@ -1,6 +1,5 @@
 //! Enhanced git status.
 use std::path::Path;
-use std::process::exit;
 
 use clap::ArgAction;
 use clap::Args;
@@ -124,11 +123,12 @@ fn format_repo_status(
 /// Execute the `rt git status` command.
 pub fn run(config: &Config, args: StatusArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
-    let Some(repository) = Repository::discover(config, repo_path.clone())
-        .expect("Error loading the repository")
-    else {
-        eprintln!("Not within a repository");
-        exit(1);
+    let repository = match Repository::discover(config, repo_path.clone()) {
+        Ok(r) => r,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
     };
 
     let expected_root = repository.expected_root(config);
