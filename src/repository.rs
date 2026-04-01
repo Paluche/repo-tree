@@ -10,6 +10,7 @@ use crate::Config;
 use crate::NotImplementedError;
 use crate::RepoId;
 use crate::RepoState;
+use crate::error::NoRepositoryError;
 use crate::git::SubmoduleInfo;
 use crate::git::{self};
 use crate::jujutsu;
@@ -33,29 +34,34 @@ impl Repository {
     pub fn discover(
         config: &Config,
         path: PathBuf,
-    ) -> Result<Option<Self>, Box<dyn Error>> {
-        let mut current_path = Some(path);
+    ) -> Result<Self, Box<dyn Error>> {
+        let mut current_path = Some(path.clone());
 
         while current_path.is_some() {
             let root = current_path.clone().unwrap();
-            if let Some(repo) = Self::try_new(config, root)? {
-                return Ok(Some(repo));
+            match Self::try_new(config, root) {
+                Ok(repo) => return Ok(repo),
+                Err(err) => {
+                    if err.downcast_ref::<NoRepositoryError>().is_none() {
+                        return Err(err);
+                    }
+                }
             }
             current_path =
                 current_path.unwrap().parent().map(|p| p.to_path_buf());
         }
 
-        Ok(None)
+        Err(Box::new(NoRepositoryError(path)))
     }
 
     /// Try loading a repository which root is the one provided.
     pub fn try_new(
         config: &Config,
         root: PathBuf,
-    ) -> Result<Option<Self>, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error>> {
         let vcs = VersionControlSystem::try_new(&root);
         if vcs.is_none() {
-            return Ok(None);
+            return Err(Box::new(NoRepositoryError(root)));
         }
         let (vcs, is_submodule) = vcs.unwrap();
         let remote_url = match vcs {
@@ -66,12 +72,12 @@ impl Repository {
         };
         let id = RepoId::parse_repo_url(config, &root, remote_url.as_ref())?;
 
-        Ok(Some(Self {
+        Ok(Self {
             vcs,
             is_submodule,
             root,
             id,
-        }))
+        })
     }
 
     /// Get the expected path to the root of the repository within the repo
@@ -133,7 +139,8 @@ fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
     for entry in dir.read_dir().expect("read dir call failed").flatten() {
         empty_dir = false;
         let root = entry.path();
-        if let Some(repo) = Repository::try_new(config, root.clone()).unwrap() {
+        let repo = Repository::try_new(config, root.clone());
+        if let Ok(repo) = repo {
             repositories.push(repo);
         } else {
             let res = _search(config, &root);

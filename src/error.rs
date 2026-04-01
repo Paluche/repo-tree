@@ -1,4 +1,6 @@
 //! Definition of errors struct used in the crate.
+use std::path::PathBuf;
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -10,3 +12,8 @@ pub struct NotImplementedError(pub String);
 #[error("Error parsing {0}")]
 /// Error during the parsing of the remote URL.
 pub struct ParseUrlError(pub String);
+
+#[derive(Debug, Error)]
+#[error("No repository found in {0}")]
+/// No repository found.
+pub struct NoRepositoryError(pub PathBuf);

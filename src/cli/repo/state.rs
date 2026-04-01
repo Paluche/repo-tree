@@ -18,13 +18,14 @@ pub struct StateArgs {
 
 /// Execute the `rt repo state` command.
 pub fn run(config: &Config, args: StateArgs) -> i32 {
-    let Some(repository) =
-        Repository::discover(config, cwd_default_path(args.repository))
-            .expect("Error loading the repository")
-    else {
-        eprintln!("Not within a repository");
-        return 1;
-    };
+    let repository =
+        match Repository::discover(config, cwd_default_path(args.repository)) {
+            Ok(r) => r,
+            Err(err) => {
+                eprintln!("Error: {err}");
+                return 1;
+            }
+        };
 
     let repo_state = match repository.state() {
         Ok(v) => Some(v),

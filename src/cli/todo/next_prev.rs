@@ -12,6 +12,7 @@ use crate::Repository;
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::config::list_host_completer;
+use crate::error::NoRepositoryError;
 use crate::load_filtered_repositories;
 
 /// Go to the next or previous repository where you have to do something to keep
@@ -61,8 +62,17 @@ fn iter_repos_from(
 /// Execute the `rt todo next` or `rt todo prev` command.
 pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
     let repo_path = cwd_default_path(None);
-    let current_repository = Repository::discover(config, repo_path.clone())
-        .expect("Error loading the repository");
+    let current_repository =
+        match Repository::discover(config, repo_path.clone()) {
+            Ok(r) => Some(r),
+            Err(err) => {
+                if err.downcast_ref::<NoRepositoryError>().is_none() {
+                    eprintln!("Error: {err}");
+                    return 1;
+                }
+                None
+            }
+        };
 
     let repositories =
         load_filtered_repositories(config, args.hosts, args.names);
