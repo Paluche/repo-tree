@@ -44,13 +44,13 @@ impl Directory {
         self.childs.entry(name.to_string()).or_default()
     }
 
-    fn insert<'a, T>(&mut self, mut dirs: T, repository: Repository)
+    fn insert<'a, T>(&mut self, mut components: T, repository: Repository)
     where
         T: Iterator<Item = &'a OsStr>,
     {
-        if let Some(dir) = dirs.next() {
-            let next = self.get_child(dir.to_str().unwrap());
-            next.insert(dirs, repository);
+        if let Some(component) = components.next() {
+            let next = self.get_child(component.to_str().unwrap());
+            next.insert(components, repository);
         } else {
             self.repository = Some(repository);
         }
