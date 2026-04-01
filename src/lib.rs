@@ -1,4 +1,4 @@
-//! Libraries for the repo-tools utils
+//! Repo tree - rt: local repository manager.
 #![warn(missing_docs)]
 #![warn(clippy::missing_docs_in_private_items)]
 
