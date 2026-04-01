@@ -1,11 +1,16 @@
 //! Action to clean the repo_tree.
 //! Move the repositories where they belong to and delete empty directories.
 
-use std::fs::{create_dir_all, remove_dir, rename};
+use std::fs::create_dir_all;
+use std::fs::remove_dir;
+use std::fs::rename;
 
 use clap::Args;
 
-use crate::{Config, Repository, load_empty_dirs, load_repositories_silent};
+use crate::Config;
+use crate::Repository;
+use crate::load_empty_dirs;
+use crate::load_repositories_silent;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.

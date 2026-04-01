@@ -1,13 +1,15 @@
 //! Environment function completions.
-use std::{
-    env::{args_os, current_dir, var_os},
-    io::{Error, Write},
-    process::exit,
-    str::FromStr,
-};
+use std::env::args_os;
+use std::env::current_dir;
+use std::env::var_os;
+use std::io::Error;
+use std::io::Write;
+use std::process::exit;
+use std::str::FromStr;
 
 use clap::CommandFactory;
-use clap_complete::{CompleteEnv, Shell};
+use clap_complete::CompleteEnv;
+use clap_complete::Shell;
 use indoc::indoc;
 
 use crate::cli::Args;

@@ -1,18 +1,22 @@
 //! Action to resolve the path to a repository from its name or alias.
-use std::{
-    collections::HashMap,
-    io::Write,
-    iter::zip,
-    process::{Command, Stdio},
-};
+use std::collections::HashMap;
+use std::io::Write;
+use std::iter::zip;
+use std::process::Command;
+use std::process::Stdio;
 
-use clap::{Args, builder::StyledStr};
-use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
-use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
+use clap::Args;
+use clap::builder::StyledStr;
+use clap_complete::engine::ArgValueCompleter;
+use clap_complete::engine::CompletionCandidate;
+use fuzzy_matcher::FuzzyMatcher;
+use fuzzy_matcher::skim::SkimMatcherV2;
 use itertools::Itertools;
 use which::which;
 
-use crate::{Config, Repository, load_repositories};
+use crate::Config;
+use crate::Repository;
+use crate::load_repositories;
 
 /// Resolve the name of a repository into its path.
 #[derive(Args, Debug, PartialEq)]

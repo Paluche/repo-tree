@@ -1,11 +1,16 @@
 //! Action to resolve the path to a repository from a remote URL.
-use std::{collections::BTreeMap, path::PathBuf};
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 
-use clap::{Args, builder::StyledStr};
-use clap_complete::engine::{ArgValueCompleter, CompletionCandidate};
-use fuzzy_matcher::{FuzzyMatcher, skim::SkimMatcherV2};
+use clap::Args;
+use clap::builder::StyledStr;
+use clap_complete::engine::ArgValueCompleter;
+use clap_complete::engine::CompletionCandidate;
+use fuzzy_matcher::FuzzyMatcher;
+use fuzzy_matcher::skim::SkimMatcherV2;
 
-use crate::{Config, load_repositories};
+use crate::Config;
+use crate::load_repositories;
 
 /// Resolve the URL of a repository into its path.
 #[derive(Args, Debug, PartialEq)]

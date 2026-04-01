@@ -1,19 +1,21 @@
 //! Module for retrieving git information.
-use std::{
-    collections::HashMap,
-    error::Error,
-    ffi::OsStr,
-    fmt::Display,
-    fs::metadata,
-    path::{Path, PathBuf},
-    str::Chars,
-    time::SystemTime,
-};
+use std::collections::HashMap;
+use std::error::Error;
+use std::ffi::OsStr;
+use std::fmt::Display;
+use std::fs::metadata;
+use std::path::Path;
+use std::path::PathBuf;
+use std::str::Chars;
+use std::time::SystemTime;
 
-use chrono::{DateTime, Utc};
-use colored::{ColoredString, Colorize};
+use chrono::DateTime;
+use chrono::Utc;
+use colored::ColoredString;
+use colored::Colorize;
 use pathdiff::diff_paths;
-use strum::{EnumIter, IntoEnumIterator};
+use strum::EnumIter;
+use strum::IntoEnumIterator;
 
 use super::new_git_command;
 

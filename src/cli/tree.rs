@@ -1,11 +1,17 @@
 //! Get a tree view of all your repositories in your repo tree. This is inspired
 //! by the `tree` command line.
-use std::{collections::BTreeMap, ffi::OsStr, fmt::Display, path::PathBuf};
+use std::collections::BTreeMap;
+use std::ffi::OsStr;
+use std::fmt::Display;
+use std::path::PathBuf;
 
 use clap::Args;
-use colored::{ColoredString, Colorize};
+use colored::ColoredString;
+use colored::Colorize;
 
-use crate::{Config, Repository, load_repositories};
+use crate::Config;
+use crate::Repository;
+use crate::load_repositories;
 
 /// Display a tree of your repo_tree.
 #[derive(Args, Debug, PartialEq)]

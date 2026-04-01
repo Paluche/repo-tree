@@ -1,6 +1,8 @@
 //! Definition of common revsets into functions.
 
-use std::{error::Error, path::Path, process::Command};
+use std::error::Error;
+use std::path::Path;
+use std::process::Command;
 
 /// Find out if any commit matches the provided revset.
 pub fn revset_has_match(

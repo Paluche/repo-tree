@@ -2,13 +2,13 @@
 use std::path::Path;
 
 use colored::Colorize;
-use jj_lib::{
-    backend::{BackendResult, CommitId},
-    op_store::LocalRemoteRefTarget,
-    ref_name::{RefName, WorkspaceName},
-    repo::Repo,
-    revset::RevsetExpression,
-};
+use jj_lib::backend::BackendResult;
+use jj_lib::backend::CommitId;
+use jj_lib::op_store::LocalRemoteRefTarget;
+use jj_lib::ref_name::RefName;
+use jj_lib::ref_name::WorkspaceName;
+use jj_lib::repo::Repo;
+use jj_lib::revset::RevsetExpression;
 
 use super::load;
 use crate::PromptBuilder;

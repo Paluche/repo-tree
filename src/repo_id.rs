@@ -1,15 +1,13 @@
 //! Tools around parsing of repositories URL.
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::fmt::Display;
+use std::path::Path;
+use std::path::PathBuf;
 
 use regex::Regex;
 
-use crate::{
-    config::{Config, Host},
-    error::ParseUrlError,
-};
+use crate::config::Config;
+use crate::config::Host;
+use crate::error::ParseUrlError;
 
 /// Either the repository is within the ${REPO_TREE_DIR}/local directory
 /// allowing the user to organize as see fits this directory.

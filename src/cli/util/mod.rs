@@ -1,6 +1,8 @@
 //! Implementation of `rt util`, which contains sub-commands you are more likely
 //! to rarely use or mostly within scripts.
-use clap::{Args, CommandFactory, Subcommand};
+use clap::Args;
+use clap::CommandFactory;
+use clap::Subcommand;
 
 use crate::Config;
 

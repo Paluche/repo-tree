@@ -1,18 +1,19 @@
 //! Representation of a repository.
-use std::{
-    error::Error,
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::error::Error;
+use std::fmt::Display;
+use std::path::Path;
+use std::path::PathBuf;
 
 use pollster::FutureExt;
 
-use crate::{
-    Config, NotImplementedError, RepoId, RepoState,
-    git::{self, SubmoduleInfo},
-    jujutsu,
-    version_control_system::VersionControlSystem,
-};
+use crate::Config;
+use crate::NotImplementedError;
+use crate::RepoId;
+use crate::RepoState;
+use crate::git::SubmoduleInfo;
+use crate::git::{self};
+use crate::jujutsu;
+use crate::version_control_system::VersionControlSystem;
 
 #[derive(Debug, Clone, PartialEq)]
 /// Representation of a repository.

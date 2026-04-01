@@ -1,7 +1,8 @@
 //! Builder for prompt string.
 use std::fmt::Display;
 
-use colored::{ColoredString, Colorize};
+use colored::ColoredString;
+use colored::Colorize;
 
 use crate::Repository;
 

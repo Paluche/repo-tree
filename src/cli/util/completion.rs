@@ -1,8 +1,10 @@
 //! Generate static autocompletion.
 use std::io;
 
-use clap::{Args, Command};
-use clap_complete::{Shell, generate};
+use clap::Args;
+use clap::Command;
+use clap_complete::Shell;
+use clap_complete::generate;
 
 /// Generate static completion file.
 #[derive(Args, Debug, PartialEq)]

@@ -1,9 +1,8 @@
 //! Functions related to git submodules.
-use std::{
-    error::Error,
-    fs::canonicalize,
-    path::{Path, PathBuf},
-};
+use std::error::Error;
+use std::fs::canonicalize;
+use std::path::Path;
+use std::path::PathBuf;
 
 use git2::Oid;
 use regex::Regex;

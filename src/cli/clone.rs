@@ -1,7 +1,11 @@
 //! Clone a repository into the repo tree.
 use clap::Args;
 
-use crate::{Config, RepoId, VersionControlSystem, git, jujutsu};
+use crate::Config;
+use crate::RepoId;
+use crate::VersionControlSystem;
+use crate::git;
+use crate::jujutsu;
 
 /// Clone a repository within the repo tree.
 #[derive(Args, Debug, PartialEq)]

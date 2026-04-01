@@ -1,7 +1,11 @@
 //! Definition of the rt CLI.
-use std::{env, fs::canonicalize, path::PathBuf, process::exit};
+use std::env;
+use std::fs::canonicalize;
+use std::path::PathBuf;
+use std::process::exit;
 
-use clap::{Parser, Subcommand};
+use clap::Parser;
+use clap::Subcommand;
 
 mod clean;
 mod clone;

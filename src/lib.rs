@@ -15,16 +15,15 @@ mod version_control_system;
 
 use std::path::PathBuf;
 
-pub use crate::{
-    cli::run,
-    config::{Config, Host},
-    error::NotImplementedError,
-    prompt_builder::PromptBuilder,
-    repo_id::RepoId,
-    repo_state::RepoState,
-    repository::Repository,
-    version_control_system::VersionControlSystem,
-};
+pub use crate::cli::run;
+pub use crate::config::Config;
+pub use crate::config::Host;
+pub use crate::error::NotImplementedError;
+pub use crate::prompt_builder::PromptBuilder;
+pub use crate::repo_id::RepoId;
+pub use crate::repo_state::RepoState;
+pub use crate::repository::Repository;
+pub use crate::version_control_system::VersionControlSystem;
 
 /// Load all the repositories present in the repo tree.
 /// Print a warning message if empty directories outside any repository are
