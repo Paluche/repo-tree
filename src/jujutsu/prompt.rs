@@ -10,7 +10,7 @@ use jj_lib::{
 };
 
 use super::load;
-use crate::cli::PromptBuilder;
+use crate::PromptBuilder;
 
 #[derive(Debug)]
 struct Ref {

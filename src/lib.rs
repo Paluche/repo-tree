@@ -6,6 +6,7 @@ mod config;
 mod error;
 mod git;
 mod jujutsu;
+mod prompt_builder;
 mod repo_id;
 mod repo_state;
 mod repository;
@@ -17,6 +18,7 @@ pub use crate::{
     cli::run,
     config::{Config, Host},
     error::NotImplementedError,
+    prompt_builder::PromptBuilder,
     repo_id::RepoId,
     repo_state::RepoState,
     repository::Repository,
