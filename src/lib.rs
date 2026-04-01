@@ -17,9 +17,9 @@ use std::path::PathBuf;
 
 pub use crate::cli::run;
 pub use crate::config::Config;
-pub use crate::config::Host;
 pub use crate::error::NotImplementedError;
 pub use crate::prompt_builder::PromptBuilder;
+pub use crate::repo_id::Host;
 pub use crate::repo_id::RepoId;
 pub use crate::repo_state::RepoState;
 pub use crate::repository::Repository;
@@ -28,7 +28,7 @@ pub use crate::version_control_system::VersionControlSystem;
 /// Load all the repositories present in the repo tree.
 /// Print a warning message if empty directories outside any repository are
 /// found in the repo tree.
-pub fn load_repositories(config: &Config) -> Vec<Repository> {
+pub fn load_repositories(config: &Config) -> Vec<Repository<'_>> {
     let (repositories, empty_dirs) = repository::search(config);
 
     for empty_dir in empty_dirs {
@@ -39,7 +39,7 @@ pub fn load_repositories(config: &Config) -> Vec<Repository> {
 }
 
 /// Load all the repositories present in the repo tree.
-pub fn load_repositories_silent(config: &Config) -> Vec<Repository> {
+pub fn load_repositories_silent(config: &Config) -> Vec<Repository<'_>> {
     repository::search(config).0
 }
 
@@ -48,17 +48,19 @@ pub fn load_filtered_repositories(
     config: &Config,
     filter_hosts: Vec<String>,
     filter_names: Vec<String>,
-) -> Vec<Repository> {
+) -> Vec<Repository<'_>> {
     let repositories = load_repositories(config);
 
     repositories
         .into_iter()
         .filter(|r| {
             (filter_hosts.is_empty()
-                || filter_hosts.iter().any(|host| {
-                    r.id.host
-                        .clone()
-                        .is_some_and(|repo_host| &repo_host.name == host)
+                || filter_hosts.iter().any(|host| match r.id.host.name() {
+                    Ok(name) => name == host,
+                    Err(err) => {
+                        eprintln!("{err}");
+                        false
+                    }
                 }))
                 && (filter_names.is_empty()
                     || filter_names

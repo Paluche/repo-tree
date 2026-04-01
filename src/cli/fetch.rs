@@ -27,9 +27,8 @@ pub fn fetch_repo(
 ) -> Result<(usize, usize), Box<dyn Error>> {
     let mut ok: usize = 0;
     let mut total: usize = 0;
-    if let Some(host) = &repository.id.host
-        && host.name == "local"
-    {
+
+    if repository.id.host.is_local() {
         eprintln!("Skipping local repository {}", repository.id);
         return Ok((0, 0));
     }

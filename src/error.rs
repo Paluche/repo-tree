@@ -17,3 +17,8 @@ pub struct ParseUrlError(pub String);
 #[error("No repository found in {0}")]
 /// No repository found.
 pub struct NoRepositoryError(pub PathBuf);
+
+#[derive(Debug, Error)]
+#[error("Missing host configuration for {0}")]
+/// Error during the parsing of the remote URL.
+pub struct UnknownRemoteHostError(pub String);

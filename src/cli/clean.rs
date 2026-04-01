@@ -26,7 +26,13 @@ pub struct CleanArgs {
 pub fn run(config: &Config, args: CleanArgs) -> i32 {
     let repositories = load_repositories_silent(config)
         .into_iter()
-        .filter(|r| r.expected_root(config).is_some_and(|p| p != r.root))
+        .filter(|r| match r.expected_root(config) {
+            Ok(v) => v.is_some_and(|p| p != r.root),
+            Err(err) => {
+                eprintln!("{err}");
+                false
+            }
+        })
         .collect::<Vec<Repository>>();
 
     let mut ret = 0;
@@ -36,7 +42,8 @@ pub fn run(config: &Config, args: CleanArgs) -> i32 {
     } else {
         println!("Repositories to move:");
         for repository in repositories {
-            let expected_root = repository.expected_root(config).unwrap();
+            let expected_root =
+                repository.expected_root(config).unwrap().unwrap();
             println!(
                 "- {}: {} => {}",
                 repository.id.name,

@@ -23,9 +23,12 @@ fn do_clone(
     repo_id: &RepoId,
     vcs: &VersionControlSystem,
 ) -> i32 {
-    let Some(location) = repo_id.location(config) else {
-        eprintln!("Unknown host");
-        return 1;
+    let location = match repo_id.location(config) {
+        Ok(p) => p,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
     };
 
     if location.exists() {

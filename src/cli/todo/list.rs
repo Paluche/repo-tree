@@ -44,15 +44,8 @@ pub fn run(config: &Config, args: ListArgs) -> i32 {
 
     for repository in load_filtered_repositories(config, args.hosts, args.names)
     {
-        let id = format!(
-            "{} {:20}",
-            repository
-                .id
-                .host
-                .clone()
-                .map_or("".red().to_string(), |h| h.repr()),
-            repository.id.name
-        );
+        let id =
+            format!("{} {:20}", repository.id.host.repr(), repository.id.name);
 
         if repository.id.remote_url.is_none() {
             if args.verbose {

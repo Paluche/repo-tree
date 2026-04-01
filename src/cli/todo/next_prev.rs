@@ -3,7 +3,6 @@
 use clap::ArgAction;
 use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
-use colored::Colorize;
 use crossterm::terminal::Clear;
 use crossterm::terminal::ClearType;
 
@@ -38,10 +37,10 @@ pub struct NextPrevArgs {
 }
 
 /// Iterate the repositories, starting from the specified one.
-fn iter_repos_from(
-    repositories: Vec<Repository>,
-    start: Option<Repository>,
-) -> Box<dyn DoubleEndedIterator<Item = Repository>> {
+fn iter_repos_from<'config>(
+    repositories: Vec<Repository<'config>>,
+    start: Option<Repository<'config>>,
+) -> Box<dyn DoubleEndedIterator<Item = Repository<'config>> + 'config> {
     if let Some(start) = start {
         // Use partition_in_place when stable.
         let mut start_found = false;
@@ -108,10 +107,7 @@ pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
             eprintln!(
                 "\r{}{} {:20} {}",
                 Clear(ClearType::CurrentLine),
-                repository
-                    .id
-                    .host
-                    .map_or("".red().to_string(), |h| h.repr()),
+                repository.id.host.repr(),
                 repository.id.name,
                 repo_state
             );

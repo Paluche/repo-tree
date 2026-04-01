@@ -3,11 +3,94 @@ use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 
+use colored::Colorize;
 use regex::Regex;
 
 use crate::config::Config;
-use crate::config::Host;
+use crate::config::LocalHost;
+use crate::config::RemoteHost;
 use crate::error::ParseUrlError;
+use crate::error::UnknownRemoteHostError;
+
+#[derive(Clone, Debug, PartialEq, Hash)]
+/// The different type of host one repository can be associated with.
+pub enum Host<'config> {
+    /// Repository is associated with a remote repository stored on the linked
+    /// host.
+    Remote(&'config RemoteHost),
+    /// Repository is associated with a remote repository stored on an unknown
+    /// host for which we are missing the associated configuration.
+    UnknownRemote(String),
+    /// Repository exists only locally.
+    Local(&'config LocalHost),
+}
+
+impl<'config> Host<'config> {
+    /// Create a new Host::Local enumeration value.
+    pub fn local(config: &'config Config) -> Self {
+        Self::Local(&config.local)
+    }
+
+    /// Find out if the enum value is representing a local host.
+    pub fn is_local(&self) -> bool {
+        matches!(self, Self::Local(_))
+    }
+
+    /// Find out if the enum value is representing a host which remote is
+    /// unknown based on the configuration.
+    pub fn is_unknown_remote(&self) -> bool {
+        matches!(self, Self::UnknownRemote(_))
+    }
+
+    /// Name of the remote host.
+    pub fn name(&self) -> Result<&String, UnknownRemoteHostError> {
+        match self {
+            Self::Remote(remote_host) => Ok(&remote_host.name),
+            Self::UnknownRemote(host_url) => {
+                Err(UnknownRemoteHostError(host_url.to_owned()))
+            }
+            Self::Local(local_host) => Ok(&local_host.name),
+        }
+    }
+
+    /// Name of the directory for that host in the repo tree.
+    pub fn dir_name(&self) -> Result<String, UnknownRemoteHostError> {
+        match self {
+            Self::Remote(remote_host) => Ok(remote_host.dir_name()),
+            Self::UnknownRemote(host_url) => {
+                Err(UnknownRemoteHostError(host_url.to_owned()))
+            }
+            Self::Local(local_host) => Ok(local_host.dir_name()),
+        }
+    }
+
+    /// Get the full path to the directory for that host.
+    pub fn get_host_dir(
+        &self,
+        config: &Config,
+    ) -> Result<PathBuf, UnknownRemoteHostError> {
+        self.dir_name().map(|d| config.repo_tree_dir.join(d))
+    }
+
+    /// Get the short representation of the host.
+    pub fn repr(&self) -> String {
+        match self {
+            Self::Remote(remote_host) => remote_host.repr(),
+            Self::UnknownRemote(_) => "".red().to_string(),
+            Self::Local(local_host) => local_host.repr(),
+        }
+    }
+}
+
+impl<'config> Display for Host<'config> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Ok(dir_name) = self.dir_name() {
+            write!(f, "{dir_name}")
+        } else {
+            write!(f, "?????")
+        }
+    }
+}
 
 /// Either the repository is within the ${REPO_TREE_DIR}/local directory
 /// allowing the user to organize as see fits this directory.
@@ -77,35 +160,35 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
 
 #[derive(Debug, Clone, Hash, PartialEq)]
 /// Repository Identifier
-pub struct RepoId {
+pub struct RepoId<'config> {
     /// Remote URL of the repository. This is the URL of the remote which is
     /// used to deduce the repository path in the repo tree, in case your
     /// repository has several ones. None if the repository is local.
     pub remote_url: Option<String>,
-    /// Information about the host associated with the repository, None if the
-    /// host has not been resolved, due to missing configuration for that host.
-    pub host: Option<Host>,
+    /// Information about the host associated with the repository.
+    pub host: Host<'config>,
     /// Name of the repository.
     pub name: String,
 }
 
-impl RepoId {
-    /// Parse the provided repository remote URL into a host (as Host struct)
-    /// and the local path the repository should be located at in the repo
-    /// tree based according to the URL.
+impl<'config> RepoId<'config> {
+    /// Parse the provided repository remote URL into a host (as Host enum) and
+    /// the local path the repository should be located at in the repo tree
+    /// based according to the URL.
     pub fn parse_url(
-        config: &Config,
+        config: &'config Config,
         remote_url: &str,
     ) -> Result<Self, ParseUrlError> {
         let remote_cap = capture_url(remote_url)?;
         let host_url = &remote_cap["host"];
         let name = remote_cap["path"].to_string();
 
-        let host = config.get_host(host_url).cloned();
+        let host = config
+            .get_remote_host(host_url)
+            .map_or(Host::UnknownRemote(host_url.to_owned()), |remote_host| {
+                Host::Remote(remote_host)
+            });
 
-        if host.is_none() {
-            eprintln!("Missing host configuration for {host_url}");
-        }
         Ok(Self {
             remote_url: Some(remote_url.to_string()),
             host,
@@ -119,38 +202,33 @@ impl RepoId {
     /// This version (in regard to parse_url()) defaults to the local host
     /// location configuration if the remote_url argument is None.
     pub fn parse_repo_url<P: AsRef<Path>>(
-        config: &Config,
+        config: &'config Config,
         repo_path: &P,
         remote_url: Option<&String>,
-    ) -> Result<RepoId, ParseUrlError> {
+    ) -> Result<RepoId<'config>, ParseUrlError> {
         if let Some(remote_url) = remote_url {
             Self::parse_url(config, remote_url)
         } else {
             Ok(Self {
                 remote_url: None,
-                host: Some(config.local.as_host()),
+                host: Host::local(config),
                 name: compute_local_path(&config.repo_tree_dir, repo_path),
             })
         }
     }
 
     /// Get the path in the repo tree, where the repository should be located.
-    pub fn location(&self, config: &Config) -> Option<PathBuf> {
-        self.host
-            .clone()
-            .map(|h| config.repo_tree_dir.join(h.dir_name()).join(&self.name))
+    pub fn location(
+        &self,
+        config: &Config,
+    ) -> Result<PathBuf, UnknownRemoteHostError> {
+        self.host.get_host_dir(config).map(|p| p.join(&self.name))
     }
 }
 
-impl Display for RepoId {
+impl<'config> Display for RepoId<'config> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(host) = &self.host {
-            let dir_name = host.dir_name();
-            if dir_name != "." {
-                write!(f, "{dir_name} ")?;
-            }
-        }
-        write!(f, "{}", self.name)?;
+        write!(f, "{} {}", self.host, self.name)?;
         if let Some(remote_url) = &self.remote_url {
             write!(f, " {remote_url}")?;
         }
