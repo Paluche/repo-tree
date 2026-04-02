@@ -44,7 +44,7 @@ pub fn clone<P: AsRef<OsStr>>(
         .arg("git")
         .arg("clone")
         .arg(if colocated {
-            "--colocated"
+            "--colocate"
         } else {
             "--no-colocate"
         })
