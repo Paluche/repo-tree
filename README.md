@@ -183,6 +183,27 @@ name = 'local'
 repr = '󰋊'
 ```
 
+### Configuring management of unknown remote
+
+A remote is considered unknown if you did not provide the associated
+configuration for the host remote URL.
+
+```toml
+[unknown_host]
+repr = '<REPR>' # Representation used in the prompt for unknown hosts.
+repr_color = <COLOR>  # Color to use to colorize the 'repr' value. Optional,
+                      # defaults to no color. See Color Configuration chapter
+                      # above.
+```
+
+The default configuration for the unknown hosts is the following:
+
+```toml
+[local]
+name = ''
+repr_color: 'red'
+```
+
 ### Configuring `rt resolve` command
 
 Configure repository ID aliases for repository resolution.
