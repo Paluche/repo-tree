@@ -11,6 +11,10 @@
 //! repr = [PROMPT REPRESENTATION]  # Optional, defaults to 'name' value.
 //! repr_color = 'prompt representation color'  # Optional, as int (ANSI color) or string
 //!                                             # (literal), defaults to no color
+//! [unknown_host]
+//! repr = [PROMPT REPRESENTATION]  # Optional, defaults to 'name' value.
+//! repr_color = 'prompt representation color'  # Optional, as int (ANSI color) or string
+//!                                             # (literal), defaults to no color
 //! [local]  # Optional
 //! name = 'host_pretty_name'  # Defaults, to 'local'.
 //! dir_name: 'host_dir_name_in_tree'  # Optional, defaults to 'name' value.
@@ -350,6 +354,34 @@ impl Default for LocalHost {
     }
 }
 
+/// Configuration when having to handle an unknown host (unknown from the
+/// configuration).
+#[derive(Deserialize, Hash, PartialEq, Debug)]
+pub struct UnknownHost {
+    /// Short representation to use is the host is unknown
+    repr: String,
+    #[serde(default)]
+    /// Color for the short representation of the host.
+    repr_color: Color,
+}
+
+impl UnknownHost {
+    /// Get the short representation of the host.
+    pub fn repr(&self) -> String {
+        self.repr_color.colorize(&self.repr)
+    }
+}
+
+impl Default for UnknownHost {
+    fn default() -> Self {
+        Self {
+            repr: "".to_string(),
+            repr_color: Color::from_str("red")
+                .expect("Hardcoded value must be valid"),
+        }
+    }
+}
+
 /// Configuration for the `rt clone` command.
 #[derive(Deserialize, Default)]
 pub struct CloneCommandConfig {
@@ -400,6 +432,10 @@ pub struct Config {
     /// Configuration for local only repositories.
     #[serde(default)]
     pub local: LocalHost,
+    /// Configuration when having to handle an unknown host (unknown from the
+    /// configuration).
+    #[serde(default)]
+    pub unknown_host: UnknownHost,
     /// Configuration for the different rt sub-commands.
     #[serde(default)]
     pub command: CommandConfig,

@@ -3,12 +3,12 @@ use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 
-use colored::Colorize;
 use regex::Regex;
 
 use crate::config::Config;
 use crate::config::LocalHost;
 use crate::config::RemoteHost;
+use crate::config::UnknownHost;
 use crate::error::ParseUrlError;
 use crate::error::UnknownRemoteHostError;
 
@@ -20,7 +20,7 @@ pub enum Host<'config> {
     Remote(&'config RemoteHost),
     /// Repository is associated with a remote repository stored on an unknown
     /// host for which we are missing the associated configuration.
-    UnknownRemote(String),
+    UnknownRemote(String, &'config UnknownHost),
     /// Repository exists only locally.
     Local(&'config LocalHost),
 }
@@ -31,6 +31,11 @@ impl<'config> Host<'config> {
         Self::Local(&config.local)
     }
 
+    /// Create a new Host::UnknownRemote enumeration value.
+    pub fn unknown_remote(config: &'config Config, url: String) -> Self {
+        Self::UnknownRemote(url, &config.unknown_host)
+    }
+
     /// Find out if the enum value is representing a local host.
     pub fn is_local(&self) -> bool {
         matches!(self, Self::Local(_))
@@ -39,14 +44,14 @@ impl<'config> Host<'config> {
     /// Find out if the enum value is representing a host which remote is
     /// unknown based on the configuration.
     pub fn is_unknown_remote(&self) -> bool {
-        matches!(self, Self::UnknownRemote(_))
+        matches!(self, Self::UnknownRemote(_, _))
     }
 
     /// Name of the remote host.
     pub fn name(&self) -> Result<&String, UnknownRemoteHostError> {
         match self {
             Self::Remote(remote_host) => Ok(&remote_host.name),
-            Self::UnknownRemote(host_url) => {
+            Self::UnknownRemote(host_url, _) => {
                 Err(UnknownRemoteHostError(host_url.to_owned()))
             }
             Self::Local(local_host) => Ok(&local_host.name),
@@ -57,7 +62,7 @@ impl<'config> Host<'config> {
     pub fn dir_name(&self) -> Result<String, UnknownRemoteHostError> {
         match self {
             Self::Remote(remote_host) => Ok(remote_host.dir_name()),
-            Self::UnknownRemote(host_url) => {
+            Self::UnknownRemote(host_url, _) => {
                 Err(UnknownRemoteHostError(host_url.to_owned()))
             }
             Self::Local(local_host) => Ok(local_host.dir_name()),
@@ -76,7 +81,7 @@ impl<'config> Host<'config> {
     pub fn repr(&self) -> String {
         match self {
             Self::Remote(remote_host) => remote_host.repr(),
-            Self::UnknownRemote(_) => "".red().to_string(),
+            Self::UnknownRemote(_, unknown_host) => unknown_host.repr(),
             Self::Local(local_host) => local_host.repr(),
         }
     }
@@ -183,11 +188,10 @@ impl<'config> RepoId<'config> {
         let host_url = &remote_cap["host"];
         let name = remote_cap["path"].to_string();
 
-        let host = config
-            .get_remote_host(host_url)
-            .map_or(Host::UnknownRemote(host_url.to_owned()), |remote_host| {
-                Host::Remote(remote_host)
-            });
+        let host = config.get_remote_host(host_url).map_or(
+            Host::unknown_remote(config, host_url.to_owned()),
+            Host::Remote,
+        );
 
         Ok(Self {
             remote_url: Some(remote_url.to_string()),
