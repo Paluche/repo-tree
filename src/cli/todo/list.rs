@@ -6,9 +6,9 @@ use colored::Colorize;
 use crossterm::terminal::Clear;
 use crossterm::terminal::ClearType;
 
-use crate::NotImplementedError;
 use crate::config::Config;
 use crate::config::list_host_completer;
+use crate::error::NotImplementedError;
 use crate::repository::Repositories;
 
 /// Custom git status. Concise, with all the data and without help text.

@@ -3,9 +3,9 @@ use clap::Args;
 use clap_complete::PathCompleter;
 use clap_complete::engine::ArgValueCompleter;
 
-use crate::Config;
-use crate::Repository;
 use crate::cli::cwd_default_path;
+use crate::config::Config;
+use crate::repository::Repository;
 
 /// Find out if there is something to do by the user in order to keep this
 /// repository updated.

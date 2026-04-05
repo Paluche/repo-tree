@@ -21,7 +21,7 @@ mod todo;
 mod tree;
 mod util;
 
-use crate::Config;
+use crate::config::Config;
 
 #[allow(clippy::missing_docs_in_private_items)]
 #[derive(Parser, Debug, PartialEq)]

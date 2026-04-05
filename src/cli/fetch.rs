@@ -4,12 +4,12 @@ use std::error::Error;
 
 use clap::Args;
 
-use crate::Config;
-use crate::Repositories;
-use crate::Repository;
-use crate::VersionControlSystem;
+use crate::config::Config;
 use crate::git;
 use crate::jujutsu;
+use crate::repository::Repositories;
+use crate::repository::Repository;
+use crate::version_control_system::VersionControlSystem;
 
 /// Fetch all the repositories within the repo_tree.
 #[derive(Args, Debug, PartialEq)]

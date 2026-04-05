@@ -11,7 +11,7 @@ use jj_lib::repo::Repo;
 use jj_lib::revset::RevsetExpression;
 
 use super::load;
-use crate::PromptBuilder;
+use crate::prompt_builder::PromptBuilder;
 
 #[derive(Debug)]
 /// Status of a reference.

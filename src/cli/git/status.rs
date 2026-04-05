@@ -7,12 +7,12 @@ use clap_complete::PathCompleter;
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
 
-use crate::Config;
-use crate::Repository;
 use crate::cli::cwd_default_path;
+use crate::config::Config;
 use crate::git::GitStatus;
 use crate::git::SubmoduleStatus;
 use crate::git::{self};
+use crate::repository::Repository;
 
 /// Custom git status. Concise, with all the data and without help text.
 #[derive(Args, Debug, PartialEq)]

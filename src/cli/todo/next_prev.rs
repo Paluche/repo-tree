@@ -6,13 +6,13 @@ use clap_complete::engine::ArgValueCompleter;
 use crossterm::terminal::Clear;
 use crossterm::terminal::ClearType;
 
-use crate::NotImplementedError;
-use crate::Repositories;
-use crate::Repository;
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::config::list_host_completer;
 use crate::error::NoRepositoryError;
+use crate::error::NotImplementedError;
+use crate::repository::Repositories;
+use crate::repository::Repository;
 
 /// Go to the next or previous repository where you have to do something to keep
 /// it up-to-date.

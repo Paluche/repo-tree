@@ -3,8 +3,8 @@ use std::path::Path;
 
 use colored::Colorize;
 
-use crate::PromptBuilder;
 use crate::git;
+use crate::prompt_builder::PromptBuilder;
 
 /// Build the shell prompt information for Git repositories.
 pub fn prompt(

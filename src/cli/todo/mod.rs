@@ -5,7 +5,7 @@ use clap::Subcommand;
 mod list;
 mod next_prev;
 
-use crate::Config;
+use crate::config::Config;
 
 /// Commands related to the repository state. Find out if there is something to
 /// do in any of the repositories of your repo tree, and help tackles then down.

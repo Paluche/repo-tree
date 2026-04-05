@@ -7,7 +7,7 @@ mod state;
 use clap::Args;
 use clap::Subcommand;
 
-use crate::Config;
+use crate::config::Config;
 
 /// Actions for any type of repository.
 #[allow(clippy::missing_docs_in_private_items)]
