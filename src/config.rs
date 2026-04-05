@@ -360,7 +360,7 @@ pub struct CloneCommandConfig {
     /// Default version control system to use to clone a repository in the repo
     /// tree.
     #[serde(default)]
-    pub vcs: VersionControlSystem,
+    pub default_vcs: VersionControlSystem,
 }
 
 /// Configuration for the `rt resolve` command.
@@ -543,7 +543,7 @@ mod tests {
         ignore = [ 'Paluche/jj-test-repo' ]
 
         [command.clone]
-        vcs = 'jujutsu'
+        default_vcs = 'jujutsu'
         "#
         })?;
         Ok(())

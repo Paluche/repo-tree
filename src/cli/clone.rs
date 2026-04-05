@@ -80,7 +80,7 @@ fn do_clone(
 
 /// Execute the `rt clone` command.
 pub fn run(config: &Config, args: CloneArgs) -> i32 {
-    let vcs = args.vcs.unwrap_or(config.command.clone.vcs);
+    let vcs = args.vcs.unwrap_or(config.command.clone.default_vcs);
 
     if let Ok(repo_id) = RepoId::parse_url(config, &args.url) {
         do_clone(config, &repo_id, &vcs)
