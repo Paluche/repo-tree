@@ -427,7 +427,7 @@ pub struct Config {
     pub repo_tree_dir: PathBuf,
     /// Configuration related to the hosts we know how to organize repositories
     /// which host there remote.
-    #[serde(default)]
+    #[serde(default, rename = "host")]
     pub remote_hosts: RemoteHosts,
     /// Configuration for local only repositories.
     #[serde(default)]
@@ -529,51 +529,50 @@ mod tests {
 
     #[test]
     fn full_config() -> Result<(), Box<dyn Error>> {
-        let _: Config = toml::from_str(indoc! {
-        r#"
-            [hosts."my.custom-domain.fr"]
-            name = 'mine'
-            repr = '󱘎'
-            repr_color = 'blue'
+        let _: Config = toml::from_str(indoc! {r#"
+        [host."my.custom-domain.fr"]
+        name = 'mine'
+        repr = '󱘎'
+        repr_color = 'blue'
 
-            [hosts."git.buildroot.net"]
-            name = 'buildroot'
-            dir_name = '.'
-            repr = '󰥯'
-            repr_color = 'yellow'
+        [host."git.buildroot.net"]
+        name = 'buildroot'
+        dir_name = '.'
+        repr = '󰥯'
+        repr_color = 'yellow'
 
-            [hosts."busybox.net"]
-            name = 'busybox'
-            repr = ''
-            repr_color = 'green'
+        [host."busybox.net"]
+        name = 'busybox'
+        repr = ''
+        repr_color = 'green'
 
-            [hosts."blabla.net"]
-            name = 'blabla'
-            repr = ''
-            repr_color = 124
+        [host."blabla.net"]
+        name = 'blabla'
+        repr = ''
+        repr_color = 124
 
-            [hosts."alice-and-bob.net"]
-            name = 'alice-and-bob'
-            repr = ''
-            [hosts."alice-and-bob.net".repr_color]
-            r = 48
-            g = 15
-            b = 16
+        [host."alice-and-bob.net"]
+        name = 'alice-and-bob'
+        repr = ''
+        [host."alice-and-bob.net".repr_color]
+        r = 48
+        g = 15
+        b = 16
 
-            [local]
-            name = 'local'
-            repr = '󰋊'
-            repr_color = 'white'
+        [local]
+        name = 'local'
+        repr = '󰋊'
+        repr_color = 'white'
 
-            [command.resolve.aliases]
-            rt = 'repo-tree'
+        [command.resolve.aliases]
+        rt = 'repo-tree'
 
-            [command.todo]
-            ignore = [ 'Paluche/jj-test-repo' ]
+        [command.todo]
+        ignore = [ 'Paluche/jj-test-repo' ]
 
-            [command.clone]
-            vcs = 'jujutsu'
-            "#
+        [command.clone]
+        vcs = 'jujutsu'
+        "#
         })?;
         Ok(())
     }
