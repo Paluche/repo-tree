@@ -109,7 +109,7 @@ repositories are organized based on their remotes, for each remote host (e.g.
 where all the associated repositories will be stored in.
 
 ```toml
-[hosts."<URL>"]
+[host."<URL>"]
 name = '<NAME>'  # Pretty name for the host.
 dir_name = '<DIR_NAME>'  # Name of the directory the host's repositories will
                          # be stored. Optional, defaults to the value set to
@@ -124,27 +124,27 @@ repr_color = <COLOR>  # Color to use to colorize the 'repr' value. Optional,
 The default configuration for the hosts is the following:
 
 ```toml
-[hosts."github.com"]
+[host."github.com"]
 name = 'github'
 repr = ''
 repr_color = 'white'
 
-[hosts."gitlab.com"]
+[host."gitlab.com"]
 name = 'gitlab'
 repr = '󰮠'
 repr_color = 166 # Orange
 
-[hosts."git.kernel.org"]
+[host."git.kernel.org"]
 name = 'kernel'
 repr = ''
 repr_color = 'white'
 
-[hosts."bitbucket.org"]
+[host."bitbucket.org"]
 name = 'bitbucket'
 repr = ''
 repr_color = 'blue'
 
-[hosts."codeberg.org"]
+[host."codeberg.org"]
 name = 'codeberg'
 repr = ''
 repr_color = 'blue'
