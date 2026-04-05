@@ -383,7 +383,7 @@ impl Default for UnknownHost {
 }
 
 /// Configuration for the `rt clone` command.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Debug)]
 pub struct CloneCommandConfig {
     /// Default version control system to use to clone a repository in the repo
     /// tree.
@@ -392,7 +392,7 @@ pub struct CloneCommandConfig {
 }
 
 /// Configuration for the `rt resolve` command.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Debug)]
 pub struct ResolveCommandConfig {
     /// Resolution aliases.
     #[serde(default)]
@@ -400,7 +400,7 @@ pub struct ResolveCommandConfig {
 }
 
 /// Configuration for the `rt todo` command.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Debug)]
 pub struct TodoCommandConfig {
     /// List of ID of repositories to be ignored by the command.
     #[serde(default)]
@@ -408,7 +408,7 @@ pub struct TodoCommandConfig {
 }
 
 /// Configuration for `rt` commands.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Debug)]
 pub struct CommandConfig {
     /// Configuration for `rt clone`.
     pub clone: CloneCommandConfig,
@@ -419,7 +419,7 @@ pub struct CommandConfig {
 }
 
 /// Configuration of the rt executable.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Debug)]
 pub struct Config {
     // Value obtained through environment variable REPO_TREE_DIR.
     /// Path the root of the repo tree.
