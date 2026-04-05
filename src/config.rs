@@ -3,35 +3,7 @@
 //! If `XDG_CONFIG_HOME` is not set, then we will use the value
 //! `${HOME}/.config` in place.
 //!
-//! The TOML configuration file has the following syntax:
-//! ```toml
-//! [hosts."URL"]
-//! name = 'host_pretty_name'
-//! dir_name: 'host_dir_name_in_tree'  # Optional, defaults to 'name' value.
-//! repr = [PROMPT REPRESENTATION]  # Optional, defaults to 'name' value.
-//! repr_color = 'prompt representation color'  # Optional, as int (ANSI color) or string
-//!                                             # (literal), defaults to no color
-//! [unknown_host]
-//! repr = [PROMPT REPRESENTATION]  # Optional, defaults to 'name' value.
-//! repr_color = 'prompt representation color'  # Optional, as int (ANSI color) or string
-//!                                             # (literal), defaults to no color
-//! [local]  # Optional
-//! name = 'host_pretty_name'  # Defaults, to 'local'.
-//! dir_name: 'host_dir_name_in_tree'  # Optional, defaults to 'name' value.
-//! repr = [PROMPT REPRESENTATION]  # Optional, defaults to 'name' value.
-//! repr_color = 'prompt representation color'  # Optional, as int (ANSI color) or string
-//!                                             # (literal), defaults to no color
-//! [command.resolve.aliases]
-//! alias_name = 'full/repository/id'
-//!
-//! [command.todo]
-//! ignore = [  # List of repositories to ignore.
-//!   'full/repository/id'
-//! ]
-//!
-//! [command.clone]
-//! vcs = '' # Default VCS to clone: 'jujutsu', 'git' or 'jujutsu-git' (default)
-//!   dir_name: <LOCAL REPOS DIR NAME IN TREE>
+//! See repository README for more information.
 //! ```
 
 use core::str::FromStr;
