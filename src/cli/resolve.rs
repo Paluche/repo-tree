@@ -3,8 +3,8 @@
 use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 
-use crate::Config;
-use crate::Repositories;
+use crate::config::Config;
+use crate::repository::Repositories;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 

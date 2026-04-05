@@ -4,9 +4,9 @@ use std::fs::remove_dir_all;
 use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 
-use crate::Config;
-use crate::NotImplementedError;
-use crate::Repositories;
+use crate::config::Config;
+use crate::error::NotImplementedError;
+use crate::repository::Repositories;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 

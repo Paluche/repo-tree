@@ -134,6 +134,7 @@ fn resolve_url_as_relpath<P: AsRef<Path>>(
 }
 
 /// Information on a submodule.
+#[allow(unused)]
 pub struct SubmoduleInfo {
     /// Path to the root of the main repository.
     pub main_repo_root: PathBuf,

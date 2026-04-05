@@ -2,7 +2,7 @@
 use clap::Args;
 use clap::Subcommand;
 
-use crate::Config;
+use crate::config::Config;
 
 mod status;
 

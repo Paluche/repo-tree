@@ -4,7 +4,7 @@ use clap::Args;
 use clap::CommandFactory;
 use clap::Subcommand;
 
-use crate::Config;
+use crate::config::Config;
 
 pub mod completion;
 

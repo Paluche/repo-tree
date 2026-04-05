@@ -46,12 +46,6 @@ impl<'config> Host<'config> {
         matches!(self, Self::Local(_))
     }
 
-    /// Find out if the enum value is representing a host which remote is
-    /// unknown based on the configuration.
-    pub fn is_unknown_remote(&self) -> bool {
-        matches!(self, Self::UnknownRemote(_, _))
-    }
-
     /// Name of the remote host.
     pub fn name(&self) -> Result<&String, UnknownRemoteHostError> {
         match self {

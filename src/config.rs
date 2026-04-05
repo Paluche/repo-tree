@@ -23,7 +23,7 @@ use colored::Colorize;
 use colored::{self};
 use serde::Deserialize;
 
-use crate::VersionControlSystem;
+use crate::version_control_system::VersionControlSystem;
 
 /// Color configuration.
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -250,18 +250,6 @@ fn default_remote_hosts() -> Vec<(String, RemoteHost)> {
 }
 
 define_host_struct!(LocalHost, local);
-
-impl LocalHost {
-    /// Clone the LocalHost struct into a RemoteHost.
-    pub fn as_host(&self) -> RemoteHost {
-        RemoteHost {
-            name: self.name.clone(),
-            dir_name: self.dir_name.clone(),
-            repr: self.repr.clone(),
-            repr_color: self.repr_color.clone(),
-        }
-    }
-}
 
 impl Default for LocalHost {
     fn default() -> Self {

@@ -7,10 +7,10 @@ use std::fs::rename;
 
 use clap::Args;
 
-use crate::Config;
-use crate::Repositories;
-use crate::Repository;
-use crate::load_empty_dirs;
+use crate::config::Config;
+use crate::repository::Repositories;
+use crate::repository::Repository;
+use crate::repository::load_empty_dirs;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.

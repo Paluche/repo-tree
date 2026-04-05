@@ -2,8 +2,8 @@
 use clap::Args;
 
 use super::super::get_cwd;
-use crate::Config;
-use crate::VersionControlSystem;
+use crate::config::Config;
+use crate::version_control_system::VersionControlSystem;
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.

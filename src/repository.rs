@@ -11,15 +11,15 @@ use pollster::FutureExt;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::Config;
-use crate::NotImplementedError;
-use crate::RepoId;
-use crate::RepoState;
+use crate::config::Config;
 use crate::error::NoRepositoryError;
+use crate::error::NotImplementedError;
 use crate::error::UnknownRemoteHostError;
 use crate::git::SubmoduleInfo;
 use crate::git::{self};
 use crate::jujutsu;
+use crate::repo_id::RepoId;
+use crate::repo_state::RepoState;
 use crate::utils::get_last_modified;
 use crate::version_control_system::VersionControlSystem;
 

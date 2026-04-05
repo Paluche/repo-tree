@@ -9,8 +9,8 @@ use clap_complete::engine::CompletionCandidate;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 
-use crate::Config;
-use crate::Repositories;
+use crate::config::Config;
+use crate::repository::Repositories;
 
 /// Resolve the URL of a repository into its path.
 #[derive(Args, Debug, PartialEq)]

@@ -40,16 +40,6 @@ impl RepoState {
     pub fn has_unpushed_commits(&self) -> bool {
         self.has_unpushed_commits
     }
-
-    /// Does your branches needs to be rebased to be kept up-to-date?
-    pub fn needs_restack(&self) -> bool {
-        self.needs_restack
-    }
-
-    /// Is there conflicts to resolve?
-    pub fn has_conflicts(&self) -> bool {
-        self.has_conflicts
-    }
 }
 
 impl Display for RepoState {

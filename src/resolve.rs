@@ -13,9 +13,9 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use itertools::Itertools;
 use which::which;
 
-use crate::Config;
-use crate::Repositories;
-use crate::Repository;
+use crate::config::Config;
+use crate::repository::Repositories;
+use crate::repository::Repository;
 
 /// Find the shortest end-path to identify two
 fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {

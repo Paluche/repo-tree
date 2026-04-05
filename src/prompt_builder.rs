@@ -4,7 +4,7 @@ use std::fmt::Display;
 use colored::ColoredString;
 use colored::Colorize;
 
-use crate::Repository;
+use crate::repository::Repository;
 
 /// Context to build the prompt line.
 pub struct PromptBuilder {

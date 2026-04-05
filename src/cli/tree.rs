@@ -8,9 +8,9 @@ use clap::Args;
 use colored::ColoredString;
 use colored::Colorize;
 
-use crate::Config;
-use crate::Repositories;
-use crate::Repository;
+use crate::config::Config;
+use crate::repository::Repositories;
+use crate::repository::Repository;
 
 /// Display a tree of your repo_tree.
 #[derive(Args, Debug, PartialEq)]
