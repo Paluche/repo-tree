@@ -247,7 +247,7 @@ ignore = [  # List of repositories to ignore.
 
 ```
 [command.clone]
-vcs = 'jujutsu-git'
+default_vcs = 'jujutsu-git'
 ```
 
 ## Completion and utils
