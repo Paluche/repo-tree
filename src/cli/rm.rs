@@ -4,11 +4,11 @@ use std::fs::remove_dir_all;
 use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 
-use super::resolve::resolve;
-use super::resolve::resolve_completer;
 use crate::Config;
 use crate::NotImplementedError;
 use crate::Repositories;
+use crate::resolve::resolve;
+use crate::resolve::resolve_completer;
 
 /// Remove a repository from the repo tree.
 #[derive(Args, Debug, PartialEq)]
