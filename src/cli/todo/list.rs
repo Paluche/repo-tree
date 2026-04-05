@@ -45,10 +45,13 @@ pub fn run(config: &Config, args: ListArgs) -> i32 {
     for repository in
         Repositories::load_filtered(config, args.hosts, args.names).iter()
     {
-        let id =
-            format!("{} {:20}", repository.id.host.repr(), repository.id.name);
+        let id = format!(
+            "{} {:20}",
+            repository.id.remote.host(config).repr(),
+            repository.id.name
+        );
 
-        if repository.id.remote_url.is_none() {
+        if repository.id.remote.is_local() {
             if args.verbose {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
                 println!("{id} {}", "Ignored (local)".bright_black());

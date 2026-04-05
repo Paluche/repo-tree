@@ -56,10 +56,11 @@ fn do_clone(
             eprintln!("Clone location {} already exists", location.display());
             1
         }
-    } else if let Some(remote_url) = &repo_id.remote_url {
+    } else if let Some(remote_url) = &repo_id.remote.url() {
         let res = match vcs {
             VersionControlSystem::Git => git::clone(remote_url, &location),
             VersionControlSystem::JujutsuGit => {
+                println!("{remote_url}");
                 jujutsu::git::clone(remote_url, &location, true)
             }
             VersionControlSystem::Jujutsu => {
@@ -82,7 +83,7 @@ fn do_clone(
 pub fn run(config: &Config, args: CloneArgs) -> i32 {
     let vcs = args.vcs.unwrap_or(config.command.clone.default_vcs);
 
-    if let Ok(repo_id) = RepoId::parse_url(config, &args.url) {
+    if let Ok(repo_id) = RepoId::from_remote_url(&args.url) {
         do_clone(config, &repo_id, &vcs)
     } else {
         eprintln!("Error parsing the provided URL");

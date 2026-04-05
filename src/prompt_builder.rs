@@ -4,6 +4,7 @@ use std::fmt::Display;
 use colored::ColoredString;
 use colored::Colorize;
 
+use crate::config::Config;
 use crate::repository::Repository;
 
 /// Context to build the prompt line.
@@ -16,14 +17,14 @@ pub struct PromptBuilder {
 
 impl PromptBuilder {
     /// Instantiate a new PromptBuilder for a repository.
-    pub fn new(repository: &Repository) -> Self {
+    pub fn new(config: &Config, repository: &Repository) -> Self {
         let sep = format!("{}", "|".cyan());
         Self {
             prompt: format!(
                 "{}{}{sep}{}{sep}{}",
                 "┣━┫".cyan(),
                 repository.vcs.short_display(),
-                repository.id.host.repr(),
+                repository.id.remote.host(config).repr(),
                 repository.id.name.green()
             ),
             sep,

@@ -43,16 +43,18 @@ fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
 
 /// Reduce the name of the repositories to the shortest path that identifies
 /// each repositories individually.
-fn reduce_repo_names<'config>(
-    repositories: &'config Repositories<'config>,
-) -> HashMap<String, &'config Repository<'config>> {
+fn reduce_repo_names<'repos>(
+    config: &Config,
+    repositories: &'repos Repositories,
+) -> HashMap<String, &'repos Repository> {
     let mut ret: HashMap<String, &Repository> = HashMap::new();
 
     for repository in repositories.iter() {
         let name = repository.id.name.clone();
         if let Ok(full_name) = repository
             .id
-            .host
+            .remote
+            .host(config)
             .name()
             .inspect_err(|err| eprintln!("{err}"))
             .map(|host_name| format!("{host_name}/{name}"))
@@ -90,11 +92,11 @@ fn reduce_repo_names<'config>(
 
 /// Get the map associating valid repository identifiers to the associated
 /// repository present in the repo tree.
-fn get_candidates<'config>(
-    config: &'config Config,
-    repositories: &'config Repositories<'config>,
-) -> HashMap<String, &'config Repository<'config>> {
-    let mut ret = reduce_repo_names(repositories);
+fn get_candidates<'repos>(
+    config: &Config,
+    repositories: &'repos Repositories,
+) -> HashMap<String, &'repos Repository> {
+    let mut ret = reduce_repo_names(config, repositories);
 
     for (alias, repo_name) in config.command.resolve.aliases.iter() {
         if let Some(repo) = ret.get(repo_name) {
@@ -140,11 +142,11 @@ fn fzf_ask(
 }
 
 /// Resolve a repository identifier into a local repository.
-pub fn resolve<'config>(
-    config: &'config Config,
-    repositories: &'config Repositories<'config>,
+pub fn resolve<'repos>(
+    config: &Config,
+    repositories: &'repos Repositories,
     repo_id: Option<String>,
-) -> Result<Option<&'config Repository<'config>>, Box<dyn Error>> {
+) -> Result<Option<&'repos Repository>, Box<dyn Error>> {
     let mut candidates = get_candidates(config, repositories);
 
     let repo_id = match repo_id {
@@ -215,9 +217,15 @@ pub fn resolve_completer(
 
                 CompletionCandidate::new(item)
                     .tag(
-                        repository.id.host.dir_name().ok().map(StyledStr::from),
+                        repository
+                            .id
+                            .remote
+                            .host(&config)
+                            .dir_name()
+                            .ok()
+                            .map(StyledStr::from),
                     )
-                    .help(repository.id.remote_url.clone().map(StyledStr::from))
+                    .help(repository.id.remote.url().map(StyledStr::from))
             })
         })
         .collect()

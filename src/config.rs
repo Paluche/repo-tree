@@ -170,7 +170,7 @@ impl Color {
 macro_rules! define_host_struct {
     ($name:ident, $def:ident ) => {
         #[derive(Deserialize, Clone, Debug, PartialEq, Hash)]
-        /// Representation of a repository $def Host.
+        /// Representation of a repository $def host.
         pub struct $name {
             /// Name of the remote host.
             pub name: String,
