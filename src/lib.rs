@@ -6,6 +6,7 @@ mod cli;
 mod config;
 mod error;
 mod git;
+mod host;
 mod jujutsu;
 mod prompt_builder;
 mod repo_id;

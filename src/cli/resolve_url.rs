@@ -23,13 +23,9 @@ pub struct ResolveUrlArgs {
 
 /// Get the map associating remote URL to the repository present in the repo
 /// tree.
-fn get_candidates(repositories: &Repositories) -> BTreeMap<String, PathBuf> {
+fn get_candidates(repositories: &Repositories) -> BTreeMap<&String, &PathBuf> {
     BTreeMap::from_iter(repositories.iter().filter_map(|repository| {
-        repository
-            .id
-            .remote_url
-            .clone()
-            .map(|u| (u, repository.root.clone()))
+        repository.id.remote.url().map(|u| (u, &repository.root))
     }))
 }
 

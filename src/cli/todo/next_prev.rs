@@ -56,8 +56,7 @@ pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
 
     // Skip the current repository.
     for repository in repositories.iter_from(&current_repository, reverse) {
-        if repository.id.remote_url.is_none() {
-            // Local repository.
+        if repository.id.remote.is_local() {
             continue;
         }
         eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
@@ -79,7 +78,7 @@ pub fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
             eprintln!(
                 "\r{}{} {:20} {}",
                 Clear(ClearType::CurrentLine),
-                repository.id.host.repr(),
+                repository.id.remote.host(config).repr(),
                 repository.id.name,
                 repo_state
             );

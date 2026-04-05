@@ -48,18 +48,18 @@ impl DirState {
 
 /// Directory representation.
 #[derive(Default, Debug)]
-struct Directory<'config> {
+struct Directory<'repos> {
     /// Childs directories within this directory.
     childs: BTreeMap<String, Self>,
     /// Repository present in this directory.
-    repository: Option<&'config Repository<'config>>,
+    repository: Option<&'repos Repository>,
 }
 
-impl<'config> Directory<'config> {
+impl<'repos> Directory<'repos> {
     /// Get the components of the repository root path.
     fn get_repo_components(
-        config: &'config Config,
-        repository: &Repository<'config>,
+        config: &Config,
+        repository: &Repository,
     ) -> Vec<String> {
         assert!(repository.root.starts_with(&config.repo_tree_dir));
 
@@ -73,10 +73,7 @@ impl<'config> Directory<'config> {
 
     /// Create a new Directory and all its childs recursively leading to the
     /// repository.
-    fn new<T>(
-        mut components: T,
-        repository: &'config Repository<'config>,
-    ) -> Directory<'config>
+    fn new<T>(mut components: T, repository: &'repos Repository) -> Self
     where
         T: Iterator<Item = String>,
     {
@@ -99,7 +96,7 @@ impl<'config> Directory<'config> {
     fn insert_internal<T>(
         &mut self,
         mut components: T,
-        repository: &'config Repository<'config>,
+        repository: &'repos Repository,
     ) where
         T: Iterator<Item = String>,
     {
@@ -116,11 +113,7 @@ impl<'config> Directory<'config> {
     /// Insert a repository. Provide the path directory as an iterator on the
     /// component of the path. This will create all Directory struct linked each
     /// other, so you obtain a tree of Directory struct.
-    fn insert(
-        &mut self,
-        config: &'config Config,
-        repository: &'config Repository<'config>,
-    ) {
+    fn insert(&mut self, config: &Config, repository: &'repos Repository) {
         self.insert_internal(
             Self::get_repo_components(config, repository).into_iter(),
             repository,
@@ -154,7 +147,7 @@ impl<'config> Directory<'config> {
         if let Some(r) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
             let submodules = r.submodules().unwrap();
-            if let Some(remote_url) = r.id.remote_url.clone() {
+            if let Some(remote_url) = &r.id.remote.url() {
                 writeln!(
                     f,
                     "{prefix}{}{} {}",
@@ -247,20 +240,20 @@ impl<'config> Directory<'config> {
 
 /// Representation of the repo tree root directory.
 #[derive(Debug)]
-struct RootDirectory<'config> {
+struct RootDirectory<'config, 'repos> {
     /// Actual path to the repo tree root.
     repo_tree_dir: &'config PathBuf,
     /// Associated Directory struct, head of the Directory struct tree.
-    directory: Directory<'config>,
+    directory: Directory<'repos>,
 }
 
-impl<'config> RootDirectory<'config> {
+impl<'config, 'repos> RootDirectory<'config, 'repos> {
     /// Instantiate a RootDirectory.
     fn new(
         config: &'config Config,
-        repositories: &'config Repositories<'config>,
+        repositories: &'repos Repositories,
     ) -> Self {
-        let mut directory: Directory<'config> = Directory::default();
+        let mut directory: Directory<'repos> = Directory::default();
 
         for repository in repositories.iter() {
             directory.insert(config, repository);
@@ -273,7 +266,7 @@ impl<'config> RootDirectory<'config> {
     }
 }
 
-impl<'config> Display for RootDirectory<'config> {
+impl<'config, 'repos> Display for RootDirectory<'config, 'repos> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.directory.display(
             f,

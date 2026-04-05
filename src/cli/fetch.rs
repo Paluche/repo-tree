@@ -29,12 +29,15 @@ pub fn fetch_repo(
     let mut ok: usize = 0;
     let mut total: usize = 0;
 
-    if repository.id.host.is_local() {
-        eprintln!("Skipping local repository {}", repository.id);
+    if repository.id.remote.is_local() {
+        eprintln!(
+            "Skipping local repository {}",
+            repository.id.display(config)
+        );
         return Ok((0, 0));
     }
     if !quiet {
-        println!("Fetching repository {}", repository.id);
+        println!("Fetching repository {}", repository.id.display(config));
     }
     for submodule in repository.submodules()? {
         let root = submodule.abs_path();
@@ -51,14 +54,17 @@ pub fn fetch_repo(
                 println!(
                     "Fetching jujutsu {}repository {}",
                     if is_submodule { "submodule " } else { "" },
-                    repository.id
+                    repository.id.display(config)
                 );
             }
             jujutsu::git::fetch(&repository.root, quiet)
         }
         VersionControlSystem::Git => {
             if !quiet {
-                println!("Fetching git repository {}", repository.id);
+                println!(
+                    "Fetching git repository {}",
+                    repository.id.display(config)
+                );
             }
             git::fetch(&repository.root, quiet)
         }

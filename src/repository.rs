@@ -1,6 +1,5 @@
 //! Representation of a repository.
 use std::error::Error;
-use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 use std::slice::Iter;
@@ -46,7 +45,7 @@ impl RemoteConfig {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 /// Representation of a repository.
-pub struct Repository<'config> {
+pub struct Repository {
     /// Type of version control system the repository uses.
     pub vcs: VersionControlSystem,
     /// Boolean indicating if the repository is a git submodule or not.
@@ -54,16 +53,16 @@ pub struct Repository<'config> {
     /// Path to the root of the repository.
     pub root: PathBuf,
     /// Identifier of the repository.
-    pub id: RepoId<'config>,
+    pub id: RepoId,
     /// Path to the file containing the remote information.
     remote_config: RemoteConfig,
 }
 
-impl<'config> Repository<'config> {
+impl Repository {
     /// Search for a repository at the given path without printing any warning
     /// about the repository location.
     pub fn discover_silent(
-        config: &'config Config,
+        config: &Config,
         path: PathBuf,
     ) -> Result<Self, Box<dyn Error>> {
         let mut current_path = Some(path.clone());
@@ -87,7 +86,7 @@ impl<'config> Repository<'config> {
 
     /// Search for a repository at the given path.
     pub fn discover(
-        config: &'config Config,
+        config: &Config,
         path: PathBuf,
     ) -> Result<Self, Box<dyn Error>> {
         let repository = Self::discover_silent(config, path)?;
@@ -108,7 +107,7 @@ impl<'config> Repository<'config> {
 
     /// Try loading a repository which root is the one provided.
     pub fn try_new(
-        config: &'config Config,
+        config: &Config,
         root: PathBuf,
     ) -> Result<Self, Box<dyn Error>> {
         let vcs = VersionControlSystem::try_new(&root);
@@ -122,7 +121,7 @@ impl<'config> Repository<'config> {
             }
             VersionControlSystem::Jujutsu => jujutsu::get_remote_url(&root)?,
         };
-        let id = RepoId::parse_repo_url(config, &root, remote_url.as_ref())?;
+        let id = RepoId::from_repo(config, &root, remote_url.as_ref())?;
 
         Ok(Self {
             vcs,
@@ -150,7 +149,7 @@ impl<'config> Repository<'config> {
     /// Get the git submodules present in the repository.
     pub fn submodules(&self) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
         Ok(if self.vcs.is_git() {
-            git::submodules::get(&self.root, self.id.remote_url.clone())?
+            git::submodules::get(&self.root, &self.id.remote)?
         } else {
             Vec::new()
         })
@@ -170,23 +169,8 @@ impl<'config> Repository<'config> {
     }
 }
 
-impl<'config> Display for Repository<'config> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} repository at {} ({})",
-            self.vcs,
-            self.root.display(),
-            self.id,
-        )
-    }
-}
-
 /// Search recursively repositories in a directory.
-fn _search<'config>(
-    config: &'config Config,
-    dir: &Path,
-) -> (Vec<Repository<'config>>, Vec<PathBuf>) {
+fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
     let mut repositories = Vec::new();
     let mut empty_dirs = Vec::new();
     if !dir.is_dir() {
@@ -216,14 +200,14 @@ fn _search<'config>(
 }
 
 /// Search repositories in the repo tree.
-fn search(config: &Config) -> (Vec<Repository<'_>>, Vec<PathBuf>) {
+fn search(config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
     _search(config, &config.repo_tree_dir)
 }
 
 /// Load all the repositories present in the repo tree.
 /// Print a warning message if empty directories outside any repository are
 /// found in the repo tree.
-fn load_repositories(config: &Config) -> Vec<Repository<'_>> {
+fn load_repositories(config: &Config) -> Vec<Repository> {
     let (repositories, empty_dirs) = search(config);
 
     for empty_dir in empty_dirs {
@@ -241,14 +225,14 @@ pub fn load_empty_dirs(config: &Config) -> Vec<PathBuf> {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 /// Repositories present in the repo tree.
-pub struct Repositories<'config> {
+pub struct Repositories {
     /// The repositories in the repo tree.
-    repositories: Vec<Repository<'config>>,
+    repositories: Vec<Repository>,
 }
 
-impl<'config> Repositories<'config> {
+impl Repositories {
     /// Load all the repositories present in the repo tree.
-    pub fn load_silent(config: &'config Config) -> Self {
+    pub fn load_silent(config: &Config) -> Self {
         Self {
             repositories: search(config).0,
         }
@@ -257,7 +241,7 @@ impl<'config> Repositories<'config> {
     /// Load all the repositories present in the repo tree.
     /// Print a warning message if empty directories outside any repository are
     /// found in the repo tree.
-    pub fn load(config: &'config Config) -> Self {
+    pub fn load(config: &Config) -> Self {
         let (repositories, empty_dirs) = search(config);
 
         for empty_dir in empty_dirs {
@@ -272,7 +256,7 @@ impl<'config> Repositories<'config> {
 
     /// Load some of the repositories based on the provided filters.
     pub fn load_filtered(
-        config: &'config Config,
+        config: &Config,
         filter_hosts: Vec<String>,
         filter_names: Vec<String>,
     ) -> Self {
@@ -280,11 +264,13 @@ impl<'config> Repositories<'config> {
             .into_iter()
             .filter(|r| {
                 (filter_hosts.is_empty()
-                    || filter_hosts.iter().any(|host| match r.id.host.name() {
-                        Ok(name) => name == host,
-                        Err(err) => {
-                            eprintln!("{err}");
-                            false
+                    || filter_hosts.iter().any(|host| {
+                        match r.id.remote.host(config).name() {
+                            Ok(name) => name == host,
+                            Err(err) => {
+                                eprintln!("{err}");
+                                false
+                            }
                         }
                     }))
                     && (filter_names.is_empty()
@@ -298,11 +284,11 @@ impl<'config> Repositories<'config> {
     }
 
     /// Iterate the repositories, starting from the specified one.
-    pub fn iter_from(
-        &'config self,
-        start: &'config Option<Repository<'config>>,
+    pub fn iter_from<'a>(
+        &'a self,
+        start: &'a Option<Repository>,
         reverse: bool,
-    ) -> Box<dyn Iterator<Item = &'config Repository<'config>> + 'config> {
+    ) -> Box<dyn Iterator<Item = &'a Repository> + 'a> {
         if let Some(start) = start {
             if reverse {
                 Box::new(
@@ -330,7 +316,7 @@ impl<'config> Repositories<'config> {
     }
 
     /// Obtain an iterator on the repositories.
-    pub fn iter(&self) -> Iter<'_, Repository<'_>> {
+    pub fn iter(&self) -> Iter<'_, Repository> {
         self.repositories.iter()
     }
 }

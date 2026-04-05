@@ -38,7 +38,7 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
         }
     };
 
-    let mut info = PromptBuilder::new(&repository);
+    let mut info = PromptBuilder::new(config, &repository);
 
     let ret = match repository.vcs {
         VersionControlSystem::Git => {
