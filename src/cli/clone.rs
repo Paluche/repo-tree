@@ -50,11 +50,9 @@ fn do_clone(
                      repository"
                 );
             }
-            println!("{}", location.display());
-            0
         } else {
             eprintln!("Clone location {} already exists", location.display());
-            1
+            return 1;
         }
     } else if let Some(remote_url) = &repo_id.remote.url() {
         let res = match vcs {
@@ -67,16 +65,18 @@ fn do_clone(
                 jujutsu::git::clone(remote_url, &location, false)
             }
         };
-        if res == 0 {
-            println!("{}", location.display());
+        if res != 0 {
+            return res;
         }
-        res
     } else {
         panic!(
             "The RepoId should have a remote URL, since it has been provided \
              by the CLI"
         );
     }
+
+    println!("{}", location.display());
+    0
 }
 
 /// Execute the `rt clone` command.
