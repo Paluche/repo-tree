@@ -13,6 +13,7 @@ mod complete_env;
 mod fetch;
 mod git;
 mod list;
+mod refresh_cache;
 mod repo;
 mod resolve;
 mod resolve_url;
@@ -48,6 +49,7 @@ enum Action {
     Repo(repo::RepoArgs),
     Git(git::GitArgs),
     Rm(rm::RmArgs),
+    RefreshCache(refresh_cache::RefreshCacheArgs),
 }
 
 /// Get the path to the current working directory.
@@ -102,5 +104,6 @@ pub fn run() -> i32 {
         Action::Git(args) => git::run(&config, args),
         Action::Clone(args) => clone::run(&config, args),
         Action::Rm(args) => rm::run(&config, args),
+        Action::RefreshCache(args) => refresh_cache::run(&config, args),
     }
 }
