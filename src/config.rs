@@ -165,6 +165,30 @@ impl Color {
     }
 }
 
+/// Common trait for Host configuration (RemoteHost, LocalHost and UnknownHost).
+pub trait HostInfo {
+    /// Get the directory name for that host in the repo tree.
+    fn dir_name(&self) -> String;
+
+    /// Get the short representation of the host.
+    fn repr(&self) -> String;
+}
+
+#[cfg(test)]
+trait HostInfoRaw {
+    /// Get the raw `name` configuration value.
+    fn raw_name(&self) -> &String;
+
+    /// Get the raw `dir_name` configuration value.
+    fn raw_dir_name(&self) -> &Option<String>;
+
+    /// Get the raw `repr` configuration value.
+    fn raw_repr(&self) -> &Option<String>;
+
+    /// Get the raw `repr_color` configuration value.
+    fn raw_repr_color(&self) -> &Color;
+}
+
 /// Define a host-like struct, this is here to assure simple that the struct
 /// RemoteHost and LocalHost follows the same content and functions.
 macro_rules! define_host_struct {
@@ -183,16 +207,35 @@ macro_rules! define_host_struct {
             repr_color: Color,
         }
 
-        impl $name {
+        impl HostInfo for $name {
             /// Get the directory name for that host in the repo tree.
-            pub fn dir_name(&self) -> String {
+            fn dir_name(&self) -> String {
                 self.dir_name.clone().unwrap_or(self.name.clone())
             }
 
             /// Get the short representation of the host.
-            pub fn repr(&self) -> String {
+            fn repr(&self) -> String {
                 self.repr_color
                     .colorize(self.repr.as_deref().unwrap_or(&self.name))
+            }
+        }
+
+        #[cfg(test)]
+        impl HostInfoRaw for $name {
+            fn raw_name(&self) -> &String {
+                &self.name
+            }
+
+            fn raw_dir_name(&self) -> &Option<String> {
+                &self.dir_name
+            }
+
+            fn raw_repr(&self) -> &Option<String> {
+                &self.repr
+            }
+
+            fn raw_repr_color(&self) -> &Color {
+                &self.repr_color
             }
         }
     };
@@ -205,8 +248,9 @@ type RemoteHosts = BTreeMap<String, RemoteHost>;
 
 /// Obtain the default host to add to the configuration if they are not already
 /// configured by the user.
-fn default_remote_hosts() -> Vec<(String, RemoteHost)> {
+fn default_remote_hosts() -> RemoteHosts {
     let msg = "Hardcoded value must be valid";
+
     [
         (
             "github.com",
@@ -336,7 +380,7 @@ pub struct Config {
     pub repo_tree_dir: PathBuf,
     /// Configuration related to the hosts we know how to organize repositories
     /// which host there remote.
-    #[serde(default, rename = "host")]
+    #[serde(default = "default_remote_hosts", rename = "host")]
     pub remote_hosts: RemoteHosts,
     /// Configuration for local only repositories.
     #[serde(default)]
@@ -380,8 +424,10 @@ impl Config {
 }
 
 impl Config {
-    /// Load the configuration.
-    pub fn load() -> Result<Self, Box<dyn Error>> {
+    /// Internal loading of the configuration, from a configuration content.
+    fn load_internal(content: &str) -> Result<Self, Box<dyn Error>> {
+        let mut ret: Config = toml::from_str(content)?;
+
         let repo_tree_dir = PathBuf::from(
             &env::var("REPO_TREE_DIR")
                 .expect("Missing REPO_TREE_DIR environment variable"),
@@ -391,20 +437,6 @@ impl Config {
             repo_tree_dir.is_absolute(),
             "REPO_TREE_DIR value must be an absolute path"
         );
-
-        let config_path = std::env::var("XDG_CONFIG_HOME")
-            .map_or(
-                std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
-                |x| Ok(PathBuf::from(x)),
-            )?
-            .join("repo-tree")
-            .join("config.toml");
-
-        let mut ret: Self = if config_path.is_file() {
-            toml::from_str(&fs::read_to_string(&config_path)?)?
-        } else {
-            Self::default()
-        };
 
         ret.repo_tree_dir = repo_tree_dir;
 
@@ -416,6 +448,23 @@ impl Config {
         }
 
         Ok(ret)
+    }
+
+    /// Load the configuration.
+    pub fn load() -> Result<Self, Box<dyn Error>> {
+        let config_path = std::env::var("XDG_CONFIG_HOME")
+            .map_or(
+                std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
+                |x| Ok(PathBuf::from(x)),
+            )?
+            .join("repo-tree")
+            .join("config.toml");
+
+        Ok(if config_path.is_file() {
+            Self::load_internal(&fs::read_to_string(&config_path)?)?
+        } else {
+            Self::load_internal("")?
+        })
     }
 }
 
@@ -430,15 +479,190 @@ mod tests {
 
     use super::*;
 
+    /// Check that the remote hosts has the expected keys.
+    fn check_remote_hosts(config: &Config, expected_keys: &[&str]) {
+        for key in config.remote_hosts.keys() {
+            assert!(
+                expected_keys.iter().find(|v| v == &key).is_some(),
+                "Host \"{key}\" not expected"
+            );
+        }
+
+        for key in expected_keys.iter() {
+            assert!(
+                config.remote_hosts.keys().find(|v| v == key).is_some(),
+                "Missing host \"{key}\""
+            );
+        }
+    }
+
+    /// Check a struct implementing HostInfo and HostInfoRaw traits.
+    #[allow(clippy::too_many_arguments)]
+    fn check_host<H>(
+        id: &str,
+        host: &H,
+        expected_name: &str,
+        expected_raw_dir_name: Option<&str>,
+        expected_dir_name: &str,
+        expected_raw_repr: Option<&str>,
+        expected_raw_repr_color: Color,
+        expected_repr: String,
+    ) where
+        H: HostInfo + HostInfoRaw,
+    {
+        let name = host.raw_name();
+        assert_eq!(name, expected_name, "{id} name: {name} != {expected_name}");
+        let raw_dir_name = host.raw_dir_name();
+        let expected_raw_dir_name =
+            expected_raw_dir_name.map(|v| v.to_string());
+        assert_eq!(
+            raw_dir_name, &expected_raw_dir_name,
+            "{id} dir_name: {raw_dir_name:?} != {expected_raw_dir_name:?}",
+        );
+        let dir_name = host.dir_name();
+        assert_eq!(
+            dir_name, expected_dir_name,
+            "{id} dir_name(): {dir_name} != {expected_dir_name}",
+        );
+        let raw_repr = host.raw_repr();
+        let expected_raw_repr = expected_raw_repr.map(|v| v.to_string());
+        assert_eq!(
+            raw_repr, &expected_raw_repr,
+            "{id} repr: {raw_repr:?} != {expected_raw_repr:?}",
+        );
+        let raw_repr_color = host.raw_repr_color();
+        assert_eq!(
+            raw_repr_color, &expected_raw_repr_color,
+            "{id} repr_color: {raw_repr_color:?} != \
+             {expected_raw_repr_color:?}",
+        );
+        let repr = host.repr();
+        assert_eq!(
+            repr, expected_repr,
+            "{id} repr(): {repr} != {expected_repr}",
+        );
+    }
+
+    /// Check a remote host from the configuration.
+    #[allow(clippy::too_many_arguments)]
+    fn check_remote_host(
+        config: &Config,
+        key: &str,
+        expected_name: &str,
+        expected_raw_dir_name: Option<&str>,
+        expected_dir_name: &str,
+        expected_raw_repr: Option<&str>,
+        expected_raw_repr_color: Color,
+        expected_repr: String,
+    ) {
+        let remote_host = config.remote_hosts.get(key).unwrap_or_else(|| {
+            panic!("Missing expected remote host \"{key}\"")
+        });
+
+        check_host(
+            key,
+            remote_host,
+            expected_name,
+            expected_raw_dir_name,
+            expected_dir_name,
+            expected_raw_repr,
+            expected_raw_repr_color,
+            expected_repr,
+        );
+    }
+
     #[test]
-    fn empty_config() -> Result<(), Box<dyn Error>> {
-        let _: Config = toml::from_str("")?;
+    fn default_config() -> Result<(), Box<dyn Error>> {
+        let config = Config::load_internal("")?;
+
+        check_remote_hosts(
+            &config,
+            &[
+                "github.com",
+                "gitlab.com",
+                "git.kernel.org",
+                "bitbucket.org",
+                "codeberg.org",
+            ],
+        );
+        check_remote_host(
+            &config,
+            "github.com",
+            "github",
+            None,
+            "github",
+            Some(""),
+            Color::from_str("white").unwrap(),
+            "".white().to_string(),
+        );
+        check_remote_host(
+            &config,
+            "gitlab.com",
+            "gitlab",
+            None,
+            "gitlab",
+            Some("󰮠"),
+            Color::from(166),
+            "󰮠".ansi_color(166).to_string(),
+        );
+        check_remote_host(
+            &config,
+            "git.kernel.org",
+            "kernel",
+            None,
+            "kernel",
+            Some(""),
+            Color::from_str("white").unwrap(),
+            "".white().to_string(),
+        );
+        check_remote_host(
+            &config,
+            "bitbucket.org",
+            "bitbucket",
+            None,
+            "bitbucket",
+            Some(""),
+            Color::from_str("blue").unwrap(),
+            "".blue().to_string(),
+        );
+        check_remote_host(
+            &config,
+            "codeberg.org",
+            "codeberg",
+            None,
+            "codeberg",
+            Some(""),
+            Color::new_color(colored::Color::Blue),
+            "".blue().to_string(),
+        );
+
+        // Check local
+        check_host(
+            "local",
+            &config.local,
+            "local",
+            None,
+            "local",
+            Some("󰋊"),
+            Color::new_color(colored::Color::White),
+            "󰋊".white().to_string(),
+        );
+        // Check resolve command configuration
+        assert_eq!(config.command.resolve.aliases, BTreeMap::new());
+        // Check todo command configuration
+        assert_eq!(config.command.todo.ignore, Vec::<String>::new());
+        // Check clone command configuration
+        assert_eq!(
+            config.command.clone.default_vcs,
+            VersionControlSystem::JujutsuGit
+        );
+
         Ok(())
     }
 
     #[test]
     fn full_config() -> Result<(), Box<dyn Error>> {
-        let config: Config = toml::from_str(indoc! {r#"
+        let config = Config::load_internal(indoc! {r#"
         [host."my.custom-domain.fr"]
         name = 'mine'
         repr = '󱘎'
@@ -479,51 +703,41 @@ mod tests {
         "#
         })?;
 
-        let expected_keys = [
-            "my.custom-domain.fr",
-            "git.buildroot.net",
-            "busybox.net",
-            "blabla.net",
-            "alice-and-bob.net",
-        ];
-
-        for key in config.remote_hosts.keys() {
-            assert!(
-                expected_keys.iter().find(|v| v == &key).is_some(),
-                "Host \"{key}\" not expected"
-            );
-        }
-
-        for key in expected_keys.iter() {
-            assert!(
-                config.remote_hosts.keys().find(|v| v == key).is_some(),
-                "Missing host \"{key}\""
-            );
-        }
-
-        #[allow(clippy::too_many_arguments)]
-        fn check_remote_host(
-            config: &Config,
-            key: &str,
-            name: &str,
-            dir_name: Option<&str>,
-            actual_dir_name: &str,
-            repr: Option<&str>,
-            repr_color: Color,
-            actual_repr: String,
-        ) {
-            let remote_host =
-                config.remote_hosts.get(key).unwrap_or_else(|| {
-                    panic!("Missing expected remote host \"{key}\"")
-                });
-            assert_eq!(remote_host.name, name);
-            assert_eq!(remote_host.dir_name, dir_name.map(|v| v.to_string()));
-            assert_eq!(remote_host.dir_name(), actual_dir_name);
-            assert_eq!(remote_host.repr, repr.map(|v| v.to_string()));
-            assert_eq!(remote_host.repr_color, repr_color);
-            assert_eq!(remote_host.repr(), actual_repr);
-        }
-
+        check_remote_hosts(
+            &config,
+            &[
+                "github.com",
+                "gitlab.com",
+                "my.custom-domain.fr",
+                "git.buildroot.net",
+                "busybox.net",
+                "bitbucket.org",
+                "blabla.net",
+                "alice-and-bob.net",
+                "codeberg.org",
+                "git.kernel.org",
+            ],
+        );
+        check_remote_host(
+            &config,
+            "github.com",
+            "github",
+            None,
+            "github",
+            Some(""),
+            Color::from_str("white").unwrap(),
+            "".white().to_string(),
+        );
+        check_remote_host(
+            &config,
+            "gitlab.com",
+            "gitlab",
+            None,
+            "gitlab",
+            Some("󰮠"),
+            Color::from(166),
+            "󰮠".ansi_color(166).to_string(),
+        );
         check_remote_host(
             &config,
             "my.custom-domain.fr",
@@ -543,6 +757,16 @@ mod tests {
             Some("󰥯"),
             Color::new_color(colored::Color::Yellow),
             "󰥯".yellow().to_string(),
+        );
+        check_remote_host(
+            &config,
+            "bitbucket.org",
+            "bitbucket",
+            None,
+            "bitbucket",
+            Some(""),
+            Color::from_str("blue").unwrap(),
+            "".blue().to_string(),
         );
         check_remote_host(
             &config,
@@ -580,16 +804,39 @@ mod tests {
                 })
                 .to_string(),
         );
-        // Check local
-        assert_eq!(config.local.name, "local");
-        assert_eq!(config.local.dir_name, None);
-        assert_eq!(config.local.dir_name(), "local");
-        assert_eq!(config.local.repr, Some("󰋊".to_string()));
-        assert_eq!(
-            config.local.repr_color,
-            Color::new_color(colored::Color::White)
+        check_remote_host(
+            &config,
+            "git.kernel.org",
+            "kernel",
+            None,
+            "kernel",
+            Some(""),
+            Color::from_str("white").unwrap(),
+            "".white().to_string(),
         );
-        assert_eq!(config.local.repr(), "󰋊".white().to_string());
+        check_remote_host(
+            &config,
+            "codeberg.org",
+            "codeberg",
+            None,
+            "codeberg",
+            Some(""),
+            Color::new_color(colored::Color::Blue),
+            "".blue().to_string(),
+        );
+
+        // Check local
+        check_host(
+            "local",
+            &config.local,
+            "local",
+            None,
+            "local",
+            Some("󰋊"),
+            Color::new_color(colored::Color::White),
+            "󰋊".white().to_string(),
+        );
+
         // Check resolve command configuration
         assert_eq!(
             config.command.resolve.aliases,
