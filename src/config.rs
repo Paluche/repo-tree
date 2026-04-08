@@ -21,6 +21,7 @@ use clap::builder::StyledStr;
 use clap_complete::engine::CompletionCandidate;
 use colored::Colorize;
 use colored::{self};
+use globset::Glob;
 use serde::Deserialize;
 
 use crate::version_control_system::VersionControlSystem;
@@ -335,6 +336,54 @@ impl Default for UnknownHost {
     }
 }
 
+/// Configuration regardin allowed the repository location.
+#[derive(Deserialize, Hash, PartialEq, Debug)]
+pub struct RepositoryLocation {
+    /// List of glob patterns, any repositories path matching one of the
+    /// defined pattern will be allowed to live outside the repo tree. No
+    /// warning message will be printed when the prompt run.
+    #[serde(default = "RepositoryLocation::default_ignore")]
+    pub ignore: Vec<Glob>,
+    /// List of glob pattern to extend the ignore configuration value.
+    pub extend_ignore: Vec<Glob>,
+}
+
+impl RepositoryLocation {
+    /// Default value for the ignore value of the RepositoryLocation struct.
+    fn default_ignore() -> Vec<Glob> {
+        ["/tmp/**", "**/.*/**"]
+            .into_iter()
+            .map(|v| {
+                Glob::new(v)
+                    .expect("Hardcoded values should be valid glob patterns.")
+            })
+            .collect()
+    }
+
+    /// Find out if a repository located at the specified path should be
+    /// ignored as being a badly located repository due to not being within the
+    /// repo tree.
+    fn should_be_ignored(&self, path: &Path) -> bool {
+        path.to_str()
+            .map(|path| {
+                self.ignore
+                    .iter()
+                    .chain(self.extend_ignore.iter())
+                    .any(|glob| glob.compile_matcher().is_match(path))
+            })
+            .unwrap_or(false)
+    }
+}
+
+impl Default for RepositoryLocation {
+    fn default() -> Self {
+        Self {
+            ignore: Self::default_ignore(),
+            extend_ignore: Vec::new(),
+        }
+    }
+}
+
 /// Configuration for the `rt clone` command.
 #[derive(Deserialize, Default, Debug)]
 pub struct CloneCommandConfig {
@@ -385,6 +434,10 @@ pub struct Config {
     /// Configuration for local only repositories.
     #[serde(default)]
     pub local: LocalHost,
+    /// Configuration regarding allowed repository location outside the repo
+    /// tree.
+    #[serde(default)]
+    pub repository: RepositoryLocation,
     /// Configuration when having to handle an unknown host (unknown from the
     /// configuration).
     #[serde(default)]
@@ -420,6 +473,13 @@ impl Config {
     /// Get the specified RemoteHost struct for a given host.
     pub fn get_remote_host(&self, host: &str) -> Option<&RemoteHost> {
         self.remote_hosts.get(host)
+    }
+
+    /// Find out if the specified path is to be ignored regarding the
+    /// configuration.
+    pub fn should_be_ignored(&self, path: &Path) -> bool {
+        !path.starts_with(&self.repo_tree_dir)
+            && self.repository.should_be_ignored(path)
     }
 }
 
@@ -647,10 +707,27 @@ mod tests {
             Color::new_color(colored::Color::White),
             "󰋊".white().to_string(),
         );
+
+        // Check repository ignores
+        assert_eq!(
+            config.repository.ignore,
+            ["/tmp/**", "**/.*/**"]
+                .into_iter()
+                .map(|v| {
+                    Glob::new(v).expect(
+                        "Hardcoded values should be valid glob patterns.",
+                    )
+                })
+                .collect::<Vec<Glob>>()
+        );
+        assert_eq!(config.repository.extend_ignore, Vec::new());
+
         // Check resolve command configuration
         assert_eq!(config.command.resolve.aliases, BTreeMap::new());
+
         // Check todo command configuration
         assert_eq!(config.command.todo.ignore, Vec::<String>::new());
+
         // Check clone command configuration
         assert_eq!(
             config.command.clone.default_vcs,

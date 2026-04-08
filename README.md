@@ -204,6 +204,30 @@ name = ''
 repr_color: 'red'
 ```
 
+### Configuring repositories to ignore
+
+You can allow some repositories to leave outside the repo tree in specific
+location. You cannot ignore repositories within the repo tree.
+
+To configure how to ignore repositories, specify a list of glob matching
+patterns which would match repository location to ingore.
+
+By default the list is the following:
+
+```toml
+[repository]
+ignore = [
+  '/tmp/**',  # Ignore any repository cloned in /tmp.
+  '**/.*/**'  # Ignore any repository cloned within a hidden directory.
+]
+```
+
+You can either override this list, or extend it by using the
+`repository.extend_ignore` configuration.
+
+At the moment "ignoring" means that no error message will be displayed when
+executing a command for an ignored repository outside the repo tree.
+
 ### Configuring `rt resolve` command
 
 Configure repository ID aliases for repository resolution.
