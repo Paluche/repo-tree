@@ -19,7 +19,6 @@ mod resolve_url;
 mod rm;
 mod todo;
 mod tree;
-mod util;
 
 use crate::config::Config;
 
@@ -45,7 +44,6 @@ enum Action {
     Todo(todo::TodoArgs),
     Repo(repo::RepoArgs),
     Git(git::GitArgs),
-    Util(util::UtilArgs),
     Rm(rm::RmArgs),
 }
 
@@ -100,7 +98,6 @@ pub fn run() -> i32 {
         Action::Repo(args) => repo::run(&config, args),
         Action::Git(args) => git::run(&config, args),
         Action::Clone(args) => clone::run(&config, args),
-        Action::Util(args) => util::run(&config, args),
         Action::Rm(args) => rm::run(&config, args),
     }
 }
