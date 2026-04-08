@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::config::HostInfo;
 use crate::config::LocalHost;
 use crate::config::RemoteHost;
 use crate::config::UnknownHost;

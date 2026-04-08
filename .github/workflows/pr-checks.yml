@@ -396,6 +396,7 @@ jobs:
           toolchain: stable
       - name: test
         env:
+          REPO_TREE_DIR: /tmp
           RUST_BACKTRACE: 1
           CARGO_TERM_COLOR: always
         run: cargo test
