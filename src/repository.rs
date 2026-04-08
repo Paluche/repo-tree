@@ -104,13 +104,19 @@ impl Repository {
 
         if let Some(expected_root) = repository.expected_root(config)?
             && repository.root != expected_root
+            && !config.should_be_ignored(&repository.root)
         {
             eprintln!(
                 "⚠️Unexpected location for the repository {}. Currently in \
-                 \"{}\" should be in \"{}\". Run `rt clean` to fix it.",
+                 \"{}\" should be in \"{}\". Run `{}` to fix it.",
                 repository.id.name,
                 repository.root.display(),
                 expected_root.display(),
+                if repository.root.starts_with(&config.repo_tree_dir) {
+                    "rt clean".to_string()
+                } else {
+                    format!("rt insert \"{}\"", repository.root.display())
+                }
             );
         }
         Ok(repository)
