@@ -55,7 +55,12 @@ fn do_clone(
             eprintln!("Clone location {} already exists", location.display());
             return 1;
         }
-    } else if let Some(remote_url) = &repo_id.remote.url() {
+    } else {
+        let remote_url = &repo_id
+            .remote
+            .url()
+            .expect("Remote URL provided by the CLI");
+
         let res = match vcs {
             VersionControlSystem::Git => git::clone(remote_url, &location),
             VersionControlSystem::JujutsuGit => {
@@ -66,14 +71,10 @@ fn do_clone(
                 jujutsu::git::clone(remote_url, &location, false)
             }
         };
+
         if res != 0 {
             return res;
         }
-    } else {
-        panic!(
-            "The RepoId should have a remote URL, since it has been provided \
-             by the CLI"
-        );
     }
 
     // Refresh the cache.
