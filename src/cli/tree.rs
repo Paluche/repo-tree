@@ -96,7 +96,8 @@ impl<'repos> Directory<'repos> {
         }
     }
 
-    /// Internal recursive function to insert a repository.
+    /// Internal recursive function to insert a repository. Creating the
+    /// different levels of Directory required.
     fn insert_internal<T>(
         &mut self,
         mut components: T,
@@ -114,9 +115,7 @@ impl<'repos> Directory<'repos> {
         }
     }
 
-    /// Insert a repository. Provide the path directory as an iterator on the
-    /// component of the path. This will create all Directory struct linked each
-    /// other, so you obtain a tree of Directory struct.
+    /// Insert a repository.
     fn insert(&mut self, config: &Config, repository: &'repos Repository) {
         self.insert_internal(
             Self::get_repo_components(config, repository).into_iter(),
