@@ -12,6 +12,7 @@ mod clone;
 mod complete_env;
 mod fetch;
 mod git;
+mod insert;
 mod list;
 mod refresh_cache;
 mod repo;
@@ -41,6 +42,7 @@ enum Action {
     Resolve(resolve::ResolveArgs),
     ResolveUrl(resolve_url::ResolveUrlArgs),
     Clone(clone::CloneArgs),
+    Insert(insert::InsertArgs),
     List(list::ListArgs),
     Tree(tree::TreeArgs),
     Clean(clean::CleanArgs),
@@ -105,5 +107,6 @@ pub fn run() -> i32 {
         Action::Clone(args) => clone::run(&config, args),
         Action::Rm(args) => rm::run(&config, args),
         Action::RefreshCache(args) => refresh_cache::run(&config, args),
+        Action::Insert(args) => insert::run(&config, args),
     }
 }
