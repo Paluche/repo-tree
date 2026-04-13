@@ -10,7 +10,7 @@ use crate::config::Config;
 use crate::error::NoRepositoryError;
 use crate::git;
 use crate::jujutsu;
-use crate::prompt_builder::PromptBuilder;
+use crate::prompt::Prompt;
 use crate::repository::Repositories;
 use crate::repository::Repository;
 use crate::version_control_system::VersionControlSystem;
@@ -46,7 +46,7 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
         }
     };
 
-    let mut info = PromptBuilder::new(config, &repository);
+    let mut info = Prompt::new(config, &repository);
 
     let ret = match repository.vcs {
         VersionControlSystem::Git => {

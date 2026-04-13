@@ -8,7 +8,7 @@ mod error;
 mod git;
 mod host;
 mod jujutsu;
-mod prompt_builder;
+mod prompt;
 mod repo_id;
 mod repo_state;
 mod repository;

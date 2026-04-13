@@ -5,14 +5,10 @@ use colored::Colorize;
 use itertools::join;
 
 use crate::git;
-use crate::prompt_builder::PromptBuilder;
+use crate::prompt::Prompt;
 
 /// Build the shell prompt information for Git repositories.
-pub fn prompt(
-    root: &Path,
-    is_jj_colocated: bool,
-    info: &mut PromptBuilder,
-) -> i32 {
+pub fn prompt(root: &Path, is_jj_colocated: bool, info: &mut Prompt) -> i32 {
     let git_status = git::status(&root.to_path_buf()).unwrap();
 
     // |⛏operation|
