@@ -2,6 +2,7 @@
 use std::path::Path;
 
 use colored::Colorize;
+use itertools::join;
 
 use crate::git;
 use crate::prompt_builder::PromptBuilder;
@@ -17,13 +18,13 @@ pub fn prompt(
     // |⛏operation|
     if !git_status.ongoing_operations.is_empty() {
         let mut operations = String::from("⛏");
-        operations.push_str(&PromptBuilder::join_vec_str(
-            '🞍',
-            &git_status
+        operations.push_str(&join(
+            git_status
                 .ongoing_operations
                 .iter()
                 .map(|e| format!("{e}"))
                 .collect::<Vec<String>>(),
+            "🞍",
         ));
         info.push_colored_string(operations.red());
     }

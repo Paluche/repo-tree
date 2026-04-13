@@ -48,18 +48,6 @@ impl PromptBuilder {
             self.prompt.push_str(string);
         }
     }
-
-    /// Extend the prompt line with several strings which will be separated
-    /// using the provided separator.
-    pub fn join_vec_str(sep: char, list: &[String]) -> String {
-        list.iter().fold(String::new(), |mut acc, element| {
-            if !acc.is_empty() {
-                acc.push(sep);
-            }
-            acc.push_str(element);
-            acc
-        })
-    }
 }
 
 impl Display for PromptBuilder {
