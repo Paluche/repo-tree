@@ -8,7 +8,7 @@ use crate::git;
 use crate::prompt::Prompt;
 
 /// Build the shell prompt information for Git repositories.
-pub fn prompt(root: &Path, is_jj_colocated: bool, info: &mut Prompt) -> i32 {
+pub fn prompt(root: &Path, is_jj_colocated: bool, prompt: &mut Prompt) -> i32 {
     let git_status = git::status(&root.to_path_buf()).unwrap();
 
     // |⛏operation|
@@ -22,7 +22,7 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, info: &mut Prompt) -> i32 {
                 .collect::<Vec<String>>(),
             "🞍",
         ));
-        info.push_colored_string(operations.red());
+        prompt.push_colored_string(operations.red());
     }
 
     let (staged, unstaged, submodules) = git_status.short_status();
@@ -57,14 +57,14 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, info: &mut Prompt) -> i32 {
             branch_info
         };
 
-        info.push_string(&format!(
+        prompt.push_string(&format!(
             "{}{}",
             git_status.head.branch.blue(),
             branch_info.yellow()
         ));
 
         // Upstream info
-        info.push_colored_string(
+        prompt.push_colored_string(
             if let Some(upstream_info) = &git_status.head.upstream {
                 if upstream_info.gone {
                     ""
@@ -87,7 +87,7 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, info: &mut Prompt) -> i32 {
             .ansi_color(208),
         );
 
-        info.push_string(&format!(
+        prompt.push_string(&format!(
             "{}{}",
             staged.as_string().green(),
             unstaged.as_string().red()
@@ -95,11 +95,11 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, info: &mut Prompt) -> i32 {
     }
 
     // Submodule status
-    info.push_colored_string(submodules.as_string().red());
+    prompt.push_colored_string(submodules.as_string().red());
 
     // stash status
     if git_status.nb_stash != 0 {
-        info.push_colored_string("".white());
+        prompt.push_colored_string("".white());
     }
 
     0

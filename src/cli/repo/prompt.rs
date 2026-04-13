@@ -46,26 +46,26 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
         }
     };
 
-    let mut info = Prompt::new(config, &repository);
+    let mut prompt = Prompt::new(config, &repository);
 
     let ret = match repository.vcs {
         VersionControlSystem::Git => {
-            git::prompt(&repository.root, false, &mut info)
+            git::prompt(&repository.root, false, &mut prompt)
         }
         VersionControlSystem::JujutsuGit => {
-            let ret = git::prompt(&repository.root, true, &mut info);
+            let ret = git::prompt(&repository.root, true, &mut prompt);
             if ret != 0 {
                 return ret;
             }
-            jujutsu::prompt(&repository.root, &mut info).block_on()
+            jujutsu::prompt(&repository.root, &mut prompt).block_on()
         }
         VersionControlSystem::Jujutsu => {
-            jujutsu::prompt(&repository.root, &mut info).block_on()
+            jujutsu::prompt(&repository.root, &mut prompt).block_on()
         }
     };
 
     if ret == 0 {
-        println!("{info}");
+        println!("{prompt}");
     }
 
     ret

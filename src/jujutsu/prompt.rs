@@ -212,7 +212,7 @@ fn prompt_internal(
     repo_path: &Path,
     repo: &dyn Repo,
     current_commit: &CommitId,
-    info: &mut Prompt,
+    prompt: &mut Prompt,
 ) -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
 
@@ -236,21 +236,21 @@ fn prompt_internal(
     )?;
     list_tags(repo, current_commit, &mut buffer)?;
 
-    info.push_string(&if buffer.is_empty() {
+    prompt.push_string(&if buffer.is_empty() {
         "󰫌".bright_black().to_string()
     } else {
         buffer
     });
 
     if has_conflicts(repo_path)? {
-        info.push_colored_string("󰝧".bright_red())
+        prompt.push_colored_string("󰝧".bright_red())
     }
 
     Ok(())
 }
 
 /// Build the prompt line for a Jujutsu repository.
-pub async fn prompt(repo_path: &Path, info: &mut Prompt) -> i32 {
+pub async fn prompt(repo_path: &Path, prompt: &mut Prompt) -> i32 {
     let repo = load(repo_path).await.unwrap();
     let Some(current_commit) =
         repo.view().get_wc_commit_id(WorkspaceName::DEFAULT)
@@ -259,7 +259,7 @@ pub async fn prompt(repo_path: &Path, info: &mut Prompt) -> i32 {
     };
 
     if let Err(err) =
-        prompt_internal(repo_path, repo.as_ref(), current_commit, info)
+        prompt_internal(repo_path, repo.as_ref(), current_commit, prompt)
     {
         eprintln!("{err}");
         1
