@@ -8,15 +8,15 @@ use crate::config::Config;
 use crate::repository::Repository;
 
 /// Context to build the prompt line.
-pub struct PromptBuilder {
+pub struct Prompt {
     /// Current content of the prompt line.
     prompt: String,
     /// String to use to separate elements of the prompt line.
     sep: String,
 }
 
-impl PromptBuilder {
-    /// Instantiate a new PromptBuilder for a repository.
+impl Prompt {
+    /// Instantiate a new Prompt for a repository.
     pub fn new(config: &Config, repository: &Repository) -> Self {
         let sep = format!("{}", "|".cyan());
         Self {
@@ -50,7 +50,7 @@ impl PromptBuilder {
     }
 }
 
-impl Display for PromptBuilder {
+impl Display for Prompt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.prompt)
     }

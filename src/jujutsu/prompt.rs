@@ -13,7 +13,7 @@ use jj_lib::revset::RevsetExpression;
 
 use super::load;
 use super::repo_state::has_conflicts;
-use crate::prompt_builder::PromptBuilder;
+use crate::prompt::Prompt;
 
 /// Status of a reference.
 struct Ref {
@@ -212,7 +212,7 @@ fn prompt_internal(
     repo_path: &Path,
     repo: &dyn Repo,
     current_commit: &CommitId,
-    info: &mut PromptBuilder,
+    info: &mut Prompt,
 ) -> Result<(), Box<dyn Error>> {
     let mut buffer = String::new();
 
@@ -250,7 +250,7 @@ fn prompt_internal(
 }
 
 /// Build the prompt line for a Jujutsu repository.
-pub async fn prompt(repo_path: &Path, info: &mut PromptBuilder) -> i32 {
+pub async fn prompt(repo_path: &Path, info: &mut Prompt) -> i32 {
     let repo = load(repo_path).await.unwrap();
     let Some(current_commit) =
         repo.view().get_wc_commit_id(WorkspaceName::DEFAULT)
