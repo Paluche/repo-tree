@@ -264,7 +264,7 @@ pub trait HostInfo {
 #[cfg(test)]
 trait HostInfoRaw {
     /// Get the raw `name` configuration value.
-    fn raw_name(&self) -> &String;
+    fn raw_name(&self) -> Option<&String>;
 
     /// Get the raw `dir_name` configuration value.
     fn raw_dir_name(&self) -> &Option<String>;
@@ -308,8 +308,8 @@ macro_rules! define_host_struct {
 
         #[cfg(test)]
         impl HostInfoRaw for $name {
-            fn raw_name(&self) -> &String {
-                &self.name
+            fn raw_name(&self) -> Option<&String> {
+                Some(&self.name)
             }
 
             fn raw_dir_name(&self) -> &Option<String> {
@@ -374,7 +374,29 @@ pub struct UnknownHost {
 
 impl HostInfo for UnknownHost {
     fn dir_name(&self) -> String {
-        panic!("Should not happen");
+        #[cfg(test)]
+        {
+            "".to_string()
+        }
+        #[cfg(not(test))]
+        {
+            panic!("Should not happen");
+        }
+    }
+}
+
+#[cfg(test)]
+impl HostInfoRaw for UnknownHost {
+    fn raw_name(&self) -> Option<&String> {
+        None
+    }
+
+    fn raw_repr(&self) -> &ColoredText {
+        &self.repr
+    }
+
+    fn raw_dir_name(&self) -> &Option<String> {
+        &None
     }
 }
 
@@ -625,12 +647,13 @@ mod tests {
     where
         H: HostInfo + HostInfoRaw + Display,
     {
-        let name = host.raw_name();
-        assert_eq!(
-            name, expected.name,
-            "{id} name: {name} != {}",
-            expected.name
-        );
+        if let Some(name) = host.raw_name() {
+            assert_eq!(
+                name, expected.name,
+                "{id} name: {name} != {}",
+                expected.name
+            );
+        }
         let raw_dir_name = host.raw_dir_name();
         let expected_raw_dir_name =
             expected.raw_dir_name.map(|v| v.to_string());
@@ -748,6 +771,19 @@ mod tests {
                 dir_name: "local",
                 raw_repr: ColoredText::new("󰋊", colored::Color::White),
                 repr: "󰋊".white().to_string(),
+            },
+        );
+
+        // Check unknown host.
+        check_host(
+            "unknown_host",
+            &config.unknown_host,
+            HostRef {
+                name: "",
+                raw_dir_name: None,
+                dir_name: "",
+                raw_repr: ColoredText::new("", colored::Color::Red),
+                repr: "".red().to_string(),
             },
         );
 
@@ -1022,6 +1058,19 @@ mod tests {
                 dir_name: "local",
                 raw_repr: ColoredText::new("󰋊", colored::Color::White),
                 repr: "󰋊".white().to_string(),
+            },
+        );
+
+        // Check unknown host.
+        check_host(
+            "unknown_host",
+            &config.unknown_host,
+            HostRef {
+                name: "",
+                raw_dir_name: None,
+                dir_name: "",
+                raw_repr: ColoredText::new("", colored::Color::Red),
+                repr: "".red().to_string(),
             },
         );
 
