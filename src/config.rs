@@ -490,14 +490,14 @@ pub struct Config {
     /// Configuration for local only repositories.
     #[serde(default)]
     pub local: LocalHost,
-    /// Configuration regarding allowed repository location outside the repo
-    /// tree.
-    #[serde(default)]
-    pub repository: RepositoryLocation,
     /// Configuration when having to handle an unknown host (unknown from the
     /// configuration).
     #[serde(default)]
     pub unknown_host: UnknownHost,
+    /// Configuration regarding allowed repository location outside the repo
+    /// tree.
+    #[serde(default)]
+    pub repository: RepositoryLocation,
     /// Configuration for the different rt sub-commands.
     #[serde(default)]
     pub command: CommandConfig,
@@ -821,13 +821,13 @@ mod tests {
         text = "󰋊"
         color = "white"
 
-        [repository]
-        ignore = ["/tmp/**", "**/.*/**"]
-        extend_ignore = []
-
         [unknown_host.repr]
         text = ""
         color = "red"
+
+        [repository]
+        ignore = ["/tmp/**", "**/.*/**"]
+        extend_ignore = []
 
         [command.clone]
         default_vcs = "jujutsu-git"
@@ -1120,13 +1120,13 @@ mod tests {
         text = "󰋊"
         color = "white"
 
-        [repository]
-        ignore = ["/tmp/**", "**/.*/**"]
-        extend_ignore = []
-
         [unknown_host.repr]
         text = ""
         color = "red"
+
+        [repository]
+        ignore = ["/tmp/**", "**/.*/**"]
+        extend_ignore = []
 
         [command.clone]
         default_vcs = "jujutsu"
