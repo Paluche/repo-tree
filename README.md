@@ -270,6 +270,22 @@ separator = { text = '|', color = 'cyan' }
 [prompt.vcs]
 git = { text = "󰊢" , color = 166 }
 jj = { text = "" , color = "blue" }
+
+# Configure Git prompt output.
+[prompt.git]
+ongoing_operations = { prefix = "⛏", separator = "🞍", color = "red" }
+branches = { prefix = "󰫍", separator = "🞍", color = "blue" }
+tags = { prefix = "", separator = "🞍", color = "yellow" }
+upstream = {
+  gone = "",
+  up_to_date = "",
+  ahead = "",
+  behind = "",
+  diverged = "",
+  local = "",
+  detached = "",
+  color = 208
+}
 ```
 
 ### Configuring repositories to ignore
