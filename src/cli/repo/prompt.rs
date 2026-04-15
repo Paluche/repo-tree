@@ -50,10 +50,10 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
 
     let ret = match repository.vcs {
         VersionControlSystem::Git => {
-            git::prompt(&repository.root, false, &mut prompt)
+            git::prompt(config, &mut prompt, &repository.root, false)
         }
         VersionControlSystem::JujutsuGit => {
-            let ret = git::prompt(&repository.root, true, &mut prompt);
+            let ret = git::prompt(config, &mut prompt, &repository.root, true);
             if ret != 0 {
                 return ret;
             }

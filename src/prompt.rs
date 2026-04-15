@@ -74,7 +74,6 @@ impl<'pb, 'repo, 'config> std::fmt::Display for Display<'pb, 'repo, 'config> {
     }
 }
 
-#[allow(unused)]
 /// Prompt field which contains a list.
 pub struct PromptListField {
     /// List to build the field with.
@@ -83,7 +82,6 @@ pub struct PromptListField {
     separator: &'static str,
 }
 
-#[allow(unused)]
 impl PromptListField {
     /// Create a new PromptListField.
     pub fn new(separator: &'static str) -> Self {

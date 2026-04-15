@@ -2,90 +2,60 @@
 use std::path::Path;
 
 use colored::Colorize;
-use itertools::join;
 
+use crate::config::Config;
 use crate::git;
 use crate::prompt::Prompt;
+use crate::prompt::PromptListField;
 
 /// Build the shell prompt information for Git repositories.
-pub fn prompt(root: &Path, is_jj_colocated: bool, prompt: &mut Prompt) -> i32 {
+pub fn prompt(
+    config: &Config,
+    prompt: &mut Prompt,
+    root: &Path,
+    is_jj_colocated: bool,
+) -> i32 {
     let git_status = git::status(&root.to_path_buf()).unwrap();
+    let config = &config.prompt.git;
 
-    // |⛏operation|
-    if !git_status.ongoing_operations.is_empty() {
-        let mut operations = String::from("⛏");
-        operations.push_str(&join(
-            git_status
-                .ongoing_operations
-                .iter()
-                .map(|e| format!("{e}"))
-                .collect::<Vec<String>>(),
-            "🞍",
-        ));
-        prompt.push(operations.red());
-    }
+    prompt.push(
+        config
+            .ongoing_operations
+            .display(&git_status.ongoing_operations),
+    );
 
     let (staged, unstaged, submodules) = git_status.short_status();
 
     if !is_jj_colocated {
-        // |(detached) branch-1🞍branch-2🞍branch-3 tag-1🞍tag-2|
-        let mut branch_info = String::new();
-
-        // All other branches at the current reference,
-        for (i, branch) in git_status.head.branches.iter().enumerate() {
-            if i == 0 {
-                branch_info.push_str(" 󰫍");
-            } else {
-                branch_info.push('🞍');
-            }
-            branch_info.push_str(branch)
-        }
-
-        // All other tags at the current reference.
-        for (i, branch) in git_status.head.tags.iter().enumerate() {
-            if i == 0 {
-                branch_info.push_str(" ");
-            } else {
-                branch_info.push('🞍');
-            }
-            branch_info.push_str(branch)
-        }
-
-        branch_info = if branch_info.len() >= 50 {
-            branch_info[..50].to_string()
-        } else {
-            branch_info
-        };
-
-        prompt.push(format!(
-            "{}{}",
-            git_status.head.branch.blue(),
-            branch_info.yellow()
-        ));
-
-        // Upstream information.
-        prompt.push(
-            if let Some(upstream_info) = &git_status.head.upstream {
-                if upstream_info.gone {
-                    ""
-                } else if upstream_info.ahead == 0 && upstream_info.behind == 0
-                {
-                    ""
-                } else if upstream_info.ahead != 0 && upstream_info.behind != 0
-                {
-                    ""
-                } else if upstream_info.ahead != 0 {
-                    ""
+        {
+            let mut field = PromptListField::new(" ");
+            field.push(config.branches.display(&git_status.head.branches));
+            field.push(config.tags.display(&git_status.head.tags));
+            field.push(
+                if let Some(upstream_info) = &git_status.head.upstream {
+                    if upstream_info.gone {
+                        config.upstream.gone()
+                    } else if upstream_info.ahead == 0
+                        && upstream_info.behind == 0
+                    {
+                        config.upstream.up_to_date()
+                    } else if upstream_info.ahead != 0
+                        && upstream_info.behind != 0
+                    {
+                        config.upstream.diverged()
+                    } else if upstream_info.ahead != 0 {
+                        config.upstream.ahead()
+                    } else {
+                        config.upstream.behind()
+                    }
+                } else if git_status.head.branch == "(detached)" {
+                    config.upstream.detached()
                 } else {
-                    ""
-                }
-            } else if git_status.head.branch == "(detached)" {
-                ""
-            } else {
-                ""
-            }
-            .ansi_color(208),
-        );
+                    config.upstream.local()
+                },
+            );
+            prompt.push(field);
+        }
 
         prompt.push(format!(
             "{}{}",
@@ -99,7 +69,7 @@ pub fn prompt(root: &Path, is_jj_colocated: bool, prompt: &mut Prompt) -> i32 {
 
     // stash status
     if git_status.nb_stash != 0 {
-        prompt.push("".white());
+        prompt.push(&config.stash);
     }
 
     0
