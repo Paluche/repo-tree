@@ -23,6 +23,7 @@ use clap_complete::engine::CompletionCandidate;
 use colored::Colorize;
 use colored::{self};
 use globset::Glob;
+use itertools::join;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::ser::SerializeSeq;
@@ -276,6 +277,81 @@ impl Display for ColoredText {
         write!(f, "{}", self.color.colorize(&self.text))
     }
 }
+
+/// Configuration to display with colors a list.
+#[derive(Default, Debug, Clone, PartialEq, Hash, Serialize, Deserialize)]
+#[allow(unused)]
+pub struct ColoredList {
+    /// Prefix to write in front of the list when displaying it.
+    prefix: String,
+    /// Separator text to write in-between two items of the list.
+    separator: String,
+    /// Color to use to print the list (including the prefix and separators).
+    color: Color,
+}
+
+#[allow(unused)]
+impl ColoredList {
+    /// Create a new ColoredList.
+    fn new<S, C>(prefix: S, separator: S, color: C) -> Self
+    where
+        S: ToString,
+        Color: From<C>,
+    {
+        Self {
+            prefix: prefix.to_string(),
+            separator: separator.to_string(),
+            color: Color::from(color),
+        }
+    }
+
+    /// Obtain a displayable struct for your list, which will respect the
+    /// associated configuration.
+    pub fn display<'config, 'list, T>(
+        &'config self,
+        list: &'list [T],
+    ) -> ColoredListDisplay<'config, 'list, T>
+    where
+        T: ToString,
+    {
+        ColoredListDisplay {
+            colored_list: self,
+            list,
+        }
+    }
+}
+
+/// Displayable struct for ColoredList.
+pub struct ColoredListDisplay<'config, 'list, T> {
+    /// Configuration to use to display the list.
+    colored_list: &'config ColoredList,
+    /// List to display.
+    list: &'list [T],
+}
+
+impl<'config, 'list, T> IsEmpty for ColoredListDisplay<'config, 'list, T> {
+    fn is_empty(&self) -> bool {
+        self.list.is_empty()
+    }
+}
+
+impl<'config, 'list, T> Display for ColoredListDisplay<'config, 'list, T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.colored_list.color.colorize(format!(
+                "{}{}",
+                self.colored_list.prefix,
+                join(self.list.iter(), &self.colored_list.separator)
+            ))
+        )
+    }
+}
+
 /// Common trait for Host configuration (RemoteHost, LocalHost and UnknownHost).
 pub trait HostInfo {
     /// Get the directory name for that host in the repo tree.
