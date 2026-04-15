@@ -29,6 +29,21 @@ use serde::ser::SerializeSeq;
 
 use crate::version_control_system::VersionControlSystem;
 
+/// Trait to implement is_empty().
+pub trait IsEmpty {
+    /// Find out if the struct is to be considered empty.
+    fn is_empty(&self) -> bool;
+}
+
+impl<T> IsEmpty for T
+where
+    T: Deref<Target = str>,
+{
+    fn is_empty(&self) -> bool {
+        self.deref().is_empty()
+    }
+}
+
 /// Color configuration.
 #[derive(Default, Clone, Debug, PartialEq)]
 struct Color {
@@ -233,6 +248,12 @@ impl Deref for ColoredText {
 
     fn deref(&self) -> &Self::Target {
         &self.text
+    }
+}
+
+impl IsEmpty for &ColoredText {
+    fn is_empty(&self) -> bool {
+        self.text.is_empty()
     }
 }
 

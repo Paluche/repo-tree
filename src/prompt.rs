@@ -1,10 +1,9 @@
 //! Builder for prompt string.
 
-use std::ops::Deref;
-
 use colored::Colorize;
 
 use crate::config::Config;
+use crate::config::IsEmpty;
 use crate::repository::Repository;
 
 /// Context to build the prompt line.
@@ -27,7 +26,7 @@ impl<'repo> Prompt<'repo> {
     /// Extend the prompt line with a string.
     pub fn push<S>(&mut self, string: S)
     where
-        S: ToString + Deref<Target = str>,
+        S: ToString + IsEmpty,
     {
         if !string.is_empty() {
             self.fields.push(string.to_string())
