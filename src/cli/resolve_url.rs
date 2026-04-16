@@ -67,7 +67,7 @@ pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
     } else {
         eprintln!("Several possible match:");
         // Sort by match score
-        matches.sort_by(|a, b| b.0.cmp(&a.0));
+        matches.sort_by_key(|i| std::cmp::Reverse(i.0));
 
         for (_, name) in matches {
             eprintln!("- {name}");
