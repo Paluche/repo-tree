@@ -401,7 +401,8 @@ echo "source <(COMPLETE=zsh rt)" >> ~/.zshrc
 
 > [!NOTE]
 > For the following shells, the utils are not generated yet.
-> Bash
+
+Bash
 
 ```bash
 echo "source <(COMPLETE=bash rt)" >> ~/.bashrc
