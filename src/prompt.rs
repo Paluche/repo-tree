@@ -1,6 +1,6 @@
 //! Builder for prompt string.
-
 use colored::Colorize;
+use itertools::join;
 
 use crate::config::Config;
 use crate::config::IsEmpty;
@@ -71,5 +71,47 @@ impl<'pb, 'repo, 'config> std::fmt::Display for Display<'pb, 'repo, 'config> {
         }
 
         Ok(())
+    }
+}
+
+#[allow(unused)]
+/// Prompt field which contains a list.
+pub struct PromptListField {
+    /// List to build the field with.
+    list: Vec<String>,
+    /// Separator to separate the items from each other.
+    separator: &'static str,
+}
+
+#[allow(unused)]
+impl PromptListField {
+    /// Create a new PromptListField.
+    pub fn new(separator: &'static str) -> Self {
+        Self {
+            list: Vec::new(),
+            separator,
+        }
+    }
+
+    /// Extend the prompt line with a string.
+    pub fn push<S>(&mut self, string: S)
+    where
+        S: ToString + IsEmpty,
+    {
+        if !string.is_empty() {
+            self.list.push(string.to_string())
+        }
+    }
+}
+
+impl IsEmpty for PromptListField {
+    fn is_empty(&self) -> bool {
+        self.list.is_empty()
+    }
+}
+
+impl std::fmt::Display for PromptListField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", join(self.list.iter(), self.separator))
     }
 }
