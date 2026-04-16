@@ -286,6 +286,17 @@ upstream = {
   detached = "",
   color = 208
 }
+stash = { text = "", color = "white" }
+
+# Configure Jujutsu prompt output.
+[prompt.jj.bookmark]
+parent = { prefix = "󰫍", separator = "🞍", color = "yellow" }
+current = { prefix = "󰫍", separator = "🞍", color = "bright blue" }
+descendants = { prefix = "󰫎", separator = "🞍", color = "bright blue" }
+none = { text = "󰫌", color = "bright black" }
+
+[prompt.jj]
+conflict = { text = "󰝧", color = "bright red" }
 ```
 
 ### Configuring repositories to ignore

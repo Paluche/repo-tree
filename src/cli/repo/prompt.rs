@@ -57,10 +57,10 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
             if ret != 0 {
                 return ret;
             }
-            jujutsu::prompt(&repository.root, &mut prompt).block_on()
+            jujutsu::prompt(config, &mut prompt, &repository.root).block_on()
         }
         VersionControlSystem::Jujutsu => {
-            jujutsu::prompt(&repository.root, &mut prompt).block_on()
+            jujutsu::prompt(config, &mut prompt, &repository.root).block_on()
         }
     };
 
