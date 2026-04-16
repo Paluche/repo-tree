@@ -13,7 +13,13 @@ use jj_lib::revset::RevsetExpression;
 
 use super::load;
 use super::repo_state::has_conflicts;
+use crate::config::ColoredList;
+use crate::config::Config;
+use crate::config::IsEmpty;
+use crate::config::JujutsuBookmarkConfig;
+use crate::config::JujutsuPromptConfig;
 use crate::prompt::Prompt;
+use crate::prompt::PromptListField;
 
 /// Status of a reference.
 struct Ref {
@@ -136,121 +142,122 @@ impl BookmarkCategory {
     }
 
     /// Get short representation logo to represent this category of bookmarks.
-    fn get_repr(&self) -> String {
+    fn get_repr<'config>(
+        &self,
+        config: &'config JujutsuBookmarkConfig,
+    ) -> &'config ColoredList {
         match self {
-            Self::Current => "󰫍".bright_blue(),
-            Self::Parents => "󰫍".yellow(),
-            Self::Descendants => "󰫎".bright_blue(),
+            Self::Current => &config.current,
+            Self::Parents => &config.parent,
+            Self::Descendants => &config.descendants,
         }
-        .to_string()
     }
 }
 
 /// Build the list of bookmarks of the specified category for the prompt line.
 fn list_bookmarks(
+    config: &JujutsuBookmarkConfig,
+    field: &mut PromptListField,
     category: BookmarkCategory,
     repo: &dyn Repo,
     current_commit: &CommitId,
-    buffer: &mut String,
 ) -> BackendResult<()> {
-    let mut bookmarks = category.get_bookmarks(repo, current_commit)?;
-
-    if let Some(bookmark) = bookmarks.next() {
-        if !buffer.is_empty() {
-            buffer.push(' ');
-        }
-
-        buffer.push_str(&category.get_repr());
-        buffer.push_str(&bookmark.get_bookmark_repr());
-
-        for bookmark in bookmarks {
-            buffer.push_str(&"🞍".bright_blue());
-            buffer.push_str(&bookmark.get_bookmark_repr());
-        }
-    }
-
+    field.push(
+        category.get_repr(config).display(
+            &category
+                .get_bookmarks(repo, current_commit)?
+                .map(|b| b.get_bookmark_repr())
+                .collect::<Vec<String>>(),
+        ),
+    );
     Ok(())
 }
 
 /// Build the list of tags for the prompt line.
 fn list_tags(
+    config: &JujutsuPromptConfig,
+    field: &mut PromptListField,
     repo: &dyn Repo,
     current_commit: &CommitId,
-    buffer: &mut String,
 ) -> BackendResult<()> {
-    let mut tags = RevsetExpression::commits(vec![current_commit.to_owned()])
-        .parents()
-        .evaluate(repo)
-        .map_err(|e| e.into_backend_error())?
-        .iter()
-        .flat_map(|r| {
-            let commit = r.unwrap();
-            repo.view().tags().filter_map(move |(name, lrrt)| {
-                Ref::try_new(name, &lrrt, &commit)
-            })
-        });
-
-    if let Some(tag) = tags.next() {
-        if !buffer.is_empty() {
-            buffer.push(' ');
-        }
-
-        buffer.push_str(&"".yellow());
-        buffer.push_str(&tag.get_tag_repr());
-
-        for tag in tags {
-            buffer.push_str(&"🞍".bright_blue());
-            buffer.push_str(&tag.get_tag_repr());
-        }
-    }
+    field.push(
+        config.tags.display(
+            &RevsetExpression::commits(vec![current_commit.to_owned()])
+                .parents()
+                .evaluate(repo)
+                .map_err(|e| e.into_backend_error())?
+                .iter()
+                .flat_map(|r| {
+                    let commit = r.unwrap();
+                    repo.view()
+                        .tags()
+                        .filter_map(move |(name, lrrt)| {
+                            Ref::try_new(name, &lrrt, &commit)
+                        })
+                        .map(|r| r.get_tag_repr())
+                })
+                .collect::<Vec<String>>(),
+        ),
+    );
 
     Ok(())
 }
 
 /// Internal method to build the prompt line for a Jujutsu repository.
 fn prompt_internal(
+    config: &Config,
+    prompt: &mut Prompt,
     repo_path: &Path,
     repo: &dyn Repo,
     current_commit: &CommitId,
-    prompt: &mut Prompt,
 ) -> Result<(), Box<dyn Error>> {
-    let mut buffer = String::new();
+    let config = &config.prompt.jj;
+    {
+        let mut field = PromptListField::new(" ");
 
-    list_bookmarks(
-        BookmarkCategory::Parents,
-        repo,
-        current_commit,
-        &mut buffer,
-    )?;
-    list_bookmarks(
-        BookmarkCategory::Current,
-        repo,
-        current_commit,
-        &mut buffer,
-    )?;
-    list_bookmarks(
-        BookmarkCategory::Descendants,
-        repo,
-        current_commit,
-        &mut buffer,
-    )?;
-    list_tags(repo, current_commit, &mut buffer)?;
+        list_bookmarks(
+            &config.bookmark,
+            &mut field,
+            BookmarkCategory::Parents,
+            repo,
+            current_commit,
+        )?;
+        list_bookmarks(
+            &config.bookmark,
+            &mut field,
+            BookmarkCategory::Current,
+            repo,
+            current_commit,
+        )?;
+        list_bookmarks(
+            &config.bookmark,
+            &mut field,
+            BookmarkCategory::Descendants,
+            repo,
+            current_commit,
+        )?;
+        list_tags(config, &mut field, repo, current_commit)?;
 
-    prompt.push(if buffer.is_empty() {
-        "󰫌".bright_black().to_string()
-    } else {
-        buffer
-    });
+        if field.is_empty() {
+            prompt.push(&config.bookmark.none)
+        } else {
+            prompt.push(field)
+        }
+    }
 
     if has_conflicts(repo_path)? {
-        prompt.push("󰝧".bright_red())
+        prompt.push(&config.conflict);
     }
 
     Ok(())
 }
 
 /// Build the prompt line for a Jujutsu repository.
-pub async fn prompt(repo_path: &Path, prompt: &mut Prompt<'_>) -> i32 {
+pub async fn prompt(
+    config: &Config,
+    prompt: &mut Prompt<'_>,
+    repo_path: &Path,
+) -> i32 {
     let repo = load(repo_path).await.unwrap();
     let Some(current_commit) =
         repo.view().get_wc_commit_id(WorkspaceName::DEFAULT)
@@ -258,9 +265,13 @@ pub async fn prompt(repo_path: &Path, prompt: &mut Prompt<'_>) -> i32 {
         return 1;
     };
 
-    if let Err(err) =
-        prompt_internal(repo_path, repo.as_ref(), current_commit, prompt)
-    {
+    if let Err(err) = prompt_internal(
+        config,
+        prompt,
+        repo_path,
+        repo.as_ref(),
+        current_commit,
+    ) {
         eprintln!("{err}");
         1
     } else {

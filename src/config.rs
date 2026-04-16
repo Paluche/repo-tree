@@ -733,6 +733,93 @@ impl Default for GitPromptConfig {
     }
 }
 
+/// Configuration for the Jujutsu bookmarks prompt.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct JujutsuBookmarkConfig {
+    /// How to display list of bookmarks set on the parent commit of the
+    /// current one we are editing.
+    #[serde(default = "JujutsuBookmarkConfig::default_parent")]
+    pub parent: ColoredList,
+    /// How to display list of bookmarks set on the current commit we are
+    /// editing.
+    #[serde(default = "JujutsuBookmarkConfig::default_current")]
+    pub current: ColoredList,
+    /// How to display list of bookmarks set on any of the descendants of the
+    /// current commit we are editing.
+    #[serde(default = "JujutsuBookmarkConfig::default_descendants")]
+    pub descendants: ColoredList,
+    /// How to display that there is no bookmarks to show (none on parent,
+    /// current or descendants commits).
+    #[serde(default = "JujutsuBookmarkConfig::default_none")]
+    pub none: ColoredText,
+}
+
+#[allow(clippy::missing_docs_in_private_items)]
+impl JujutsuBookmarkConfig {
+    fn default_parent() -> ColoredList {
+        ColoredList::new("󰫍", "🞍", colored::Color::Yellow)
+    }
+
+    fn default_current() -> ColoredList {
+        ColoredList::new("󰫍", "🞍", colored::Color::BrightBlue)
+    }
+
+    fn default_descendants() -> ColoredList {
+        ColoredList::new("󰫎", "🞍", colored::Color::BrightBlue)
+    }
+
+    fn default_none() -> ColoredText {
+        ColoredText::new("󰫌", colored::Color::BrightBlack)
+    }
+}
+
+impl Default for JujutsuBookmarkConfig {
+    fn default() -> Self {
+        Self {
+            parent: Self::default_parent(),
+            current: Self::default_current(),
+            descendants: Self::default_descendants(),
+            none: Self::default_none(),
+        }
+    }
+}
+
+/// Configuration for the Jujutsu prompt.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct JujutsuPromptConfig {
+    /// Configuration for the Jujutsu bookmarks prompt.
+    #[serde(default)]
+    pub bookmark: JujutsuBookmarkConfig,
+    /// How to display the list of tags you are at.
+    #[serde(default = "JujutsuPromptConfig::default_tags")]
+    pub tags: ColoredList,
+    /// Representation to display when there are commits with conflicts in the
+    /// history of the repository.
+    #[serde(default = "JujutsuPromptConfig::default_conflict")]
+    pub conflict: ColoredText,
+}
+
+#[allow(clippy::missing_docs_in_private_items)]
+impl JujutsuPromptConfig {
+    fn default_conflict() -> ColoredText {
+        ColoredText::new("󰝧", colored::Color::BrightRed)
+    }
+
+    fn default_tags() -> ColoredList {
+        ColoredList::new("", "🞍", colored::Color::Yellow)
+    }
+}
+
+impl Default for JujutsuPromptConfig {
+    fn default() -> Self {
+        Self {
+            bookmark: JujutsuBookmarkConfig::default(),
+            tags: Self::default_tags(),
+            conflict: Self::default_conflict(),
+        }
+    }
+}
+
 /// Configuration to customize the prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct PromptConfig {
@@ -746,7 +833,11 @@ pub struct PromptConfig {
     #[serde(default)]
     pub vcs: VcsPromptConfig,
     /// Configuration relative to the Git prompt.
+    #[serde(default)]
     pub git: GitPromptConfig,
+    /// Configuration relative to the Jujutsu prompt.
+    #[serde(default)]
+    pub jj: JujutsuPromptConfig,
 }
 
 impl PromptConfig {
@@ -768,6 +859,7 @@ impl Default for PromptConfig {
             separator: Self::default_separator(),
             vcs: VcsPromptConfig::default(),
             git: GitPromptConfig::default(),
+            jj: JujutsuPromptConfig::default(),
         }
     }
 }
@@ -1171,6 +1263,31 @@ mod tests {
                     ),
                     stash: ColoredText::new("", colored::Color::White),
                 },
+                jj: JujutsuPromptConfig {
+                    bookmark: JujutsuBookmarkConfig {
+                        parent: ColoredList::new(
+                            "󰫍",
+                            "🞍",
+                            colored::Color::Yellow
+                        ),
+                        current: ColoredList::new(
+                            "󰫍",
+                            "🞍",
+                            colored::Color::BrightBlue
+                        ),
+                        descendants: ColoredList::new(
+                            "󰫎",
+                            "🞍",
+                            colored::Color::BrightBlue
+                        ),
+                        none: ColoredText::new(
+                            "󰫌",
+                            colored::Color::BrightBlack
+                        ),
+                    },
+                    tags: ColoredList::new("", "🞍", colored::Color::Yellow),
+                    conflict: ColoredText::new("󰝧", colored::Color::BrightRed),
+                }
             },
         );
 
@@ -1293,6 +1410,34 @@ mod tests {
         text = ""
         color = "white"
 
+        [prompt.jj.bookmark.parent]
+        prefix = "󰫍"
+        separator = "🞍"
+        color = "yellow"
+
+        [prompt.jj.bookmark.current]
+        prefix = "󰫍"
+        separator = "🞍"
+        color = "bright blue"
+
+        [prompt.jj.bookmark.descendants]
+        prefix = "󰫎"
+        separator = "🞍"
+        color = "bright blue"
+
+        [prompt.jj.bookmark.none]
+        text = "󰫌"
+        color = "bright black"
+
+        [prompt.jj.tags]
+        prefix = ""
+        separator = "🞍"
+        color = "yellow"
+
+        [prompt.jj.conflict]
+        text = "󰝧"
+        color = "bright red"
+
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]
         extend_ignore = []
@@ -1375,6 +1520,16 @@ mod tests {
         [prompt.git.stash]
         text = 'stash'
         color = 'red'
+
+        [prompt.jj.bookmark]
+        parent = { prefix = 'P', separator = ', ', color = 'green' }
+        current = { prefix = 'C', separator = ', ', color = 'blue' }
+        descendants = { prefix = 'D', separator = ', ', color = 'magenta' }
+        none = { text = 'N', color = 'white' }
+
+        [prompt.jj]
+        tags = { prefix = 'T', separator = ', ', color = 'bright yellow'}
+        conflict = { text = '!', color = 'red'}
 
         [command.resolve.aliases]
         rt = 'repo-tree'
@@ -1584,6 +1739,32 @@ mod tests {
                     ),
                     stash: ColoredText::new("stash", colored::Color::Red),
                 },
+                jj: JujutsuPromptConfig {
+                    bookmark: JujutsuBookmarkConfig {
+                        parent: ColoredList::new(
+                            "P",
+                            ", ",
+                            colored::Color::Green,
+                        ),
+                        current: ColoredList::new(
+                            "C",
+                            ", ",
+                            colored::Color::Blue,
+                        ),
+                        descendants: ColoredList::new(
+                            "D",
+                            ", ",
+                            colored::Color::Magenta,
+                        ),
+                        none: ColoredText::new("N", colored::Color::White),
+                    },
+                    tags: ColoredList::new(
+                        "T",
+                        ", ",
+                        colored::Color::BrightYellow
+                    ),
+                    conflict: ColoredText::new("!", colored::Color::Red),
+                }
             },
         );
 
@@ -1743,6 +1924,34 @@ mod tests {
 
         [prompt.git.stash]
         text = "stash"
+        color = "red"
+
+        [prompt.jj.bookmark.parent]
+        prefix = "P"
+        separator = ", "
+        color = "green"
+
+        [prompt.jj.bookmark.current]
+        prefix = "C"
+        separator = ", "
+        color = "blue"
+
+        [prompt.jj.bookmark.descendants]
+        prefix = "D"
+        separator = ", "
+        color = "magenta"
+
+        [prompt.jj.bookmark.none]
+        text = "N"
+        color = "white"
+
+        [prompt.jj.tags]
+        prefix = "T"
+        separator = ", "
+        color = "bright yellow"
+
+        [prompt.jj.conflict]
+        text = "!"
         color = "red"
 
         [repository]
