@@ -941,10 +941,13 @@ pub struct TodoCommandConfig {
 #[derive(Serialize, Deserialize, Default)]
 pub struct CommandConfig {
     /// Configuration for `rt clone`.
+    #[serde(default)]
     pub clone: CloneCommandConfig,
     /// Configuration for `rt resolve`.
+    #[serde(default)]
     pub resolve: ResolveCommandConfig,
     /// Configuration for `rt todo`.
+    #[serde(default)]
     pub todo: TodoCommandConfig,
 }
 
