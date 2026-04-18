@@ -4,6 +4,10 @@ description = "Repo-tree - Local Repository manager"
 default-run="rt"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+categories = ["development-tools"]
+keywords = ["Git", "Jujutsu", "jj"]
+homepage = "https://github.com/Paluche/repo-tree"
 
 [[bin]]
 name = "rt"
