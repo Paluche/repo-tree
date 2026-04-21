@@ -36,7 +36,10 @@ fn do_clone(
         if let Some((current_vcs, _)) = VersionControlSystem::try_new(&location)
         {
             if &current_vcs == vcs {
-                eprintln!("{vcs} repository already cloned");
+                eprintln!(
+                    "{} repository already cloned",
+                    repo_id.display(config)
+                );
             } else if matches!(current_vcs, VersionControlSystem::Git)
                 && matches!(vcs, VersionControlSystem::JujutsuGit)
             {
@@ -47,8 +50,9 @@ fn do_clone(
                 }
             } else {
                 eprintln!(
-                    "{vcs} repository already cloned but is a {current_vcs} \
-                     repository"
+                    "{} repository already cloned but is a {current_vcs} \
+                     repository instead of a {vcs} repository",
+                    repo_id.display(config)
                 );
             }
         } else {
