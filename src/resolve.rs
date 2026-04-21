@@ -61,7 +61,7 @@ fn reduce_repo_names<'repos>(
         {
             if let Some(conflict) = ret.remove(&full_name) {
                 eprintln!(
-                    "Duplicated repository with name {name}: {0} and {1}.
+                    "Duplicated repository with name {name}: {0} and {1}\n
                     {1} is ignored!",
                     conflict.root.display(),
                     repository.root.display(),
