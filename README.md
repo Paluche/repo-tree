@@ -13,7 +13,7 @@ of the repository. The repositories are then organized by host.
 
 Raw example of output of `rt tree`
 
-```
+```text
 /home/user/work
 ├── github
 │   ├── Paluche/repo-tree
