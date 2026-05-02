@@ -16,7 +16,7 @@ path = "src/main.rs"
 [dependencies]
 chrono = "0.4.44"
 clap = { version = "4.6.0", features = ["derive"] }
-clap_complete = { version = "4.6.1", features = ["unstable-dynamic"] }
+clap_complete = { version = "4.6.3", features = ["unstable-dynamic"] }
 colored = "3.1.1"
 crossterm = "0.29.0"
 fuzzy-matcher = "0.3.7"
