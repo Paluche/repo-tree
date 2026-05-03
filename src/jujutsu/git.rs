@@ -9,14 +9,15 @@ use std::process::Command;
 
 use which::which;
 
+use super::get_jj_dir;
 use super::get_repo_dir;
 use crate::git;
 
 /// Get the path to the git backend repository.
-pub fn get_git_backend_repo<P: AsRef<Path>>(
-    repo_path: P,
+pub fn get_git_backend_repo(
+    repo_path: &Path,
 ) -> Result<git2::Repository, Box<dyn Error>> {
-    let store_dir = get_repo_dir(repo_path)?.join("store");
+    let store_dir = get_repo_dir(&get_jj_dir(repo_path))?.join("store");
 
     Ok(git2::Repository::open(canonicalize(
         store_dir.join(read_to_string(store_dir.join("git_target"))?),
@@ -24,8 +25,8 @@ pub fn get_git_backend_repo<P: AsRef<Path>>(
 }
 
 /// Get the remote URL of the repository.
-pub fn get_remote_url<P: AsRef<Path>>(
-    repo_path: P,
+pub fn get_remote_url(
+    repo_path: &Path,
 ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {
     Ok(git::get_remote_url_repo(&get_git_backend_repo(repo_path)?)?)
 }
