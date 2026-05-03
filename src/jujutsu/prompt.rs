@@ -7,7 +7,6 @@ use jj_lib::backend::BackendResult;
 use jj_lib::backend::CommitId;
 use jj_lib::op_store::LocalRemoteRefTarget;
 use jj_lib::ref_name::RefName;
-use jj_lib::ref_name::WorkspaceName;
 use jj_lib::repo::Repo;
 use jj_lib::revset::RevsetExpression;
 
@@ -258,9 +257,8 @@ pub async fn prompt(
     prompt: &mut Prompt<'_>,
     repo_path: &Path,
 ) -> i32 {
-    let repo = load(repo_path).await.unwrap();
-    let Some(current_commit) =
-        repo.view().get_wc_commit_id(WorkspaceName::DEFAULT)
+    let (repo, workspace_name) = load(repo_path).await.unwrap();
+    let Some(current_commit) = repo.view().get_wc_commit_id(&workspace_name)
     else {
         return 1;
     };
