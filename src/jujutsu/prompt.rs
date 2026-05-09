@@ -3,6 +3,8 @@ use std::error::Error;
 use std::path::Path;
 
 use colored::Colorize;
+use futures::StreamExt;
+use futures::stream;
 use jj_lib::backend::BackendResult;
 use jj_lib::backend::CommitId;
 use jj_lib::op_store::LocalRemoteRefTarget;
@@ -121,7 +123,7 @@ impl BookmarkCategory {
         &self,
         repo: &dyn Repo,
         current_commit: &CommitId,
-    ) -> BackendResult<impl Iterator<Item = Ref>> {
+    ) -> BackendResult<impl StreamExt<Item = Ref>> {
         let revset = RevsetExpression::commits(vec![current_commit.to_owned()]);
 
         Ok(match self {
@@ -131,12 +133,12 @@ impl BookmarkCategory {
         }
         .evaluate(repo)
         .map_err(|e| e.into_backend_error())?
-        .iter()
+        .stream()
         .flat_map(|r| {
             let commit = r.unwrap();
-            repo.view().bookmarks().filter_map(move |(name, lrrt)| {
-                Ref::try_new(name, &lrrt, &commit)
-            })
+            stream::iter(repo.view().bookmarks().filter_map(
+                move |(name, lrrt)| Ref::try_new(name, &lrrt, &commit),
+            ))
         }))
     }
 
@@ -154,7 +156,7 @@ impl BookmarkCategory {
 }
 
 /// Build the list of bookmarks of the specified category for the prompt line.
-fn list_bookmarks(
+async fn list_bookmarks(
     config: &JujutsuBookmarkConfig,
     field: &mut PromptListField,
     category: BookmarkCategory,
@@ -166,14 +168,15 @@ fn list_bookmarks(
             &category
                 .get_bookmarks(repo, current_commit)?
                 .map(|b| b.get_bookmark_repr())
-                .collect::<Vec<String>>(),
+                .collect::<Vec<String>>()
+                .await,
         ),
     );
     Ok(())
 }
 
 /// Build the list of tags for the prompt line.
-fn list_tags(
+async fn list_tags(
     config: &JujutsuPromptConfig,
     field: &mut PromptListField,
     repo: &dyn Repo,
@@ -185,17 +188,20 @@ fn list_tags(
                 .parents()
                 .evaluate(repo)
                 .map_err(|e| e.into_backend_error())?
-                .iter()
+                .stream()
                 .flat_map(|r| {
                     let commit = r.unwrap();
-                    repo.view()
-                        .tags()
-                        .filter_map(move |(name, lrrt)| {
-                            Ref::try_new(name, &lrrt, &commit)
-                        })
-                        .map(|r| r.get_tag_repr())
+                    stream::iter(
+                        repo.view()
+                            .tags()
+                            .filter_map(move |(name, lrrt)| {
+                                Ref::try_new(name, &lrrt, &commit)
+                            })
+                            .map(|r| r.get_tag_repr()),
+                    )
                 })
-                .collect::<Vec<String>>(),
+                .collect::<Vec<String>>()
+                .await,
         ),
     );
 
@@ -203,9 +209,9 @@ fn list_tags(
 }
 
 /// Internal method to build the prompt line for a Jujutsu repository.
-fn prompt_internal(
+async fn prompt_internal(
     config: &Config,
-    prompt: &mut Prompt,
+    prompt: &mut Prompt<'_>,
     repo_path: &Path,
     repo: &dyn Repo,
     current_commit: &CommitId,
@@ -220,22 +226,25 @@ fn prompt_internal(
             BookmarkCategory::Parents,
             repo,
             current_commit,
-        )?;
+        )
+        .await?;
         list_bookmarks(
             &config.bookmark,
             &mut field,
             BookmarkCategory::Current,
             repo,
             current_commit,
-        )?;
+        )
+        .await?;
         list_bookmarks(
             &config.bookmark,
             &mut field,
             BookmarkCategory::Descendants,
             repo,
             current_commit,
-        )?;
-        list_tags(config, &mut field, repo, current_commit)?;
+        )
+        .await?;
+        list_tags(config, &mut field, repo, current_commit).await?;
 
         if field.is_empty() {
             prompt.push(&config.bookmark.none)
@@ -269,7 +278,9 @@ pub async fn prompt(
         repo_path,
         repo.as_ref(),
         current_commit,
-    ) {
+    )
+    .await
+    {
         eprintln!("{err}");
         1
     } else {
