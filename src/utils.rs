@@ -40,6 +40,7 @@ where
                     .into_iter()
                     .cycle()
                     .skip_while(|r| **r != start.clone())
+                    .skip(1)
                     .take_while(|r| **r != start.clone()),
             )
         } else {
@@ -49,6 +50,7 @@ where
                     .rev()
                     .cycle()
                     .skip_while(|r| **r != start.clone())
+                    .skip(1)
                     .take_while(|r| **r != start.clone()),
             )
         }
