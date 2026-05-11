@@ -49,7 +49,7 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
     let re_scheme = Regex::new(concat!(
         r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
         r"://(?:(?P<user>[^@]+)@)?(?P<host>[^/:]+)",
-        r"(?::(?P<port>\d+))?/(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
+        r"(?::(?P<port>\d+))?/(~[^/]+/)?(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
     ))
     .unwrap();
 
