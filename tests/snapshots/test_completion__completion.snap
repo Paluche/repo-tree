@@ -32,8 +32,8 @@ function _clap_dynamic_completer_repo_tree() {
                 other+=("$completion")
             fi
         done
-        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
-        [[ -n $other ]] && _describe 'values' other
+        [[ -n $dirs ]] && _describe -V 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe -V 'values' other
     fi
 }
 
@@ -148,8 +148,8 @@ function _rcd() {
                 other+=("$completion")
             fi
         done
-        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
-        [[ -n $other ]] && _describe 'values' other
+        [[ -n $dirs ]] && _describe -V 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe -V 'values' other
     fi
 }
 
@@ -209,8 +209,8 @@ function _repo-clone() {
                 other+=("$completion")
             fi
         done
-        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
-        [[ -n $other ]] && _describe 'values' other
+        [[ -n $dirs ]] && _describe -V 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe -V 'values' other
     fi
 }
 
@@ -266,8 +266,8 @@ function _gs() {
                 other+=("$completion")
             fi
         done
-        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
-        [[ -n $other ]] && _describe 'values' other
+        [[ -n $dirs ]] && _describe -V 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe -V 'values' other
     fi
 }
 
@@ -329,8 +329,8 @@ function _todo() {
                 other+=("$completion")
             fi
         done
-        [[ -n $dirs ]] && _describe 'values' dirs -S '/' -r '/'
-        [[ -n $other ]] && _describe 'values' other
+        [[ -n $dirs ]] && _describe -V 'values' dirs -S '/' -r '/'
+        [[ -n $other ]] && _describe -V 'values' other
     fi
 }
 
