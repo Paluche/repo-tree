@@ -180,20 +180,34 @@ pub fn resolve<'repos>(
         return Ok(None);
     }
 
-    matches
-        .dedup_by_key(|(_, name)| candidates.get(*name).unwrap().root.to_str());
+    // Sort by match score.
+    matches.sort_by_key(|i| std::cmp::Reverse(i.0));
+    // Remove matches that would lead to the same result.
+    let matches: Vec<(&str, &Repository)> = {
+        let mut res: Vec<(&str, &Repository)> = Vec::new();
+
+        for (name, repo) in matches
+            .into_iter()
+            .map(|(_, name)| (name, candidates.get(name).unwrap()))
+        {
+            if res.iter().any(|(_, r)| r == repo) {
+                continue;
+            }
+            res.push((name, repo));
+        }
+
+        res
+    };
 
     if matches.len() == 1 {
-        let name = matches[0].1;
+        let (name, repo) = matches[0];
         eprintln!("Considering you meant {name}");
-        Ok(Some(candidates.get(name).unwrap()))
+        Ok(Some(repo))
     } else {
         eprintln!("Several possible match:");
-        // Sort by match score.
-        matches.sort_by_key(|i| std::cmp::Reverse(i.0));
 
-        for (_, name) in matches {
-            eprintln!("- {name}");
+        for (name, repo) in matches {
+            eprintln!("- {name} -> {}", repo.root.display());
         }
 
         Ok(None)
