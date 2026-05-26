@@ -21,6 +21,7 @@ mod repo;
 mod resolve;
 mod resolve_url;
 mod rm;
+mod test;
 mod todo;
 mod tree;
 mod workspace;
@@ -74,6 +75,7 @@ enum Action {
     Tree(tree::TreeArgs),
     Clean(clean::CleanArgs),
     Fetch(fetch::FetchArgs),
+    Test(test::TestArgs),
     Todo(todo::TodoArgs),
     Repo(repo::RepoArgs),
     Workspace(workspace::WorkspaceArgs),
@@ -168,5 +170,6 @@ pub async fn run() -> i32 {
         Action::Rm(args) => rm::run(&ui, &config, args).await,
         Action::RefreshCache(args) => refresh_cache::run(&ui, &config, args),
         Action::Insert(args) => insert::run(&mut ui, &config, args).await,
+        Action::Test(args) => test::run(&config, args).await,
     }
 }
