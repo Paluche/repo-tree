@@ -11,6 +11,7 @@ use crate::config::LocalHost;
 use crate::config::RemoteHost;
 use crate::config::UnknownHost;
 use crate::error::UnknownRemoteHostError;
+use crate::forge::Forge;
 
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 /// The different type of host one repository can be associated with.
@@ -97,6 +98,16 @@ impl<'config> Host<'config> {
             Self::Remote(remote_host) => Box::new(remote_host),
             Self::UnknownRemote(_, unknown_host) => Box::new(unknown_host),
             Self::Local(local_host) => Box::new(local_host),
+        }
+    }
+
+    /// Get the forge enum value associated with host.
+    #[allow(dead_code)]
+    pub fn forge(&self) -> Forge {
+        match self {
+            Self::Remote(remote_host) => remote_host.forge(),
+            Self::UnknownRemote(_, unknown_host) => unknown_host.forge(),
+            Self::Local(local_host) => local_host.forge(),
         }
     }
 }

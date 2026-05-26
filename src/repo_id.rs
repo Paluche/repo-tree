@@ -1,4 +1,5 @@
 //! Tools around parsing of repositories URL.
+use std::error::Error;
 use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
@@ -123,6 +124,20 @@ impl RepoId {
             .host(config)
             .dir_path(config)
             .map(|p| p.join(&self.name))
+    }
+
+    /// Find out if the repository is archived on the forge it is hosted on.
+    #[allow(dead_code)]
+    pub async fn is_archived(
+        &self,
+        config: &Config,
+    ) -> Result<bool, Box<dyn Error>> {
+        self.remote
+            .host(config)
+            .forge()
+            .api()
+            .is_archived(self)
+            .await
     }
 
     /// Obtain a struct implementing the display for the RepoId.
