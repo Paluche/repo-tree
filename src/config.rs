@@ -25,12 +25,19 @@ use crate::colors::Color;
 use crate::colors::ColoredList;
 use crate::colors::ColoredText;
 use crate::colors::IsEmpty;
+use crate::forge::Forge;
 use crate::version_control_system::VersionControlSystem;
 
 /// Common trait for Host configuration (RemoteHost, LocalHost and UnknownHost).
 pub trait HostInfo {
     /// Get the directory name for that host in the repo tree.
     fn dir_name(&self) -> String;
+
+    /// Get the forge the remote is using if one.
+    #[allow(dead_code)]
+    fn forge(&self) -> Forge {
+        Forge::Unknown
+    }
 }
 
 #[cfg(test)]
@@ -45,57 +52,62 @@ trait HostInfoRaw {
     fn raw_repr(&self) -> &ColoredText;
 }
 
-/// Define a host-like struct, this is here to assure simple that the struct
-/// RemoteHost and LocalHost follows the same content and functions.
-macro_rules! define_host_struct {
-    ($name:ident, $def:ident ) => {
-        #[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
-        /// Representation of a repository $def host.
-        pub struct $name {
-            /// Name of the remote host.
-            pub name: String,
-            /// Name of the directory for that host in the repo tree.
-            dir_name: Option<String>,
-            /// Short representation of the host.
-            #[serde(default)]
-            repr: ColoredText,
-        }
-
-        impl HostInfo for $name {
-            /// Get the directory name for that host in the repo tree.
-            fn dir_name(&self) -> String {
-                self.dir_name.clone().unwrap_or(self.name.clone())
-            }
-        }
-
-        impl Display for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                if self.repr.is_empty() {
-                    write!(f, "{}", self.name)
-                } else {
-                    self.repr.fmt(f)
-                }
-            }
-        }
-
-        #[cfg(test)]
-        impl HostInfoRaw for $name {
-            fn raw_name(&self) -> Option<&String> {
-                Some(&self.name)
-            }
-
-            fn raw_dir_name(&self) -> &Option<String> {
-                &self.dir_name
-            }
-
-            fn raw_repr(&self) -> &ColoredText {
-                &self.repr
-            }
-        }
-    };
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
+/// Representation of a repository remote host.
+pub struct RemoteHost {
+    /// Name of the remote host.
+    pub name: String,
+    /// Name of the directory for that host in the repo tree.
+    dir_name: Option<String>,
+    /// Short representation of the host.
+    #[serde(default)]
+    repr: ColoredText,
+    /// Associated forge.
+    #[serde(default = "default_forge")]
+    forge: Forge,
 }
 
-define_host_struct!(RemoteHost, remote);
+/// Obtain the default forge to add to the configuration if they are not already
+/// configured by the user.
+fn default_forge() -> Forge {
+    Forge::Unknown
+}
+
+impl HostInfo for RemoteHost {
+    /// Get the directory name for that host in the repo tree.
+    fn dir_name(&self) -> String {
+        self.dir_name.clone().unwrap_or(self.name.clone())
+    }
+
+    fn forge(&self) -> Forge {
+        self.forge.clone()
+    }
+}
+
+impl Display for RemoteHost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.repr.is_empty() {
+            write!(f, "{}", self.name)
+        } else {
+            self.repr.fmt(f)
+        }
+    }
+}
+
+#[cfg(test)]
+impl HostInfoRaw for RemoteHost {
+    fn raw_name(&self) -> Option<&String> {
+        Some(&self.name)
+    }
+
+    fn raw_dir_name(&self) -> &Option<String> {
+        &self.dir_name
+    }
+
+    fn raw_repr(&self) -> &ColoredText {
+        &self.repr
+    }
+}
 
 /// A group of host as map indexed by the URL of the host.
 type RemoteHosts = BTreeMap<String, RemoteHost>;
@@ -119,27 +131,113 @@ fn default_root() -> PathBuf {
 /// configured by the user.
 fn default_remote_hosts() -> RemoteHosts {
     [
-        ("github.com", "github", "", colored::Color::White),
-        ("gitlab.com", "gitlab", "󰮠", colored::Color::AnsiColor(166)),
-        ("git.kernel.org", "kernel", "", colored::Color::White),
-        ("bitbucket.org", "bitbucket", "", colored::Color::Blue),
-        ("codeberg.org", "codeberg", "", colored::Color::Blue),
+        (
+            "github.com",
+            "github",
+            "",
+            colored::Color::White,
+            Forge::Unknown,
+        ),
+        (
+            "gitlab.com",
+            "gitlab",
+            "󰮠",
+            colored::Color::AnsiColor(166),
+            Forge::Unknown,
+        ),
+        (
+            "git.kernel.org",
+            "kernel",
+            "",
+            colored::Color::White,
+            Forge::Unknown,
+        ),
+        (
+            "git.kernel.org",
+            "kernel",
+            "",
+            colored::Color::White,
+            Forge::Unknown,
+        ),
+        (
+            "bitbucket.org",
+            "bitbucket",
+            "",
+            colored::Color::Blue,
+            Forge::Unknown,
+        ),
+        (
+            "codeberg.org",
+            "codeberg",
+            "",
+            colored::Color::Blue,
+            Forge::Unknown,
+        ),
+        (
+            "codeberg.org",
+            "codeberg",
+            "",
+            colored::Color::Blue,
+            Forge::Unknown,
+        ),
     ]
     .into_iter()
-    .map(|(u, n, r, color)| {
+    .map(|(url, name, repr_text, repr_color, forge)| {
         (
-            u.to_string(),
+            url.to_string(),
             RemoteHost {
-                name: n.to_string(),
+                name: name.to_string(),
                 dir_name: None,
-                repr: ColoredText::new(r, color),
+                repr: ColoredText::new(repr_text, repr_color),
+                forge,
             },
         )
     })
     .collect()
 }
 
-define_host_struct!(LocalHost, local);
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
+/// Representation of a repository local host.
+pub struct LocalHost {
+    /// Name of the remote host.
+    pub name: String,
+    /// Name of the directory for that host in the repo tree.
+    dir_name: Option<String>,
+    /// Short representation of the host.
+    #[serde(default)]
+    repr: ColoredText,
+}
+
+impl HostInfo for LocalHost {
+    fn dir_name(&self) -> String {
+        self.dir_name.clone().unwrap_or(self.name.clone())
+    }
+}
+
+impl Display for LocalHost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.repr.is_empty() {
+            write!(f, "{}", self.name)
+        } else {
+            self.repr.fmt(f)
+        }
+    }
+}
+
+#[cfg(test)]
+impl HostInfoRaw for LocalHost {
+    fn raw_name(&self) -> Option<&String> {
+        Some(&self.name)
+    }
+
+    fn raw_dir_name(&self) -> &Option<String> {
+        &self.dir_name
+    }
+
+    fn raw_repr(&self) -> &ColoredText {
+        &self.repr
+    }
+}
 
 impl Default for LocalHost {
     fn default() -> Self {
@@ -169,6 +267,10 @@ impl HostInfo for UnknownHost {
         {
             panic!("Should not happen");
         }
+    }
+
+    fn forge(&self) -> Forge {
+        Forge::Unknown
     }
 }
 
@@ -790,6 +892,7 @@ mod tests {
         dir_name: &'static str,
         raw_repr: ColoredText,
         repr: String,
+        forge: Forge,
     }
 
     /// Check a struct implementing HostInfo and HostInfoRaw traits.
@@ -829,6 +932,12 @@ mod tests {
             "{id} repr(): {repr} != {}",
             expected.repr
         );
+        let forge = host.forge();
+        let expected_forge = expected.forge;
+        assert_eq!(
+            forge, expected_forge,
+            "{id} forge(): {forge:?} != {expected_forge:?}",
+        );
     }
 
     /// Check a remote host from the configuration.
@@ -867,6 +976,7 @@ mod tests {
                 dir_name: "github",
                 raw_repr: ColoredText::new("", colored::Color::White),
                 repr: "".white().to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -878,6 +988,7 @@ mod tests {
                 dir_name: "gitlab",
                 raw_repr: ColoredText::new("󰮠", 166),
                 repr: "󰮠".ansi_color(166).to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -889,6 +1000,7 @@ mod tests {
                 dir_name: "kernel",
                 raw_repr: ColoredText::new("", colored::Color::White),
                 repr: "".white().to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -900,6 +1012,7 @@ mod tests {
                 dir_name: "bitbucket",
                 raw_repr: ColoredText::new("", colored::Color::Blue),
                 repr: "".blue().to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -911,6 +1024,7 @@ mod tests {
                 dir_name: "codeberg",
                 raw_repr: ColoredText::new("", colored::Color::Blue),
                 repr: "".blue().to_string(),
+                forge: Forge::Unknown,
             },
         );
 
@@ -924,6 +1038,7 @@ mod tests {
                 dir_name: "local",
                 raw_repr: ColoredText::new("󰋊", colored::Color::White),
                 repr: "󰋊".white().to_string(),
+                forge: Forge::Unknown,
             },
         );
 
@@ -937,6 +1052,7 @@ mod tests {
                 dir_name: "",
                 raw_repr: ColoredText::new("", colored::Color::Red),
                 repr: "".red().to_string(),
+                forge: Forge::Unknown,
             },
         );
 
@@ -1027,6 +1143,7 @@ mod tests {
 
         [host."bitbucket.org"]
         name = "bitbucket"
+        forge = "Unknown"
 
         [host."bitbucket.org".repr]
         text = ""
@@ -1034,6 +1151,7 @@ mod tests {
 
         [host."codeberg.org"]
         name = "codeberg"
+        forge = "Unknown"
 
         [host."codeberg.org".repr]
         text = ""
@@ -1041,6 +1159,7 @@ mod tests {
 
         [host."git.kernel.org"]
         name = "kernel"
+        forge = "Unknown"
 
         [host."git.kernel.org".repr]
         text = ""
@@ -1048,6 +1167,7 @@ mod tests {
 
         [host."github.com"]
         name = "github"
+        forge = "Unknown"
 
         [host."github.com".repr]
         text = ""
@@ -1055,6 +1175,7 @@ mod tests {
 
         [host."gitlab.com"]
         name = "gitlab"
+        forge = "Unknown"
 
         [host."gitlab.com".repr]
         text = "󰮠"
@@ -1280,6 +1401,7 @@ mod tests {
                 dir_name: "github",
                 raw_repr: ColoredText::new("", colored::Color::White),
                 repr: "".white().to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1291,6 +1413,7 @@ mod tests {
                 dir_name: "gitlab",
                 raw_repr: ColoredText::new("󰮠", 166),
                 repr: "󰮠".ansi_color(166).to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1302,6 +1425,7 @@ mod tests {
                 dir_name: "mine",
                 raw_repr: ColoredText::new("󱘎", colored::Color::Blue),
                 repr: "󱘎".blue().to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1313,6 +1437,7 @@ mod tests {
                 dir_name: ".",
                 raw_repr: ColoredText::new("󰥯", colored::Color::Yellow),
                 repr: "󰥯".yellow().to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1324,6 +1449,7 @@ mod tests {
                 dir_name: "bitbucket",
                 raw_repr: ColoredText::new("", colored::Color::Blue),
                 repr: "".blue().to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1335,6 +1461,7 @@ mod tests {
                 dir_name: "busybox",
                 raw_repr: ColoredText::default(),
                 repr: "busybox".to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1346,6 +1473,7 @@ mod tests {
                 dir_name: "blabla",
                 raw_repr: ColoredText::new("", 124),
                 repr: "".ansi_color(124).to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1363,6 +1491,7 @@ mod tests {
                         b: 16,
                     })
                     .to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1374,6 +1503,7 @@ mod tests {
                 dir_name: "kernel",
                 raw_repr: ColoredText::new("", colored::Color::White),
                 repr: "".white().to_string(),
+                forge: Forge::Unknown,
             },
         );
         check_remote_host(
@@ -1385,6 +1515,7 @@ mod tests {
                 dir_name: "codeberg",
                 raw_repr: ColoredText::new("", colored::Color::Blue),
                 repr: "".blue().to_string(),
+                forge: Forge::Unknown,
             },
         );
 
@@ -1398,6 +1529,7 @@ mod tests {
                 dir_name: "local",
                 raw_repr: ColoredText::new("L", colored::Color::Blue),
                 repr: "L".blue().to_string(),
+                forge: Forge::Unknown,
             },
         );
 
@@ -1411,6 +1543,7 @@ mod tests {
                 dir_name: "",
                 raw_repr: ColoredText::new("?", colored::Color::BrightRed),
                 repr: "?".bright_red().to_string(),
+                forge: Forge::Unknown,
             },
         );
 
@@ -1521,6 +1654,7 @@ mod tests {
 
         [host."alice-and-bob.net"]
         name = "alice-and-bob"
+        forge = "Unknown"
 
         [host."alice-and-bob.net".repr]
         text = ""
@@ -1528,6 +1662,7 @@ mod tests {
 
         [host."bitbucket.org"]
         name = "bitbucket"
+        forge = "Unknown"
 
         [host."bitbucket.org".repr]
         text = ""
@@ -1535,6 +1670,7 @@ mod tests {
 
         [host."blabla.net"]
         name = "blabla"
+        forge = "Unknown"
 
         [host."blabla.net".repr]
         text = ""
@@ -1542,12 +1678,14 @@ mod tests {
 
         [host."busybox.net"]
         name = "busybox"
+        forge = "Unknown"
 
         [host."busybox.net".repr]
         text = ""
 
         [host."codeberg.org"]
         name = "codeberg"
+        forge = "Unknown"
 
         [host."codeberg.org".repr]
         text = ""
@@ -1556,6 +1694,7 @@ mod tests {
         [host."git.buildroot.net"]
         name = "buildroot"
         dir_name = "."
+        forge = "Unknown"
 
         [host."git.buildroot.net".repr]
         text = "󰥯"
@@ -1563,6 +1702,7 @@ mod tests {
 
         [host."git.kernel.org"]
         name = "kernel"
+        forge = "Unknown"
 
         [host."git.kernel.org".repr]
         text = ""
@@ -1570,6 +1710,7 @@ mod tests {
 
         [host."github.com"]
         name = "github"
+        forge = "Unknown"
 
         [host."github.com".repr]
         text = ""
@@ -1577,6 +1718,7 @@ mod tests {
 
         [host."gitlab.com"]
         name = "gitlab"
+        forge = "Unknown"
 
         [host."gitlab.com".repr]
         text = "󰮠"
@@ -1584,6 +1726,7 @@ mod tests {
 
         [host."my.custom-domain.fr"]
         name = "mine"
+        forge = "Unknown"
 
         [host."my.custom-domain.fr".repr]
         text = "󱘎"

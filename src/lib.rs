@@ -6,6 +6,7 @@ mod cli;
 mod colors;
 mod config;
 mod error;
+mod forge;
 mod git;
 mod host;
 mod jujutsu;
