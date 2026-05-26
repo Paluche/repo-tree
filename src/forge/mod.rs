@@ -1,4 +1,6 @@
 //! Interaction with the different forges.
+pub mod github;
+
 use std::error::Error;
 
 use async_trait::async_trait;
@@ -42,7 +44,8 @@ impl Forge {
     /// Get the struct implementing the ForgeApi for the respective forge.
     pub fn api(&self) -> Result<Box<dyn ForgeApi>, Box<dyn Error>> {
         match self {
-            Self::GitHub | Self::GitLab | Self::Forgejo | Self::Bitbucket => {
+            Self::GitHub => Ok(Box::new(github::api())),
+            Self::GitLab | Self::Forgejo | Self::Bitbucket => {
                 Err(Box::new(UnimplementedForgeApi(format!("{self:?}"))))
             }
         }
