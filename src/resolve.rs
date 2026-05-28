@@ -1,5 +1,5 @@
 //! Resolve a repository identifier argument into a Repository.
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::io::Write;
 use std::iter::zip;
@@ -46,8 +46,8 @@ fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
 fn reduce_repo_names<'repos>(
     config: &Config,
     repositories: &'repos Repositories,
-) -> HashMap<String, &'repos Repository> {
-    let mut ret: HashMap<String, &Repository> = HashMap::new();
+) -> BTreeMap<String, &'repos Repository> {
+    let mut ret: BTreeMap<String, &Repository> = BTreeMap::new();
 
     for repository in repositories.iter() {
         let name = repository.id.name.clone();
@@ -95,7 +95,7 @@ fn reduce_repo_names<'repos>(
 fn get_candidates<'repos>(
     config: &Config,
     repositories: &'repos Repositories,
-) -> HashMap<String, &'repos Repository> {
+) -> BTreeMap<String, &'repos Repository> {
     let mut ret = reduce_repo_names(config, repositories);
 
     for (alias, repo_name) in config.command.resolve.aliases.iter() {
@@ -114,7 +114,7 @@ fn get_candidates<'repos>(
 
 /// Interactively ask the user to select the repository.
 fn fzf_ask(
-    repositories: &HashMap<String, &Repository>,
+    repositories: &BTreeMap<String, &Repository>,
 ) -> Result<String, Box<dyn Error>> {
     let fzf = which("fzf")?;
 
