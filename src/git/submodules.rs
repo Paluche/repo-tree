@@ -172,7 +172,7 @@ pub fn get<P: AsRef<Path>>(
 
     for submodule in submodules {
         let sub_path = submodule.path().to_path_buf();
-        ret.push(if let Some(conf_url) = submodule.url() {
+        ret.push(if let Some(conf_url) = submodule.url()? {
             let head = submodule.head_id();
             let actual_head = submodule.index_id();
             let (ahead, behind) = if let (Some(head), Some(actual_head)) =
