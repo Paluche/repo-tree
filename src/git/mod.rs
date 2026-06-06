@@ -25,13 +25,13 @@ pub fn get_remote_url_repo(
         repo.path().join("config"),
         repo.find_remote("origin")
             .map_or(
-                match repo.remotes()?.get(0) {
+                match repo.remotes()?.get(0)? {
                     Some(name) => Some(repo.find_remote(name)?),
                     None => None,
                 },
                 Some,
             )
-            .and_then(|r| r.url().map(String::from)),
+            .and_then(|r| r.url().ok().map(String::from)),
     ))
 }
 
