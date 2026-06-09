@@ -1,5 +1,5 @@
 [package]
-name = "repo_tree"
+name = "repo-tree"
 description = "Repo-tree - Local Repository manager"
 default-run="rt"
 version = "0.1.0"
