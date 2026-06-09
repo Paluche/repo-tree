@@ -25,7 +25,7 @@ pub struct StateArgs {
 }
 
 /// Execute the `rt repo state` command.
-pub fn run(config: &Config, args: StateArgs) -> i32 {
+pub async fn run(config: &Config, args: StateArgs) -> i32 {
     if args.refresh_cache {
         Repositories::load(config, true);
     }
@@ -60,7 +60,7 @@ pub fn run(config: &Config, args: StateArgs) -> i32 {
         );
     }
 
-    let repo_state = match repository.state() {
+    let repo_state = match repository.state().await {
         Ok(v) => Some(v),
         Err(err) => {
             eprintln!("{err}");

@@ -3,7 +3,6 @@ use clap::Args;
 use clap_complete::ArgValueCompleter;
 use clap_complete::PathCompleter;
 use colored::control::SHOULD_COLORIZE;
-use pollster::FutureExt;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
@@ -27,7 +26,7 @@ pub struct PromptArgs {
 }
 
 /// Execute `rt repo prompt` command.
-pub fn run(config: &Config, args: PromptArgs) -> i32 {
+pub async fn run(config: &Config, args: PromptArgs) -> i32 {
     if args.refresh_cache {
         Repositories::load(config, true);
     }
@@ -57,10 +56,10 @@ pub fn run(config: &Config, args: PromptArgs) -> i32 {
             if ret != 0 {
                 return ret;
             }
-            jujutsu::prompt(config, &mut prompt, &repository.root).block_on()
+            jujutsu::prompt(config, &mut prompt, &repository.root).await
         }
         VersionControlSystem::Jujutsu => {
-            jujutsu::prompt(config, &mut prompt, &repository.root).block_on()
+            jujutsu::prompt(config, &mut prompt, &repository.root).await
         }
     };
 

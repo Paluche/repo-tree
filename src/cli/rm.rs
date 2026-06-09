@@ -25,7 +25,7 @@ pub struct RmArgs {
 }
 
 /// Execute the `rt rm` command.
-pub fn run(config: &Config, args: RmArgs) -> i32 {
+pub async fn run(config: &Config, args: RmArgs) -> i32 {
     let repositories = Repositories::load(config, args.refresh_cache);
     let repository = match resolve(config, &repositories, args.repo_id) {
         Ok(v) => match v {
@@ -41,7 +41,7 @@ pub fn run(config: &Config, args: RmArgs) -> i32 {
         }
     };
 
-    match &repository.state() {
+    match &repository.state().await {
         Ok(repo_state) => {
             if repo_state.has_unpushed_commits() {
                 eprintln!("WARNING: The repository has unpushed commits");

@@ -10,7 +10,6 @@ use std::slice::Iter;
 
 use chrono::DateTime;
 use chrono::Utc;
-use pollster::FutureExt;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -173,11 +172,11 @@ impl Repository {
     }
 
     /// Get the repository state.
-    pub fn state(&self) -> Result<RepoState, Box<dyn Error>> {
+    pub async fn state(&self) -> Result<RepoState, Box<dyn Error>> {
         Ok(match self.vcs {
             VersionControlSystem::Jujutsu
             | VersionControlSystem::JujutsuGit => {
-                jujutsu::get_repo_state(&self.root).block_on()?
+                jujutsu::get_repo_state(&self.root).await?
             }
             vcs => Err(NotImplementedError(format!(
                 "Repository state for {vcs} Version Control"

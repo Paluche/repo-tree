@@ -98,7 +98,7 @@ fn cwd_default_path(path: Option<String>) -> PathBuf {
 }
 
 /// Entry point for the executable.
-pub fn run() -> i32 {
+pub async fn run() -> i32 {
     complete_env::complete();
 
     let args = Args::parse();
@@ -123,11 +123,11 @@ pub fn run() -> i32 {
         Action::Tree(args) => tree::run(&config, args),
         Action::Clean(args) => clean::run(&config, args),
         Action::Fetch(args) => fetch::run(&config, args),
-        Action::Todo(args) => todo::run(&config, args),
-        Action::Repo(args) => repo::run(&config, args),
+        Action::Todo(args) => todo::run(&config, args).await,
+        Action::Repo(args) => repo::run(&config, args).await,
         Action::Git(args) => git::run(&config, args),
         Action::Clone(args) => clone::run(&config, args),
-        Action::Rm(args) => rm::run(&config, args),
+        Action::Rm(args) => rm::run(&config, args).await,
         Action::RefreshCache(args) => refresh_cache::run(&config, args),
         Action::Insert(args) => insert::run(&config, args),
     }

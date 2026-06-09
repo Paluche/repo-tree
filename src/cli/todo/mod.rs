@@ -32,10 +32,10 @@ enum TodoAction {
 }
 
 /// Execute the todo subcommand.
-pub fn run(config: &Config, args: TodoArgs) -> i32 {
+pub async fn run(config: &Config, args: TodoArgs) -> i32 {
     match args.action {
-        TodoAction::List(args) => list::run(config, args),
-        TodoAction::Next(args) => next_prev::run(config, args, false),
-        TodoAction::Prev(args) => next_prev::run(config, args, true),
+        TodoAction::List(args) => list::run(config, args).await,
+        TodoAction::Next(args) => next_prev::run(config, args, false).await,
+        TodoAction::Prev(args) => next_prev::run(config, args, true).await,
     }
 }

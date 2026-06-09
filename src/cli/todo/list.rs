@@ -39,7 +39,7 @@ pub struct ListArgs {
 }
 
 /// Execute the `rt todo list` command.
-pub fn run(config: &Config, args: ListArgs) -> i32 {
+pub async fn run(config: &Config, args: ListArgs) -> i32 {
     let mut todo: usize = 0;
     let mut ok: usize = 0;
     let mut n_a: usize = 0;
@@ -75,7 +75,7 @@ pub fn run(config: &Config, args: ListArgs) -> i32 {
 
         eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
 
-        if let Some(repo_state) = match &repository.state() {
+        if let Some(repo_state) = match &repository.state().await {
             Ok(v) => Some(v),
             Err(err) => {
                 if err.downcast_ref::<NotImplementedError>().is_some() {
