@@ -2,6 +2,7 @@
 use clap::ArgAction;
 use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
+use globset::Glob;
 
 use crate::config::Config;
 use crate::config::list_host_completer;
@@ -17,14 +18,14 @@ pub struct ListArgs {
         add=ArgValueCompleter::new(list_host_completer)
         )
     ]
-    hosts: Vec<String>,
+    hosts: Vec<Glob>,
     /// Filter the repositories to by their name, within its forge. All
     /// repositories which name starts with the provided value will be
     /// listed. For example to filter only GitHub repositories from a
     /// certain organization, you could use the organization name as value
     /// for this argument, and "github" as value of the --host argument.
     #[arg(short = 'N', long = "name", action=ArgAction::Append)]
-    names: Vec<String>,
+    names: Vec<Glob>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
@@ -33,7 +34,7 @@ pub struct ListArgs {
 /// Execute the `rt list` command.
 pub fn run(config: &Config, args: ListArgs) -> i32 {
     for repository in Repositories::load(config, args.refresh_cache)
-        .filtered(config, args.hosts, args.names)
+        .filtered(config, &args.hosts, &args.names)
         .iter()
     {
         println!("{}", repository.root.display());
