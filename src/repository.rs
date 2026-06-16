@@ -10,6 +10,7 @@ use std::slice::Iter;
 
 use chrono::DateTime;
 use chrono::Utc;
+use globset::Glob;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -306,8 +307,8 @@ impl Repositories {
     pub fn filtered<'repos>(
         &'repos self,
         config: &Config,
-        filter_hosts: Vec<String>,
-        filter_names: Vec<String>,
+        filter_hosts: &[Glob],
+        filter_names: &[Glob],
     ) -> Vec<&'repos Repository> {
         self.repositories
             .iter()
@@ -315,7 +316,7 @@ impl Repositories {
                 (filter_hosts.is_empty()
                     || filter_hosts.iter().any(|host| {
                         match r.id.remote.host(config).name() {
-                            Ok(name) => name == host,
+                            Ok(name) => host.compile_matcher().is_match(name),
                             Err(err) => {
                                 eprintln!("{err}");
                                 false
@@ -323,9 +324,9 @@ impl Repositories {
                         }
                     }))
                     && (filter_names.is_empty()
-                        || filter_names
-                            .iter()
-                            .any(|name| r.id.name.starts_with(name)))
+                        || filter_names.iter().any(|filter_name| {
+                            filter_name.compile_matcher().is_match(&r.id.name)
+                        }))
             })
             .collect()
     }

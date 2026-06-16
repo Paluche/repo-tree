@@ -5,6 +5,7 @@ use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 use crossterm::terminal::Clear;
 use crossterm::terminal::ClearType;
+use globset::Glob;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
@@ -26,7 +27,7 @@ pub struct NextPrevArgs {
         add=ArgValueCompleter::new(list_host_completer)
         )
     ]
-    hosts: Vec<String>,
+    hosts: Vec<Glob>,
     /// Filter the repositories to by their name, within its forge. All
     /// repositories which name starts with the provided value will be
     /// listed. For example to filter only GitHub repositories from a
@@ -34,7 +35,7 @@ pub struct NextPrevArgs {
     /// for this argument, and "github" as value of the --host argument. Can be
     /// specified multiple times.
     #[arg(short = 'N', long = "name", action=ArgAction::Append)]
-    names: Vec<String>,
+    names: Vec<Glob>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
@@ -59,7 +60,7 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
 
     // Skip the current repository.
     for repository in into_iter_from(
-        repositories.filtered(config, args.hosts, args.names),
+        repositories.filtered(config, &args.hosts, &args.names),
         &current_repository,
         reverse,
     ) {
