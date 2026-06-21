@@ -2,7 +2,7 @@
 name = "repo-tree"
 description = "Repo-tree - Local Repository manager"
 default-run="rt"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 categories = ["development-tools"]
