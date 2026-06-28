@@ -12,15 +12,16 @@ use crate::error::ParseUrlError;
 use crate::error::UnknownRemoteHostError;
 use crate::host::Host;
 use crate::host::Remote;
+use crate::config::HostInfo;
 
 /// Either the repository is within the ${REPO_TREE_DIR}/local directory
 /// allowing the user to organize as see fits this directory.
 /// Or take the directory name.
 fn compute_local_path<P: AsRef<Path>>(
-    repo_tree_dir: &Path,
+    config: &Config,
     repo_path: &P,
 ) -> String {
-    let local_dir = repo_tree_dir.join("local");
+    let local_dir = config.repo_tree_dir.join(config.local.dir_name());
     let repo_path = repo_path.as_ref();
     assert!(repo_path.is_absolute(), "repo_path is not absolute");
     assert!(local_dir.is_absolute(), "local_dir is not absolute");
@@ -108,7 +109,7 @@ impl RepoId {
         } else {
             Ok(Self {
                 remote: Remote::Local,
-                name: compute_local_path(&config.repo_tree_dir, repo_path),
+                name: compute_local_path(config, repo_path),
             })
         }
     }
