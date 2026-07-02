@@ -8,11 +8,11 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::config::HostInfo;
 use crate::error::ParseUrlError;
 use crate::error::UnknownRemoteHostError;
 use crate::host::Host;
 use crate::host::Remote;
-use crate::config::HostInfo;
 
 /// Either the repository is within the ${REPO_TREE_DIR}/local directory
 /// allowing the user to organize as see fits this directory.
