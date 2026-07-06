@@ -315,12 +315,21 @@ impl Repository {
         Ok(if self.is_submodule {
             None
         } else {
-            Some(
-                self.id
-                    .expected_tree(ui, config, Some(workspace.path()), strategy)
-                    .await?
-                    .repo_location(config, &self.id)?,
+            let id = if matches!(strategy, ExpectedTreeStrategy::Exact) {
+                self.id.get_forge_id(config).await?
+            } else {
+                None
+            }
+            .unwrap_or(self.id.clone()); // FIXME clone used.
+                                         //
+            Some(id.expected_root(
+                ui,
+                config,
+                Some(&self.expected_root(workspace.tree_space())?),
+                strategy,
             )
+            .await?)
+
         })
     }
 
