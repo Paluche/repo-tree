@@ -2,6 +2,7 @@
 use std::error::Error;
 use std::fmt::Display;
 use std::path::Path;
+use std::path::PathBuf;
 
 use regex::Regex;
 use serde::Deserialize;
@@ -226,6 +227,21 @@ impl RepoId {
         }
     }
 
+    /// Get the expected path to the root of the repository within the repo
+    /// tree. If the repository is a submodule then, it has to be at its place
+    /// within its main repository and therefore we return None.
+    pub async fn expected_root(
+        &self,
+        config: &Config,
+        repo_path: Option<&Path>,
+        strategy: ExpectedTreeStrategy,
+    ) -> Result<PathBuf, Box<dyn Error>> {
+        Ok(self
+            .expected_tree(config, repo_path, strategy)
+            .await?
+            .repo_location(config, self)?)
+    }
+
     /// Find out if a repository exists only locally (no remote configured).
     pub fn is_local(&self) -> bool {
         self.remote.is_none()
@@ -248,6 +264,23 @@ impl RepoId {
             } else {
                 Err(Box::new(UnknownRemoteHostError(remote.host_url.clone())))
             }
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Get the RepoId corresponding to the repository as it is on the forge.
+    pub async fn get_forge_id(
+        &self,
+        config: &Config,
+    ) -> Result<Option<Self>, Box<dyn Error>> {
+        if let Some(remote_host) = self.remote_host(config)?
+            && let Some(forge) = &remote_host.info.forge
+        {
+            Ok(Some(Self {
+                remote: self.remote.clone(),
+                name: forge.api()?.get_name(self).await?,
+            }))
         } else {
             Ok(None)
         }
