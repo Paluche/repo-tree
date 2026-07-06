@@ -367,11 +367,21 @@ impl Repository {
             // Additional workspaces belong to their own tree-space.
             Some(tree_space.repo_location(config, &self.id)?)
         } else {
+            let id = if matches!(strategy, ExpectedTreeStrategy::Exact) {
+                self.id.get_forge_id(config).await?
+            } else {
+                None
+            }
+            .unwrap_or(self.id.clone()); // FIXME clone used.
+            //
             Some(
-                self.id
-                    .expected_tree(ui, config, Some(workspace.path()), strategy)
-                    .await?
-                    .repo_location(config, &self.id)?,
+                id.expected_root(
+                    ui,
+                    config,
+                    Some(&self.expected_root(workspace.tree_space())?),
+                    strategy,
+                )
+                .await?,
             )
         })
     }
