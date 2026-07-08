@@ -14,6 +14,7 @@ use jj_lib::revset::RevsetExpression;
 
 use super::load;
 use super::repo_state::has_conflicts;
+use super::repo_state::wc_has_conflicts;
 use crate::config::ColoredList;
 use crate::config::Config;
 use crate::config::IsEmpty;
@@ -253,7 +254,9 @@ async fn prompt_internal(
         }
     }
 
-    if has_conflicts(repo_path)? {
+    if wc_has_conflicts(repo_path)? {
+        prompt.push(&config.wc_conflict);
+    } else if has_conflicts(repo_path)? {
         prompt.push(&config.conflict);
     }
 

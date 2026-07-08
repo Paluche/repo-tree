@@ -793,6 +793,10 @@ pub struct JujutsuPromptConfig {
     /// How to display the list of tags you are at.
     #[serde(default = "JujutsuPromptConfig::default_tags")]
     pub tags: ColoredList,
+    /// Representation to display when the working copy (current commit) has
+    /// conflicts.
+    #[serde(default = "JujutsuPromptConfig::default_wc_conflict")]
+    pub wc_conflict: ColoredText,
     /// Representation to display when there are commits with conflicts in the
     /// history of the repository.
     #[serde(default = "JujutsuPromptConfig::default_conflict")]
@@ -801,8 +805,12 @@ pub struct JujutsuPromptConfig {
 
 #[allow(clippy::missing_docs_in_private_items)]
 impl JujutsuPromptConfig {
-    fn default_conflict() -> ColoredText {
+    fn default_wc_conflict() -> ColoredText {
         ColoredText::new("󰝧", colored::Color::BrightRed)
+    }
+
+    fn default_conflict() -> ColoredText {
+        ColoredText::new("󰝧", colored::Color::Red)
     }
 
     fn default_tags() -> ColoredList {
@@ -816,6 +824,7 @@ impl Default for JujutsuPromptConfig {
             bookmark: JujutsuBookmarkConfig::default(),
             tags: Self::default_tags(),
             conflict: Self::default_conflict(),
+            wc_conflict: Self::default_wc_conflict(),
         }
     }
 }
@@ -1289,7 +1298,11 @@ mod tests {
                         ),
                     },
                     tags: ColoredList::new("", "🞍", colored::Color::Yellow),
-                    conflict: ColoredText::new("󰝧", colored::Color::BrightRed),
+                    wc_conflict: ColoredText::new(
+                        "󰝧",
+                        colored::Color::BrightRed
+                    ),
+                    conflict: ColoredText::new("󰝧", colored::Color::Red),
                 }
             },
         );
@@ -1437,9 +1450,13 @@ mod tests {
         separator = "🞍"
         color = "yellow"
 
-        [prompt.jj.conflict]
+        [prompt.jj.wc_conflict]
         text = "󰝧"
         color = "bright red"
+
+        [prompt.jj.conflict]
+        text = "󰝧"
+        color = "red"
 
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]
@@ -1532,7 +1549,8 @@ mod tests {
 
         [prompt.jj]
         tags = { prefix = 'T', separator = ', ', color = 'bright yellow'}
-        conflict = { text = '!', color = 'red'}
+        wc_conflict = { text = '!', color = 'bright blue'}
+        conflict = { text = '!', color = 'blue'}
 
         [command.resolve.aliases]
         rt = 'repo-tree'
@@ -1766,7 +1784,11 @@ mod tests {
                         ", ",
                         colored::Color::BrightYellow
                     ),
-                    conflict: ColoredText::new("!", colored::Color::Red),
+                    wc_conflict: ColoredText::new(
+                        "!",
+                        colored::Color::BrightBlue
+                    ),
+                    conflict: ColoredText::new("!", colored::Color::Blue),
                 }
             },
         );
@@ -1953,9 +1975,13 @@ mod tests {
         separator = ", "
         color = "bright yellow"
 
+        [prompt.jj.wc_conflict]
+        text = "!"
+        color = "bright blue"
+
         [prompt.jj.conflict]
         text = "!"
-        color = "red"
+        color = "blue"
 
         [repository]
         ignore = ["/tmp/**", "**/.*/**"]
