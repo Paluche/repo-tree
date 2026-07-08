@@ -36,6 +36,11 @@ pub fn has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     revsets::revset_has_match(repo_path, "conflicts()")
 }
 
+/// Find out if the working copy (current commit) has conflicts.
+pub fn wc_has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
+    revsets::revset_has_match(repo_path, "@ & conflicts()")
+}
+
 /// Get the repository state as RepoState struct.
 pub async fn get_repo_state(
     repo_path: &Path,
