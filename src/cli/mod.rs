@@ -12,6 +12,7 @@ use clap::ValueEnum;
 mod clean;
 mod clone;
 mod complete_env;
+mod credential;
 mod fetch;
 mod git;
 mod identity;
@@ -82,6 +83,8 @@ enum Action {
     Identity(identity::IdentityArgs),
     Rm(rm::RmArgs),
     RefreshCache(refresh_cache::RefreshCacheArgs),
+    #[command(hide = true)]
+    Credential(credential::CredentialArgs),
 }
 
 /// Get the path to the current working directory.
@@ -180,5 +183,6 @@ pub async fn run() -> i32 {
         Action::Rm(args) => rm::run(&ui, &config, args).await,
         Action::RefreshCache(args) => refresh_cache::run(&ui, &config, args),
         Action::Insert(args) => insert::run(&mut ui, &config, args).await,
+        Action::Credential(args) => credential::run(&ui, &config, &args),
     }
 }

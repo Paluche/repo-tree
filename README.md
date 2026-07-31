@@ -500,6 +500,49 @@ repositories whose configuration differs, with a hint listing the changes. When
 you edit the configuration file, the next `rt` command using the repositories
 cache (`rcd`, `rt list`, ...) sets the new identities.
 
+#### Tokens and secrets
+
+Identities also tell which tokens to use, per host: `git` to fetch and push over
+HTTPS, `api` to access the forge API. The configuration only holds identifiers;
+the tokens are in `secrets.toml`, next to `config.toml`, which should only be
+readable by you (`chmod 600`, `rt` warns otherwise). A token is only ever used
+for its host.
+
+```toml
+# config.toml
+[identities.default]
+tokens.'github.com' = { git = 'github-personal', api = 'github-personal' }
+
+[identities.work]
+tokens.'github.com' = { git = 'github-work' } # Still the personal API token.
+```
+
+```toml
+# secrets.toml
+[github-personal]
+token = 'github_pat_...'
+
+[github-work]
+username = 'you-at-company' # Optional for GitHub, GitLab and Bitbucket.
+token = 'github_pat_...'
+```
+
+`rt credential` is a Git credential helper giving Git these tokens. To have Git
+use it, add to your global Git configuration, for each host with a Git token:
+
+```gitconfig
+[credential "https://github.com"]
+	helper =
+	helper = !rt credential
+	useHttpPath = true
+```
+
+The empty `helper` drops the other credential helpers for that host, so that
+only `rt` answers. `useHttpPath` makes Git give the path of the repository to
+`rt`, which then knows the identity to use, clones included. This also applies
+to Jujutsu, which runs Git to fetch and push. `rt` must be in the `PATH` of the
+programs running Git.
+
 ## Completion and utils
 
 We are using [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/index.html)

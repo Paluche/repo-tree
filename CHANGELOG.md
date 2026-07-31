@@ -81,6 +81,9 @@ None
 - **identity**: After a change of the configuration file, the next `rt`
   command using the repositories cache sets the new identities in the
   repositories.
+- **identity**: Identities select the tokens to use per host, kept apart in a
+  `secrets.toml` file. `rt credential` is a Git credential helper giving Git
+  the token of the identity of the repository.
 
 ### Fixed bugs
 

@@ -74,7 +74,6 @@ impl Secrets {
     }
 
     /// Load the secrets file, warning when other users can read it.
-    #[expect(dead_code)]
     pub fn load(ui: &Ui<'_>) -> Result<Self, Box<dyn Error>> {
         let path = Self::path()?;
 
@@ -109,7 +108,6 @@ impl Secrets {
 
     /// Get the credentials Git should use for the host with the identity.
     /// `None` when the identity has no Git token for the host.
-    #[cfg_attr(not(test), expect(dead_code))]
     pub fn git_credential<'secrets>(
         &'secrets self,
         identity: &ResolvedIdentity,
