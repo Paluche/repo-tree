@@ -440,6 +440,51 @@ ignore = [  # List of repositories to ignore.
 default_vcs = 'jujutsu-git'
 ```
 
+### Configuring identities
+
+`rt` can manage the identity you use in each repository: the name and email
+authoring the commits and how the commits are signed. You define a `default`
+identity, used in all the repositories, and other identities overriding part
+of it in some repositories. When no identity is configured, `rt` leaves the
+identity of your repositories alone.
+
+```toml
+[identities.default] # Mandatory as soon as one identity is defined.
+name = 'Your Name'
+email = 'you@personal.org'
+signing = { backend = 'gpg', key = '26B104C8AD4182E5', on = 'push' }
+
+[identities.work] # Only the fields to override.
+email = 'you@company.com'
+scopes = [
+  { host = 'github.com', path = 'company/' }, # All the company repositories.
+  { host = 'gitlab.company.com' },            # The whole host.
+]
+
+[identities.legacy]
+signing = 'none'
+scopes = [{ host = 'github.com', path = 'company/legacy' }] # One repository.
+```
+
+- `scopes`: the repositories an identity applies to. `host` is the host of the
+  remote URL. `path` is optional: ending with `/` it matches all the
+  repositories whose name starts with it, otherwise only the repository with
+  exactly that name. The `default` identity has no scopes, and a scope can only
+  be used by one identity.
+- `name`, `email`: the author of the commits. The `default` identity must
+  define both.
+- `signing`: either `'none'` not to sign the commits, or the signing `backend`
+  (`'gpg'`, `'ssh'` or `'gpgsm'`), the `key` to sign with and when to sign:
+  `on = 'commit'` (default) or `on = 'push'`. Only Jujutsu can sign on push, Git
+  signs at commit time. Without `signing`, `rt` leaves the signing configuration
+  of the repositories alone.
+
+The identity of a repository starts from the `default` identity. The identities
+whose scopes match the repository are then applied from the least to the most
+specific scope: host, then directory (longest last), then repository. Here a
+repository in `github.com/company/legacy` is authored by
+`Your Name <you@company.com>` and its commits are not signed.
+
 ## Completion and utils
 
 We are using [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/index.html)

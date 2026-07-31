@@ -20,6 +20,7 @@ use super::host::RemoteHost;
 use super::host::RemoteHosts;
 use super::host::UnknownHost;
 use super::host::default_remote_hosts;
+use super::identity::Identities;
 use super::prompt::PromptConfig;
 use super::repository_location::RepositoryLocation;
 use super::tree_space::TreeSpaceConfig;
@@ -57,6 +58,9 @@ pub struct Config {
     /// Configuration for the different rt sub-commands.
     #[serde(default)]
     pub command: CommandConfig,
+    /// Identities to use in the repositories, by name.
+    #[serde(default, skip_serializing_if = "Identities::is_empty")]
+    pub identities: Identities,
 }
 
 impl Config {
@@ -90,6 +94,8 @@ impl Config {
                     .to_string(),
             )));
         }
+
+        ret.identities.check()?;
 
         // Fill the default remote host configuration if not overridden.
         for (url, host) in default_remote_hosts() {
@@ -192,6 +198,7 @@ mod test {
                 prompt: PromptConfig::default(),
                 repository: RepositoryLocation::default(),
                 command: CommandConfig::default(),
+                identities: Identities::default(),
             }
         }
     }

@@ -9,6 +9,7 @@ mod command;
 #[expect(clippy::module_inception)]
 mod config;
 mod host;
+mod identity;
 mod prompt;
 mod repository_location;
 #[cfg(test)]

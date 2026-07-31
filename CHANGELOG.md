@@ -64,6 +64,9 @@ None
   tags, and locally deleted tags pending some action.
 - Add new command `rt workspace add` and `rt workspace rm` to manage our
   repositories workspace in the different workspace tree-space.
+- **identity**: Configure the identities to use in the repositories: a
+  `default` identity and identities overriding part of it for a host, a
+  directory of a host or a single repository.
 
 ### Fixed bugs
 
