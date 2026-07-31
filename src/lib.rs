@@ -5,6 +5,7 @@
 mod cli;
 mod colors;
 mod config;
+mod credentials;
 mod error;
 mod forge;
 mod prompt;
