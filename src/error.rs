@@ -27,3 +27,8 @@ pub struct UnknownRemoteHostError(pub String);
 #[error("No cache file to load")]
 /// Error during the parsing of the remote URL.
 pub struct NoCacheError();
+
+#[derive(Debug, Error)]
+#[error("Bad configuration: {0}")]
+/// Error during the parsing of the configuration.
+pub struct ConfigError(pub String);

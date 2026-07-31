@@ -21,6 +21,8 @@ use super::host::UnknownHost;
 use super::host::default_remote_hosts;
 use super::prompt::PromptConfig;
 use super::repository_location::RepositoryLocation;
+use crate::error::ConfigError;
+
 /// Obtain a default value for the repo tree root.
 fn default_root() -> PathBuf {
     let repo_tree_dir = PathBuf::from(&env::var("REPO_TREE_DIR").expect(
@@ -71,10 +73,12 @@ impl Config {
     fn load_internal(content: &str) -> Result<Self, Box<dyn Error>> {
         let mut ret: Config = toml::from_str(content)?;
 
-        assert!(
-            ret.root.is_absolute(),
-            "\"root\" value in configuration file must be an absolute path"
-        );
+        if !ret.root.is_absolute() {
+            return Err(Box::new(ConfigError(
+                "\"root\" value in configuration file must be an absolute path"
+                    .to_string(),
+            )));
+        }
 
         for (url, host) in default_remote_hosts() {
             if ret.remote_hosts.contains_key(&url) {
