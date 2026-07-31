@@ -80,6 +80,7 @@ impl Config {
             )));
         }
 
+        // Fill the default remote host configuration if not overridden.
         for (url, host) in default_remote_hosts() {
             if ret.remote_hosts.contains_key(&url) {
                 continue;
