@@ -267,7 +267,11 @@ impl Repositories {
                     }
                 }
                 Err(err) => {
-                    eprintln!("Failure to load cache {err}");
+                    eprintln!(
+                        "Failure to load cache {} {}",
+                        cache_file().display(),
+                        err
+                    );
                 }
             }
         }
