@@ -38,6 +38,17 @@ pub trait ForgeApi {
 }
 
 impl Forge {
+    /// Username the forge expects when authenticating to Git with a token,
+    /// if it accepts one whatever the account is.
+    pub fn token_username(&self) -> Option<&'static str> {
+        match self {
+            Self::GitHub => Some("x-access-token"),
+            Self::GitLab => Some("oauth2"),
+            Self::Bitbucket => Some("x-token-auth"),
+            Self::Forgejo => None,
+        }
+    }
+
     /// Get the struct implementing the ForgeApi for the respective forge.
     pub fn api(&self) -> Result<Box<dyn ForgeApi>, Box<dyn Error>> {
         match self {

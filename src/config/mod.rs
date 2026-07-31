@@ -34,6 +34,8 @@ pub use identity::Signing;
 pub use identity::SigningBackend;
 #[cfg(test)]
 pub use identity::SigningKey;
+#[cfg(test)]
+pub use identity::Tokens;
 pub use prompt::GitSummarizeStatusConfig;
 pub use prompt::GitSummarizeSubmoduleStatusConfig;
 pub use prompt::JujutsuBookmarkConfig;
