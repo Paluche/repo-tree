@@ -9,6 +9,7 @@ mod command;
 #[allow(clippy::module_inception)]
 mod config;
 mod host;
+mod identity;
 mod prompt;
 mod repository_location;
 mod tree_category;
@@ -22,6 +23,8 @@ use std::path::PathBuf;
 use clap_complete::engine::CompletionCandidate;
 pub use config::Config;
 pub use host::RemoteHost;
+pub use host::UnknownHost;
+pub use identity::Identity;
 pub use prompt::JujutsuBookmarkConfig;
 pub use prompt::JujutsuPromptConfig;
 pub use tree_category::TreeCategory;
