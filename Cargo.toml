@@ -15,27 +15,27 @@ path = "src/main.rs"
 
 [dependencies]
 chrono = "0.4.45"
-clap = { version = "4.6.0", features = ["derive"] }
-clap_complete = { version = "4.6.5", features = ["unstable-dynamic"] }
+clap = { version = "4.6.6", features = ["derive"] }
+clap_complete = { version = "4.6.9", features = ["unstable-dynamic"] }
 colored = "3.1.1"
 crossterm = "0.29.0"
-futures = "0.3.32"
+futures = "0.3.34"
 fuzzy-matcher = "0.3.7"
 git2 = { version = "0.21.0", default-features=false }
-globset = { version = "0.4.18", features = ["serde1"] }
+globset = { version = "0.4.20", features = ["serde1"] }
 indoc = "2.0.7"
-insta = "1.47.0"
+insta = "1.48.0"
 itertools = "0.15.0"
 jj-lib = "0.43.0"  # FIXME
 pathdiff = "0.2.3"
-regex = "1.12.3"
-serde = { version = "1.0.228", features = ["derive"] }
+regex = "1.13.1"
+serde = { version = "1.0.229", features = ["derive"] }
 strum = { version = "0.28.0", features = ["derive"] }
-thiserror = "2.0.18"
-tokio = { version = "1.52.3", features = ["full"] }
-toml = "1.1.0"
+thiserror = "2.0.20"
+tokio = { version = "1.53.1", features = ["full"] }
+toml = "1.1.4"
 url = "2.5.8"
-which = "8.0.2"
+which = "8.0.5"
 
 [dev-dependencies]
 assert_cmd = "2.2.2"
