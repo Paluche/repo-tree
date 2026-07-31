@@ -84,6 +84,8 @@ None
 - **identity**: Identities select the tokens to use per host, kept apart in a
   `secrets.toml` file. `rt credential` is a Git credential helper giving Git
   the token of the identity of the repository.
+- **identity**: `rt identity setup-git` configures Git to use `rt credential`
+  for the hosts with Git tokens.
 
 ### Fixed bugs
 

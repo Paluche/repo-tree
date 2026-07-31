@@ -280,3 +280,65 @@ fn configuration_change_sets_the_new_identities() {
         "new@company.test\n"
     );
 }
+
+#[test]
+fn setup_git_makes_git_ask_rt_for_the_tokens() {
+    let env = Env::new();
+    env.write_config(&format!(
+        "{IDENTITIES}tokens.'example.test' = {{ git = 'work' }}\n"
+    ));
+    let config = "[credential \"https://example.test\"]\n\thelper =\n\thelper \
+                  = !rt credential\n\tuseHttpPath = true\n";
+
+    let assert = env
+        .rt()
+        .args(["identity", "setup-git", "--dry-run"])
+        .assert()
+        .success();
+    assert_eq!(stdout(&assert), config);
+    let before = env.git(&env.root, &["config", "--global", "--list"]);
+    assert!(!before.contains("credential."), "{before}");
+
+    let assert = env.rt().args(["identity", "setup-git"]).assert().success();
+    assert_eq!(stdout(&assert), config);
+    assert_eq!(
+        env.git(
+            &env.root,
+            &[
+                "config",
+                "--global",
+                "--get-all",
+                "credential.https://example.test.helper"
+            ]
+        ),
+        "\n!rt credential\n"
+    );
+
+    // Running it again does not duplicate the helpers.
+    env.rt().args(["identity", "setup-git"]).assert().success();
+    assert_eq!(
+        env.git(
+            &env.root,
+            &[
+                "config",
+                "--global",
+                "--get-all",
+                "credential.https://example.test.helper"
+            ]
+        ),
+        "\n!rt credential\n"
+    );
+}
+
+#[test]
+fn setup_git_without_git_token_fails() {
+    let (env, _) = env_with_repo("company/project");
+
+    let assert = env.rt().args(["identity", "setup-git"]).assert().code(1);
+
+    assert!(
+        stderr(&assert).contains("No identity has a Git token"),
+        "{}",
+        stderr(&assert)
+    );
+}

@@ -267,6 +267,20 @@ impl Identities {
         self.0.is_empty()
     }
 
+    /// Get the hosts any identity has a Git token for.
+    pub fn git_token_hosts(&self) -> Vec<&str> {
+        let mut hosts: Vec<&str> = self
+            .0
+            .values()
+            .flat_map(|identity| &identity.tokens)
+            .filter(|(_, tokens)| tokens.git.is_some())
+            .map(|(host, _)| host.as_str())
+            .collect();
+        hosts.sort_unstable();
+        hosts.dedup();
+        hosts
+    }
+
     /// Check the identities configuration is consistent.
     pub fn check(&self) -> Result<(), ConfigError> {
         if self.is_empty() {
@@ -510,6 +524,30 @@ mod tests {
 
         assert!(identities.check().is_ok());
         assert!(identities.resolve(&repo_id).is_none());
+    }
+
+    #[test]
+    fn git_token_hosts() {
+        let identities: Identities = toml::from_str(
+            r#"
+            [default]
+            name = "Name"
+            email = "email"
+            tokens."github.com" = { git = "a" }
+            tokens."gitlab.com" = { api = "b" }
+
+            [work]
+            scopes = [{ host = "github.com", path = "company/" }]
+            tokens."github.com" = { git = "c" }
+            tokens."codeberg.org" = { git = "d" }
+            "#,
+        )
+        .expect("valid TOML");
+
+        assert_eq!(
+            identities.git_token_hosts(),
+            ["codeberg.org", "github.com"]
+        );
     }
 
     /// Check that a configuration is rejected with the expected message.

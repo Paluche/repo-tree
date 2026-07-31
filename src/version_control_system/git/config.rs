@@ -1,6 +1,7 @@
 //! Read and write the configuration of a Git repository.
 use std::error::Error;
 
+use super::command::GitCommand;
 use crate::config::ResolvedIdentity;
 use crate::version_control_system::identity::ConfigChange;
 use crate::version_control_system::identity::ConfigValue;
@@ -61,6 +62,42 @@ pub fn apply(
                 repo.path().display()
             )
         })?;
+    }
+
+    Ok(())
+}
+
+/// Command Git runs to ask rt for credentials.
+pub const CREDENTIAL_HELPER: &str = "!rt credential";
+
+/// Get the global Git configuration [`setup_credential_helper()`] writes for
+/// a host, as it appears in the configuration file.
+pub fn credential_helper_config(host: &str) -> String {
+    format!(
+        "[credential \"https://{host}\"]\n\thelper =\n\thelper = \
+         {CREDENTIAL_HELPER}\n\tuseHttpPath = true\n"
+    )
+}
+
+/// Make Git ask rt, and only rt, for the credentials of a host, giving it
+/// the path of the repository so that it knows which identity to use.
+pub fn setup_credential_helper(host: &str) -> Result<(), Box<dyn Error>> {
+    let section = format!("credential.https://{host}");
+
+    // An empty helper resets the list of helpers inherited from the less
+    // specific configurations, such as a `credential.helper`.
+    for (option, key, value) in [
+        ("--replace-all", "helper", ""),
+        ("--add", "helper", CREDENTIAL_HELPER),
+        ("--replace-all", "useHttpPath", "true"),
+    ] {
+        GitCommand::global()?
+            .arg("config")
+            .arg("--global")
+            .arg(option)
+            .arg(format!("{section}.{key}"))
+            .arg(value)
+            .status()?;
     }
 
     Ok(())

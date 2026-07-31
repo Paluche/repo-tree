@@ -528,7 +528,8 @@ token = 'github_pat_...'
 ```
 
 `rt credential` is a Git credential helper giving Git these tokens. To have Git
-use it, add to your global Git configuration, for each host with a Git token:
+use it, run `rt identity setup-git` (`--dry-run` to only print what it does).
+For each host with a Git token, it writes in your global Git configuration:
 
 ```gitconfig
 [credential "https://github.com"]
