@@ -48,7 +48,9 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
 }
 
 /// Representation of the URL of a remote.
-#[derive(Clone, Debug, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(
+    Clone, Debug, Hash, PartialOrd, Ord, PartialEq, Serialize, Deserialize,
+)]
 pub struct Remote {
     /// URL of the remote.
     pub url: String,
