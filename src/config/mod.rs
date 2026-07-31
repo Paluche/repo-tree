@@ -26,6 +26,7 @@ use std::path::PathBuf;
 pub use command::GitStatusCommandConfig;
 pub use config::Config;
 pub use host::RemoteHost;
+pub use identity::ResolvedIdentity;
 pub use prompt::GitSummarizeStatusConfig;
 pub use prompt::GitSummarizeSubmoduleStatusConfig;
 pub use prompt::JujutsuBookmarkConfig;

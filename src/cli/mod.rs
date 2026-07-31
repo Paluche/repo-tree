@@ -14,6 +14,7 @@ mod clone;
 mod complete_env;
 mod fetch;
 mod git;
+mod identity;
 mod insert;
 mod list;
 mod refresh_cache;
@@ -78,6 +79,7 @@ enum Action {
     Repo(repo::RepoArgs),
     Workspace(workspace::WorkspaceArgs),
     Git(git::GitArgs),
+    Identity(identity::IdentityArgs),
     Rm(rm::RmArgs),
     RefreshCache(refresh_cache::RefreshCacheArgs),
 }
@@ -173,6 +175,7 @@ pub async fn run() -> i32 {
         Action::Repo(args) => repo::run(&mut ui, &config, args).await,
         Action::Workspace(args) => workspace::run(&ui, &config, args).await,
         Action::Git(args) => git::run(&mut ui, &config, args).await,
+        Action::Identity(args) => identity::run(&mut ui, &config, args).await,
         Action::Clone(args) => clone::run(&mut ui, &config, args).await,
         Action::Rm(args) => rm::run(&ui, &config, args).await,
         Action::RefreshCache(args) => refresh_cache::run(&ui, &config, args),

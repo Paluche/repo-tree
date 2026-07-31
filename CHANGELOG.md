@@ -67,6 +67,8 @@ None
 - **identity**: Configure the identities to use in the repositories: a
   `default` identity and identities overriding part of it for a host, a
   directory of a host or a single repository.
+- **identity**: `rt identity show` displays the identity of a repository and
+  the identities it is made of.
 
 ### Fixed bugs
 

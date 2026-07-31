@@ -485,6 +485,9 @@ specific scope: host, then directory (longest last), then repository. Here a
 repository in `github.com/company/legacy` is authored by
 `Your Name <you@company.com>` and its commits are not signed.
 
+`rt identity show` displays the identity of the current repository, and the
+identities it is made of.
+
 ## Completion and utils
 
 We are using [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/index.html)
