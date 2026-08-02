@@ -3,6 +3,7 @@
 #![warn(clippy::missing_docs_in_private_items)]
 
 mod cli;
+mod colors;
 mod config;
 mod error;
 mod git;
