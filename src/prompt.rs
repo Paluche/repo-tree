@@ -2,8 +2,8 @@
 use colored::Colorize;
 use itertools::join;
 
+use crate::colors::IsEmpty;
 use crate::config::Config;
-use crate::config::IsEmpty;
 use crate::repository::Repository;
 
 /// Context to build the prompt line.
