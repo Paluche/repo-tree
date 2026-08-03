@@ -1,117 +1,26 @@
-//! Format of the configuration file.
-//! Should be located in `${XDG_CONFIG_HOME}/repo-tree/config.toml`.
-//! If `XDG_CONFIG_HOME` is not set, then we will use the value
-//! `${HOME}/.config` in place.
-//!
-//! See repository README for more information.
+//! The repo-tree configuration.
 
-use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
 use std::ffi::OsStr;
-use std::fmt::Display;
 use std::fs;
-use std::hash::Hash;
 use std::path::Path;
 use std::path::PathBuf;
 
 use clap::builder::StyledStr;
 use clap_complete::engine::CompletionCandidate;
-use globset::Glob;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::colors::Color;
-use crate::colors::ColoredList;
-use crate::colors::ColoredText;
-use crate::colors::IsEmpty;
-use crate::forge::Forge;
-use crate::version_control_system::VersionControlSystem;
-
-/// Common trait for Host configuration (RemoteHost, LocalHost and UnknownHost).
-pub trait HostInfo {
-    /// Get the directory name for that host in the repo tree.
-    fn dir_name(&self) -> String;
-
-    /// Get the forge the remote is using if one.
-    #[allow(dead_code)]
-    fn forge(&self) -> Forge {
-        Forge::Unknown
-    }
-}
-
-#[cfg(test)]
-trait HostInfoRaw {
-    /// Get the raw `name` configuration value.
-    fn raw_name(&self) -> Option<&String>;
-
-    /// Get the raw `dir_name` configuration value.
-    fn raw_dir_name(&self) -> &Option<String>;
-
-    /// Get the raw `repr` configuration value.
-    fn raw_repr(&self) -> &ColoredText;
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
-/// Representation of a repository remote host.
-pub struct RemoteHost {
-    /// Name of the remote host.
-    pub name: String,
-    /// Name of the directory for that host in the repo tree.
-    dir_name: Option<String>,
-    /// Short representation of the host.
-    #[serde(default)]
-    repr: ColoredText,
-    /// Associated forge.
-    #[serde(default = "default_forge")]
-    forge: Forge,
-}
-
-/// Obtain the default forge to add to the configuration if they are not already
-/// configured by the user.
-fn default_forge() -> Forge {
-    Forge::Unknown
-}
-
-impl HostInfo for RemoteHost {
-    /// Get the directory name for that host in the repo tree.
-    fn dir_name(&self) -> String {
-        self.dir_name.clone().unwrap_or(self.name.clone())
-    }
-
-    fn forge(&self) -> Forge {
-        self.forge.clone()
-    }
-}
-
-impl Display for RemoteHost {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.repr.is_empty() {
-            write!(f, "{}", self.name)
-        } else {
-            self.repr.fmt(f)
-        }
-    }
-}
-
-#[cfg(test)]
-impl HostInfoRaw for RemoteHost {
-    fn raw_name(&self) -> Option<&String> {
-        Some(&self.name)
-    }
-
-    fn raw_dir_name(&self) -> &Option<String> {
-        &self.dir_name
-    }
-
-    fn raw_repr(&self) -> &ColoredText {
-        &self.repr
-    }
-}
-
-/// A group of host as map indexed by the URL of the host.
-type RemoteHosts = BTreeMap<String, RemoteHost>;
-
+use super::command::CommandConfig;
+use super::config_dir;
+use super::host::LocalHost;
+use super::host::RemoteHost;
+use super::host::RemoteHosts;
+use super::host::UnknownHost;
+use super::host::default_remote_hosts;
+use super::prompt::PromptConfig;
+use super::repository_location::RepositoryLocation;
 /// Obtain a default value for the repo tree root.
 fn default_root() -> PathBuf {
     let repo_tree_dir = PathBuf::from(&env::var("REPO_TREE_DIR").expect(
@@ -125,633 +34,6 @@ fn default_root() -> PathBuf {
     );
 
     repo_tree_dir
-}
-
-/// Obtain the default host to add to the configuration if they are not already
-/// configured by the user.
-fn default_remote_hosts() -> RemoteHosts {
-    [
-        (
-            "github.com",
-            "github",
-            "",
-            colored::Color::White,
-            Forge::Unknown,
-        ),
-        (
-            "gitlab.com",
-            "gitlab",
-            "󰮠",
-            colored::Color::AnsiColor(166),
-            Forge::Unknown,
-        ),
-        (
-            "git.kernel.org",
-            "kernel",
-            "",
-            colored::Color::White,
-            Forge::Unknown,
-        ),
-        (
-            "git.kernel.org",
-            "kernel",
-            "",
-            colored::Color::White,
-            Forge::Unknown,
-        ),
-        (
-            "bitbucket.org",
-            "bitbucket",
-            "",
-            colored::Color::Blue,
-            Forge::Unknown,
-        ),
-        (
-            "codeberg.org",
-            "codeberg",
-            "",
-            colored::Color::Blue,
-            Forge::Unknown,
-        ),
-        (
-            "codeberg.org",
-            "codeberg",
-            "",
-            colored::Color::Blue,
-            Forge::Unknown,
-        ),
-    ]
-    .into_iter()
-    .map(|(url, name, repr_text, repr_color, forge)| {
-        (
-            url.to_string(),
-            RemoteHost {
-                name: name.to_string(),
-                dir_name: None,
-                repr: ColoredText::new(repr_text, repr_color),
-                forge,
-            },
-        )
-    })
-    .collect()
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
-/// Representation of a repository local host.
-pub struct LocalHost {
-    /// Name of the remote host.
-    pub name: String,
-    /// Name of the directory for that host in the repo tree.
-    dir_name: Option<String>,
-    /// Short representation of the host.
-    #[serde(default)]
-    repr: ColoredText,
-}
-
-impl HostInfo for LocalHost {
-    fn dir_name(&self) -> String {
-        self.dir_name.clone().unwrap_or(self.name.clone())
-    }
-}
-
-impl Display for LocalHost {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.repr.is_empty() {
-            write!(f, "{}", self.name)
-        } else {
-            self.repr.fmt(f)
-        }
-    }
-}
-
-#[cfg(test)]
-impl HostInfoRaw for LocalHost {
-    fn raw_name(&self) -> Option<&String> {
-        Some(&self.name)
-    }
-
-    fn raw_dir_name(&self) -> &Option<String> {
-        &self.dir_name
-    }
-
-    fn raw_repr(&self) -> &ColoredText {
-        &self.repr
-    }
-}
-
-impl Default for LocalHost {
-    fn default() -> Self {
-        Self {
-            name: "local".to_string(),
-            dir_name: None,
-            repr: ColoredText::new("󰋊", colored::Color::White),
-        }
-    }
-}
-
-/// Configuration when having to handle an unknown host (unknown from the
-/// configuration).
-#[derive(Deserialize, Serialize, Hash, PartialEq)]
-pub struct UnknownHost {
-    /// Short representation to use if the host is unknown.
-    repr: ColoredText,
-}
-
-impl HostInfo for UnknownHost {
-    fn dir_name(&self) -> String {
-        #[cfg(test)]
-        {
-            "".to_string()
-        }
-        #[cfg(not(test))]
-        {
-            panic!("Should not happen");
-        }
-    }
-
-    fn forge(&self) -> Forge {
-        Forge::Unknown
-    }
-}
-
-#[cfg(test)]
-impl HostInfoRaw for UnknownHost {
-    fn raw_name(&self) -> Option<&String> {
-        None
-    }
-
-    fn raw_repr(&self) -> &ColoredText {
-        &self.repr
-    }
-
-    fn raw_dir_name(&self) -> &Option<String> {
-        &None
-    }
-}
-
-impl Display for UnknownHost {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.repr.fmt(f)
-    }
-}
-
-impl Default for UnknownHost {
-    fn default() -> Self {
-        Self {
-            repr: ColoredText::new("", colored::Color::Red),
-        }
-    }
-}
-
-/// Configuration to representing a version control system.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct VcsPromptConfig {
-    /// Git Version Control System representation.
-    #[serde(default = "VcsPromptConfig::default_git")]
-    pub git: ColoredText,
-    /// Jujutsu Version Control System representation.
-    #[serde(default = "VcsPromptConfig::default_jj")]
-    pub jj: ColoredText,
-}
-
-#[allow(clippy::missing_docs_in_private_items)]
-impl VcsPromptConfig {
-    fn default_git() -> ColoredText {
-        ColoredText::new("󰊢", 166)
-    }
-
-    fn default_jj() -> ColoredText {
-        ColoredText::new("", colored::Color::Blue)
-    }
-}
-
-impl Default for VcsPromptConfig {
-    fn default() -> Self {
-        Self {
-            git: Self::default_git(),
-            jj: Self::default_jj(),
-        }
-    }
-}
-
-/// How to display the upstream information.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct GitUpstreamConfig {
-    /// Representation to display when the upstream associated with the current
-    /// branch is gone.
-    #[serde(default = "GitUpstreamConfig::default_gone")]
-    gone: String,
-    /// Representation to display when the current branch is up-to-date with
-    /// its associated upstream.
-    #[serde(default = "GitUpstreamConfig::default_up_to_date")]
-    up_to_date: String,
-    /// Representation to display when the current branch is ahead of its
-    /// associated upstream.
-    #[serde(default = "GitUpstreamConfig::default_ahead")]
-    ahead: String,
-    /// Representation to display when the current branch is behind of its
-    /// associated upstream.
-    #[serde(default = "GitUpstreamConfig::default_behind")]
-    behind: String,
-    /// Representation to display when the current branch diverged from its
-    /// associated upstream.
-    #[serde(default = "GitUpstreamConfig::default_diverged")]
-    diverged: String,
-    /// Representation to display when the current branch has no upstream
-    /// associated.
-    #[serde(default = "GitUpstreamConfig::default_local")]
-    local: String,
-    /// Representation to display when the current HEAD is detached from any
-    /// branches.
-    #[serde(default = "GitUpstreamConfig::default_detached")]
-    detached: String,
-    /// Color to apply on the upstream representation.
-    #[serde(default = "GitUpstreamConfig::default_color")]
-    color: Color,
-}
-
-#[allow(clippy::missing_docs_in_private_items)]
-impl GitUpstreamConfig {
-    fn default_gone() -> String {
-        "".to_string()
-    }
-
-    fn default_up_to_date() -> String {
-        "".to_string()
-    }
-
-    fn default_ahead() -> String {
-        "".to_string()
-    }
-
-    fn default_behind() -> String {
-        "".to_string()
-    }
-
-    fn default_diverged() -> String {
-        "".to_string()
-    }
-
-    fn default_local() -> String {
-        "".to_string()
-    }
-
-    fn default_detached() -> String {
-        "".to_string()
-    }
-
-    fn default_color() -> Color {
-        Color::from(208)
-    }
-
-    #[cfg(test)]
-    #[allow(clippy::too_many_arguments)]
-    fn new<S, C>(
-        gone: S,
-        up_to_date: S,
-        ahead: S,
-        behind: S,
-        diverged: S,
-        local: S,
-        detached: S,
-        color: C,
-    ) -> Self
-    where
-        S: ToString,
-        Color: From<C>,
-    {
-        Self {
-            gone: gone.to_string(),
-            up_to_date: up_to_date.to_string(),
-            ahead: ahead.to_string(),
-            behind: behind.to_string(),
-            diverged: diverged.to_string(),
-            local: local.to_string(),
-            detached: detached.to_string(),
-            color: Color::from(color),
-        }
-    }
-
-    pub fn gone(&self) -> String {
-        self.color.colorize(&self.gone)
-    }
-
-    pub fn up_to_date(&self) -> String {
-        self.color.colorize(&self.up_to_date)
-    }
-
-    pub fn ahead(&self) -> String {
-        self.color.colorize(&self.up_to_date)
-    }
-
-    pub fn behind(&self) -> String {
-        self.color.colorize(&self.behind)
-    }
-
-    pub fn diverged(&self) -> String {
-        self.color.colorize(&self.diverged)
-    }
-
-    pub fn detached(&self) -> String {
-        self.color.colorize(&self.detached)
-    }
-
-    pub fn local(&self) -> String {
-        self.color.colorize(&self.local)
-    }
-}
-
-impl Default for GitUpstreamConfig {
-    fn default() -> Self {
-        Self {
-            gone: Self::default_gone(),
-            up_to_date: Self::default_up_to_date(),
-            ahead: Self::default_ahead(),
-            behind: Self::default_behind(),
-            diverged: Self::default_diverged(),
-            local: Self::default_local(),
-            detached: Self::default_detached(),
-            color: Self::default_color(),
-        }
-    }
-}
-
-/// Configuration for the Git prompt.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct GitPromptConfig {
-    /// How to display the list of ongoing operations.
-    #[serde(default = "GitPromptConfig::default_ongoing_operations")]
-    pub ongoing_operations: ColoredList,
-    /// How to display the list of branches you are at.
-    #[serde(default = "GitPromptConfig::default_branches")]
-    pub branches: ColoredList,
-    /// How to display the list of tags you are at.
-    #[serde(default = "GitPromptConfig::default_tags")]
-    pub tags: ColoredList,
-    /// How to display the upstream information.
-    #[serde(default)]
-    pub upstream: GitUpstreamConfig,
-    /// How to display the fact that there are stashed changes.
-    #[serde(default = "GitPromptConfig::default_stash")]
-    pub stash: ColoredText,
-}
-
-#[allow(clippy::missing_docs_in_private_items)]
-impl GitPromptConfig {
-    fn default_ongoing_operations() -> ColoredList {
-        ColoredList::new("⛏", "🞍", colored::Color::Red)
-    }
-
-    fn default_branches() -> ColoredList {
-        ColoredList::new("󰫍", "🞍", colored::Color::Blue)
-    }
-
-    fn default_tags() -> ColoredList {
-        ColoredList::new("", "🞍", colored::Color::Yellow)
-    }
-
-    fn default_stash() -> ColoredText {
-        ColoredText::new("", colored::Color::White)
-    }
-}
-
-impl Default for GitPromptConfig {
-    fn default() -> Self {
-        Self {
-            ongoing_operations: Self::default_ongoing_operations(),
-            branches: Self::default_branches(),
-            tags: Self::default_tags(),
-            upstream: GitUpstreamConfig::default(),
-            stash: Self::default_stash(),
-        }
-    }
-}
-
-/// Configuration for the Jujutsu bookmarks prompt.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct JujutsuBookmarkConfig {
-    /// How to display list of bookmarks set on the parent commit of the
-    /// current one we are editing.
-    #[serde(default = "JujutsuBookmarkConfig::default_parent")]
-    pub parent: ColoredList,
-    /// How to display list of bookmarks set on the current commit we are
-    /// editing.
-    #[serde(default = "JujutsuBookmarkConfig::default_current")]
-    pub current: ColoredList,
-    /// How to display list of bookmarks set on any of the descendants of the
-    /// current commit we are editing.
-    #[serde(default = "JujutsuBookmarkConfig::default_descendants")]
-    pub descendants: ColoredList,
-    /// How to display that there is no bookmarks to show (none on parent,
-    /// current or descendants commits).
-    #[serde(default = "JujutsuBookmarkConfig::default_none")]
-    pub none: ColoredText,
-}
-
-#[allow(clippy::missing_docs_in_private_items)]
-impl JujutsuBookmarkConfig {
-    fn default_parent() -> ColoredList {
-        ColoredList::new("󰫍", "🞍", colored::Color::Yellow)
-    }
-
-    fn default_current() -> ColoredList {
-        ColoredList::new("󰫍", "🞍", colored::Color::BrightBlue)
-    }
-
-    fn default_descendants() -> ColoredList {
-        ColoredList::new("󰫎", "🞍", colored::Color::BrightBlue)
-    }
-
-    fn default_none() -> ColoredText {
-        ColoredText::new("󰫌", colored::Color::BrightBlack)
-    }
-}
-
-impl Default for JujutsuBookmarkConfig {
-    fn default() -> Self {
-        Self {
-            parent: Self::default_parent(),
-            current: Self::default_current(),
-            descendants: Self::default_descendants(),
-            none: Self::default_none(),
-        }
-    }
-}
-
-/// Configuration for the Jujutsu prompt.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct JujutsuPromptConfig {
-    /// Configuration for the Jujutsu bookmarks prompt.
-    #[serde(default)]
-    pub bookmark: JujutsuBookmarkConfig,
-    /// How to display the list of tags you are at.
-    #[serde(default = "JujutsuPromptConfig::default_tags")]
-    pub tags: ColoredList,
-    /// Representation to display when the working copy (current commit) has
-    /// conflicts.
-    #[serde(default = "JujutsuPromptConfig::default_wc_conflict")]
-    pub wc_conflict: ColoredText,
-    /// Representation to display when there are commits with conflicts in the
-    /// history of the repository.
-    #[serde(default = "JujutsuPromptConfig::default_conflict")]
-    pub conflict: ColoredText,
-}
-
-#[allow(clippy::missing_docs_in_private_items)]
-impl JujutsuPromptConfig {
-    fn default_wc_conflict() -> ColoredText {
-        ColoredText::new("󰝧", colored::Color::BrightRed)
-    }
-
-    fn default_conflict() -> ColoredText {
-        ColoredText::new("󰝧", colored::Color::Red)
-    }
-
-    fn default_tags() -> ColoredList {
-        ColoredList::new("", "🞍", colored::Color::Yellow)
-    }
-}
-
-impl Default for JujutsuPromptConfig {
-    fn default() -> Self {
-        Self {
-            bookmark: JujutsuBookmarkConfig::default(),
-            tags: Self::default_tags(),
-            conflict: Self::default_conflict(),
-            wc_conflict: Self::default_wc_conflict(),
-        }
-    }
-}
-
-/// Configuration to customize the prompt.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct PromptConfig {
-    /// Prefix to put in front of the prompt fields.
-    #[serde(default = "PromptConfig::default_prefix")]
-    pub prefix: ColoredText,
-    /// String to use to separate the different fields of the prompt.
-    #[serde(default = "PromptConfig::default_separator")]
-    pub separator: ColoredText,
-    /// Configuration to representing a version control system.
-    #[serde(default)]
-    pub vcs: VcsPromptConfig,
-    /// Configuration relative to the Git prompt.
-    #[serde(default)]
-    pub git: GitPromptConfig,
-    /// Configuration relative to the Jujutsu prompt.
-    #[serde(default)]
-    pub jj: JujutsuPromptConfig,
-}
-
-impl PromptConfig {
-    /// Default value for `prefix` configuration.
-    fn default_prefix() -> ColoredText {
-        ColoredText::new("┣━┫", colored::Color::Cyan)
-    }
-
-    /// Default value for `separator` configuration.
-    fn default_separator() -> ColoredText {
-        ColoredText::new("|", colored::Color::Cyan)
-    }
-}
-
-impl Default for PromptConfig {
-    fn default() -> Self {
-        Self {
-            prefix: Self::default_prefix(),
-            separator: Self::default_separator(),
-            vcs: VcsPromptConfig::default(),
-            git: GitPromptConfig::default(),
-            jj: JujutsuPromptConfig::default(),
-        }
-    }
-}
-
-/// Configuration regarding allowed repository locations.
-#[derive(Serialize, Deserialize, Hash, PartialEq)]
-pub struct RepositoryLocation {
-    /// List of glob patterns, any repositories path matching one of the
-    /// defined pattern will be allowed to live outside the repo tree. No
-    /// warning message will be printed when the prompt run.
-    #[serde(default = "RepositoryLocation::default_ignore")]
-    pub ignore: Vec<Glob>,
-    /// List of glob pattern to extend the ignore configuration value.
-    pub extend_ignore: Vec<Glob>,
-}
-
-impl RepositoryLocation {
-    /// Default value for the ignore value of the RepositoryLocation struct.
-    fn default_ignore() -> Vec<Glob> {
-        ["/tmp/**", "**/.*/**"]
-            .into_iter()
-            .map(|v| {
-                Glob::new(v)
-                    .expect("Hardcoded values should be valid glob patterns.")
-            })
-            .collect()
-    }
-
-    /// Find out if a repository located at the specified path should be
-    /// ignored as being a badly located repository due to not being within the
-    /// repo tree.
-    fn should_be_ignored(&self, path: &Path) -> bool {
-        path.to_str()
-            .map(|path| {
-                self.ignore
-                    .iter()
-                    .chain(self.extend_ignore.iter())
-                    .any(|glob| glob.compile_matcher().is_match(path))
-            })
-            .unwrap_or(false)
-    }
-}
-
-impl Default for RepositoryLocation {
-    fn default() -> Self {
-        Self {
-            ignore: Self::default_ignore(),
-            extend_ignore: Vec::new(),
-        }
-    }
-}
-
-/// Configuration for the `rt clone` command.
-#[derive(Serialize, Deserialize, Default)]
-pub struct CloneCommandConfig {
-    /// Default version control system to use to clone a repository in the repo
-    /// tree.
-    #[serde(default)]
-    pub default_vcs: VersionControlSystem,
-}
-
-/// Configuration for the `rt resolve` command.
-#[derive(Serialize, Deserialize, Default)]
-pub struct ResolveCommandConfig {
-    /// Resolution aliases.
-    #[serde(default)]
-    pub aliases: BTreeMap<String, String>,
-}
-
-/// Configuration for the `rt todo` command.
-#[derive(Serialize, Deserialize, Default)]
-pub struct TodoCommandConfig {
-    /// List of ID of repositories to be ignored by the command.
-    #[serde(default)]
-    pub ignore: Vec<String>,
-}
-
-/// Configuration for `rt` commands.
-#[derive(Serialize, Deserialize, Default)]
-pub struct CommandConfig {
-    /// Configuration for `rt clone`.
-    #[serde(default)]
-    pub clone: CloneCommandConfig,
-    /// Configuration for `rt resolve`.
-    #[serde(default)]
-    pub resolve: ResolveCommandConfig,
-    /// Configuration for `rt todo`.
-    #[serde(default)]
-    pub todo: TodoCommandConfig,
 }
 
 /// Configuration of the rt executable.
@@ -785,6 +67,36 @@ pub struct Config {
 }
 
 impl Config {
+    /// Internal loading of the configuration, from a configuration content.
+    fn load_internal(content: &str) -> Result<Self, Box<dyn Error>> {
+        let mut ret: Config = toml::from_str(content)?;
+
+        assert!(
+            ret.root.is_absolute(),
+            "\"root\" value in configuration file must be an absolute path"
+        );
+
+        for (url, host) in default_remote_hosts() {
+            if ret.remote_hosts.contains_key(&url) {
+                continue;
+            }
+            ret.remote_hosts.entry(url).or_insert(host);
+        }
+
+        Ok(ret)
+    }
+
+    /// Load the configuration.
+    pub fn load() -> Result<Self, Box<dyn Error>> {
+        let config_path = config_dir()?.join("config.toml");
+
+        Ok(if config_path.is_file() {
+            Self::load_internal(&fs::read_to_string(&config_path)?)?
+        } else {
+            Self::load_internal("")?
+        })
+    }
+
     /// Obtain completion candidates for a CLI host argument.
     pub fn host_completer(&self, current: &OsStr) -> Vec<CompletionCandidate> {
         let mut ret: Vec<CompletionCandidate> = self
@@ -819,55 +131,27 @@ impl Config {
     }
 }
 
-impl Config {
-    /// Internal loading of the configuration, from a configuration content.
-    fn load_internal(content: &str) -> Result<Self, Box<dyn Error>> {
-        let mut ret: Config = toml::from_str(content)?;
-
-        assert!(
-            ret.root.is_absolute(),
-            "\"root\" value in configuration file must be an absolute path"
-        );
-
-        for (url, host) in default_remote_hosts() {
-            if ret.remote_hosts.contains_key(&url) {
-                continue;
-            }
-            ret.remote_hosts.entry(url).or_insert(host);
-        }
-
-        Ok(ret)
-    }
-
-    /// Load the configuration.
-    pub fn load() -> Result<Self, Box<dyn Error>> {
-        let config_path = std::env::var("XDG_CONFIG_HOME")
-            .map_or(
-                std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
-                |x| Ok(PathBuf::from(x)),
-            )?
-            .join("repo-tree")
-            .join("config.toml");
-
-        Ok(if config_path.is_file() {
-            Self::load_internal(&fs::read_to_string(&config_path)?)?
-        } else {
-            Self::load_internal("")?
-        })
-    }
-}
-
-/// Obtain the auto-completion candidates for a host argument.
-pub fn list_host_completer(current: &OsStr) -> Vec<CompletionCandidate> {
-    Config::load().map_or(Vec::new(), |c| c.host_completer(current))
-}
-
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+    use std::fmt::Display;
+
     use colored::Colorize;
+    use globset::Glob;
     use indoc::indoc;
 
     use super::*;
+    use crate::colors::ColoredList;
+    use crate::colors::ColoredText;
+    use crate::config::host::HostInfo;
+    use crate::config::host::HostInfoRaw;
+    use crate::config::prompt::GitPromptConfig;
+    use crate::config::prompt::GitUpstreamConfig;
+    use crate::config::prompt::JujutsuBookmarkConfig;
+    use crate::config::prompt::JujutsuPromptConfig;
+    use crate::config::prompt::VcsPromptConfig;
+    use crate::forge::Forge;
+    use crate::version_control_system::VersionControlSystem;
 
     /// Check that the remote hosts has the expected keys.
     fn check_remote_hosts(config: &Config, expected_keys: &[&str]) {
