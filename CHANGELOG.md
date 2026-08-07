@@ -69,6 +69,9 @@ None
   directory of a host or a single repository.
 - **identity**: `rt identity show` displays the identity of a repository and
   the identities it is made of.
+- **identity**: `rt identity apply` writes the identity in the Jujutsu and Git
+  configuration of a repository, or of all of them with `--all`, and
+  `rt identity show` lists the differences.
 
 ### Fixed bugs
 

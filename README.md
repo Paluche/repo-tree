@@ -485,8 +485,14 @@ specific scope: host, then directory (longest last), then repository. Here a
 repository in `github.com/company/legacy` is authored by
 `Your Name <you@company.com>` and its commits are not signed.
 
-`rt identity show` displays the identity of the current repository, and the
-identities it is made of.
+`rt identity show` displays the identity of the current repository, the
+identities it is made of and how the repository configuration differs from it.
+`rt identity apply` writes the identity in the configuration of the repository
+(`--all` for all the repositories of the repo tree): `user.name`, `user.email`
+and the signing configuration of Jujutsu, and of Git for Git and colocated
+repositories. Only the configuration of the repository itself is written, so
+your user configuration stays the fallback for the repositories outside the repo
+tree.
 
 ## Completion and utils
 

@@ -7,11 +7,12 @@ use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::config::ResolvedIdentity;
 use crate::repo_id::ExpectedTreeStrategy;
+use crate::repository::IdentityStatus;
 use crate::repository::Repository;
 use crate::ui::Ui;
 
-/// Display the identity to use in a repository, and the identities it is
-/// made of.
+/// Display the identity to use in a repository, the identities it is made
+/// of and how the repository configuration differs from it.
 #[derive(Args)]
 pub struct ShowArgs {
     /// Path to within the repository to work with.
@@ -57,11 +58,30 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: ShowArgs) -> i32 {
         }
     };
 
-    let Some(identity) = config.identities.resolve(&repository.id) else {
-        ui.error("No identity configured");
-        return 1;
-    };
+    let IdentityStatus { identity, changes } =
+        match repository.identity_changes(config) {
+            Ok(Some(value)) => value,
+            Ok(None) => {
+                ui.error("No identity configured");
+                return 1;
+            }
+            Err(err) => {
+                ui.error(err);
+                return 1;
+            }
+        };
 
     print_identity(&identity);
+
+    if !changes.is_empty() {
+        println!();
+        println!(
+            "The repository configuration differs, see rt identity apply:"
+        );
+        for change in changes {
+            println!("  {change}");
+        }
+    }
+
     0
 }
