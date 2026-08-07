@@ -1,4 +1,5 @@
 //! Module for retrieving JuJutsu information.
+mod config;
 mod git;
 mod prompt;
 mod repo_state;
