@@ -3,6 +3,7 @@
 use std::error::Error;
 use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::path::Path;
 use std::process::Command;
 use std::process::Output;
 
@@ -127,6 +128,13 @@ impl JujutsuCommand {
             .filter(|l| !l.is_empty())
             .map(|l| l.to_string())
             .collect())
+    }
+
+    /// Get the output of the command. Managing the case where the workspace is
+    /// now stalled and needs to be updated.
+    fn output(&mut self, ui: &Ui) -> Result<String, Box<dyn Error>> {
+        // XXX rework this when String::trim_suffix() is stable.
+        Ok(self.output_lines(ui)?.join("\n"))
     }
 
     /// Execute the command and checks it succeeds. Managing the case where
