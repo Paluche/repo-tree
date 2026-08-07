@@ -61,6 +61,7 @@ impl<'repo> Prompt<'repo> {
 pub struct PromptDisplay<'prompt, 'ui, 'ui_config, 'repo, 'config> {
     /// Prompt we are displaying.
     prompt: &'prompt Prompt<'repo>,
+    /// Ui instance to use to print on stderr.
     ui: &'ui Ui<'ui_config>,
     /// Configuration customizing the prompt.
     config: &'config Config,
