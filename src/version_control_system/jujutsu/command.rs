@@ -3,6 +3,7 @@
 use std::error::Error;
 use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::path::Path;
 use std::process::Command;
 
 use which::which;
@@ -26,13 +27,15 @@ impl JujutsuCommand {
         })
     }
 
+    ///
     pub fn repo<S: AsRef<OsStr>>(repository: S) -> Result<Self, which::Error> {
         Self::new_command().map(|mut command| {
-            command.arg("--repository").arg(repository);
-            Self {
+            let mut ret = Self {
                 command,
                 repository: Some(repository.as_ref().to_os_string()),
-            }
+            };
+            ret.repository(repository);
+            ret
         })
     }
 
@@ -46,7 +49,17 @@ impl JujutsuCommand {
         self
     }
 
-    /// Ignore the
+    /// See [std::process::Command::current_dir()]
+    pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Self {
+        self.command.current_dir(dir);
+        self
+    }
+
+    /// Set the HOME as current directory.
+    pub fn home_as_current_dir(&mut self) -> &mut Self {
+        self.current_dir(std::env::home_dir().unwrap())
+    }
+
     pub fn ignore_working_copy(&mut self) -> &mut Self {
         self.arg("--ignore-working-copy")
     }
@@ -100,6 +113,11 @@ impl JujutsuCommand {
 
     pub fn output_lines(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
         self._output_lines(true)
+    }
+
+    fn output(&mut self) -> Result<String, Box<dyn Error>> {
+        // XXX rework this until String::trim_suffix() is stable.
+        Ok(self.output_lines()?.join("\n"))
     }
 
     pub fn status(&mut self) -> Result<(), Box<dyn Error>> {
