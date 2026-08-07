@@ -281,7 +281,7 @@ impl<'repo_tree> Directory<'repo_tree> {
 
 /// Representation of the repo tree root directory.
 struct RootDirectory<'ui, 'ui_config, 'config, 'repo_tree> {
-    /// TODO
+    /// Ui instance to use to print on stderr.
     ui: &'ui Ui<'ui_config>,
     /// Configuration of the rt tool.
     config: &'config Config,
