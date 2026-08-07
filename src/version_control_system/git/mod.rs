@@ -55,6 +55,7 @@ impl<'repo_tree> GitVcs<'repo_tree> {
         Self { workspace }
     }
 
+    /// Get the git2::Repository instance associated with the repository.
     fn get_repository(&self) -> Result<git2::Repository, Box<dyn Error>> {
         Ok(git2::Repository::discover(self.workspace.path())?)
     }
