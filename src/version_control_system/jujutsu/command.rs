@@ -95,7 +95,6 @@ impl JujutsuCommand {
 
     /// Get the output of the command. Managing the case where the workspace is
     /// now stalled and needs to be updated.
-    #[expect(dead_code)]
     pub fn output(&mut self) -> Result<String, Box<dyn Error>> {
         // XXX rework this when String::trim_suffix() is stable.
         Ok(self.output_lines()?.join("\n"))

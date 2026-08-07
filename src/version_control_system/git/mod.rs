@@ -1,5 +1,6 @@
 //! Functions related to interact with a Git VCS.
 mod command;
+pub mod config;
 pub mod prompt;
 mod status;
 pub mod submodules;
@@ -16,7 +17,9 @@ pub use submodules::SubmoduleInfo;
 use super::VcsRemote;
 use super::VcsRepository;
 use super::VcsWorkspace;
+use super::identity::ConfigChange;
 use crate::config::Config;
+use crate::config::ResolvedIdentity;
 use crate::error::NotImplementedError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
@@ -167,5 +170,19 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
     ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
         // Workspaces are not supported, there is nothing to forget.
         Ok(Vec::new())
+    }
+
+    fn identity_changes(
+        &self,
+        identity: &ResolvedIdentity,
+    ) -> Result<Vec<ConfigChange>, Box<dyn Error>> {
+        config::identity_changes(&self.get_repository()?, identity)
+    }
+
+    fn apply_config(
+        &self,
+        changes: &[ConfigChange],
+    ) -> Result<(), Box<dyn Error>> {
+        config::apply(&self.get_repository()?, changes)
     }
 }

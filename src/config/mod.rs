@@ -26,7 +26,14 @@ use std::path::PathBuf;
 pub use command::GitStatusCommandConfig;
 pub use config::Config;
 pub use host::RemoteHost;
+#[cfg(test)]
+pub use identity::NoSigning;
 pub use identity::ResolvedIdentity;
+pub use identity::SignOn;
+pub use identity::Signing;
+pub use identity::SigningBackend;
+#[cfg(test)]
+pub use identity::SigningKey;
 pub use prompt::GitSummarizeStatusConfig;
 pub use prompt::GitSummarizeSubmoduleStatusConfig;
 pub use prompt::JujutsuBookmarkConfig;
