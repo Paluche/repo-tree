@@ -10,16 +10,14 @@ use serde::Serialize;
 
 use crate::config::Config;
 use crate::error::NoRepositoryError;
-use crate::error::NotImplementedError;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_id::RepoId;
-use crate::repo_state::RepoState;
 use crate::tree::TreeSpace;
 use crate::utils::get_last_modified;
+use crate::version_control_system::VcsRepository;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::git::SubmoduleInfo;
 use crate::version_control_system::git::{self};
-use crate::version_control_system::jujutsu;
 
 /// Metadata about the file containing the repository remote(s).
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
@@ -124,13 +122,8 @@ impl Repository {
         root: &Path,
     ) -> Result<Self, Box<dyn Error>> {
         if let Some((vcs, is_submodule)) = VersionControlSystem::try_new(root) {
-            let (remote_config, remote_url) = match vcs {
-                VersionControlSystem::Git
-                | VersionControlSystem::JujutsuGit => {
-                    git::get_remote_url(root)?
-                }
-                VersionControlSystem::Jujutsu => jujutsu::get_remote_url(root)?,
-            };
+            let (remote_config, remote_url) =
+                vcs.get_repo(root).get_remote_url()?;
             let id = RepoId::from_repo(&root, remote_url.as_ref())?;
 
             let tree = TreeSpace::from_path(config, root);
@@ -179,16 +172,9 @@ impl Repository {
         })
     }
 
-    /// Get the repository state.
-    pub async fn state(&self) -> Result<RepoState, Box<dyn Error>> {
-        Ok(match self.vcs {
-            VersionControlSystem::Jujutsu
-            | VersionControlSystem::JujutsuGit => {
-                jujutsu::get_repo_state(&self.root).await?
-            }
-            vcs => Err(NotImplementedError(format!(
-                "Repository state for {vcs} Version Control"
-            )))?,
-        })
+    /// Get the struct to use to interact with the version control system of the
+    /// repository.
+    pub fn get_vcs_repo(&self) -> Box<dyn VcsRepository> {
+        self.vcs.get_repo(&self.root)
     }
 }

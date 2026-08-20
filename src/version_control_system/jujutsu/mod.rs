@@ -1,9 +1,9 @@
 //! Module for retrieving JuJutsu information.
-pub mod git;
+mod git;
 mod prompt;
 mod repo_state;
+use async_trait::async_trait;
 mod revsets;
-
 use std::error::Error;
 use std::fs::read_to_string;
 use std::io;
@@ -11,7 +11,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-pub use git::get_remote_url;
+pub use git::init_colocate;
 use jj_lib::config::StackedConfig;
 use jj_lib::local_working_copy::LocalWorkingCopy;
 use jj_lib::ref_name::WorkspaceNameBuf;
@@ -20,8 +20,11 @@ use jj_lib::repo::RepoLoader;
 use jj_lib::repo::StoreFactories;
 use jj_lib::settings::UserSettings;
 use jj_lib::working_copy::WorkingCopy;
-pub use prompt::prompt;
-pub use repo_state::get_repo_state;
+
+use super::VcsRepository;
+use crate::config::Config;
+use crate::prompt::Prompt;
+use crate::repo_state::RepoState;
 
 /// Get the path to the jj directory from the repository root path.
 pub fn get_jj_dir(repo_path: &Path) -> PathBuf {
@@ -72,4 +75,52 @@ pub async fn load(
         loader.load_at_head().await?,
         local_working_copy.workspace_name().to_owned(),
     ))
+}
+
+/// Interact with a JuJutsu repository.
+pub struct JujutsuVcs {
+    /// Path to the root of the JuJutsu repository.
+    repo_path: PathBuf,
+    /// If the Jujutsu repository is colocated with a Git repository.
+    colocated: bool,
+}
+
+impl JujutsuVcs {
+    /// Create a new JujutsuVcs structure.
+    pub fn new(repo_path: &Path, colocated: bool) -> Self {
+        Self {
+            repo_path: repo_path.to_path_buf(),
+            colocated,
+        }
+    }
+}
+
+#[async_trait(?Send)]
+impl VcsRepository for JujutsuVcs {
+    fn get_remote_url(
+        &self,
+    ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {
+        git::get_remote_url(&self.repo_path)
+    }
+
+    fn clone(&self, remote_url: &str) -> i32 {
+        git::clone(remote_url, &self.repo_path, self.colocated)
+    }
+
+    fn fetch(&self, quiet: bool) -> i32 {
+        git::fetch(&self.repo_path, quiet)
+    }
+
+    async fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32 {
+        let ret =
+            super::git::prompt::prompt(config, prompt, &self.repo_path, true);
+        if ret != 0 {
+            return ret;
+        }
+        prompt::prompt(config, prompt, &self.repo_path).await
+    }
+
+    async fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
+        repo_state::get_repo_state(&self.repo_path).await
+    }
 }

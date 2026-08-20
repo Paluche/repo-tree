@@ -11,9 +11,6 @@ use crate::prompt::Prompt;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
-use crate::version_control_system::VersionControlSystem;
-use crate::version_control_system::git;
-use crate::version_control_system::jujutsu;
 
 /// Generate the prompt for your shell.
 #[derive(Args)]
@@ -53,23 +50,7 @@ pub async fn run(config: &Config, args: PromptArgs) -> i32 {
     };
 
     let mut prompt = Prompt::new(&repository);
-
-    let ret = match repository.vcs {
-        VersionControlSystem::Git => {
-            git::prompt(config, &mut prompt, &repository.root, false)
-        }
-        VersionControlSystem::JujutsuGit => {
-            let ret = git::prompt(config, &mut prompt, &repository.root, true);
-            if ret != 0 {
-                return ret;
-            }
-            jujutsu::prompt(config, &mut prompt, &repository.root).await
-        }
-        VersionControlSystem::Jujutsu => {
-            jujutsu::prompt(config, &mut prompt, &repository.root).await
-        }
-    };
-
+    let ret = repository.get_vcs_repo().prompt(config, &mut prompt).await;
     if ret == 0 {
         println!("{}", prompt.display(config));
     }

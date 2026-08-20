@@ -9,7 +9,6 @@ use crate::config::Config;
 use crate::repo_id::RepoId;
 use crate::tree::RepoTree;
 use crate::version_control_system::VersionControlSystem;
-use crate::version_control_system::git;
 use crate::version_control_system::jujutsu;
 
 /// Clone a repository within the repo tree.
@@ -49,7 +48,7 @@ async fn do_clone(
                 && matches!(vcs, VersionControlSystem::JujutsuGit)
             {
                 eprintln!("Repository already cloned, initializing JJ into");
-                let res = jujutsu::git::init_colocate(&location);
+                let res = jujutsu::init_colocate(&location);
                 if res != 0 {
                     return Ok(res);
                 }
@@ -71,16 +70,7 @@ async fn do_clone(
             .expect("Remote URL provided by the CLI")
             .url;
 
-        let res = match vcs {
-            VersionControlSystem::Git => git::clone(remote_url, &location),
-            VersionControlSystem::JujutsuGit => {
-                println!("{remote_url}");
-                jujutsu::git::clone(remote_url, &location, true)
-            }
-            VersionControlSystem::Jujutsu => {
-                jujutsu::git::clone(remote_url, &location, false)
-            }
-        };
+        let res = vcs.get_repo(&location).clone(remote_url);
 
         if res != 0 {
             return Ok(res);
