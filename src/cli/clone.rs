@@ -2,11 +2,11 @@
 use clap::Args;
 
 use crate::config::Config;
-use crate::git;
-use crate::jujutsu;
 use crate::repo_id::RepoId;
 use crate::repository::Repositories;
 use crate::version_control_system::VersionControlSystem;
+use crate::version_control_system::git;
+use crate::version_control_system::jujutsu;
 
 /// Clone a repository within the repo tree.
 #[derive(Args)]

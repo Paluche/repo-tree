@@ -1,4 +1,6 @@
 //! Enumeration listing the different type of Version Control System we support.
+pub mod git;
+pub mod jujutsu;
 use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;

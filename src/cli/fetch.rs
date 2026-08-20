@@ -5,11 +5,11 @@ use std::error::Error;
 use clap::Args;
 
 use crate::config::Config;
-use crate::git;
-use crate::jujutsu;
 use crate::repository::Repositories;
 use crate::repository::Repository;
 use crate::version_control_system::VersionControlSystem;
+use crate::version_control_system::git;
+use crate::version_control_system::jujutsu;
 
 /// Fetch all the repositories within the repo_tree.
 #[derive(Args)]

@@ -9,9 +9,9 @@ use std::process::Command;
 
 use which::which;
 
+use super::super::git;
 use super::get_jj_dir;
 use super::get_repo_dir;
-use crate::git;
 
 /// Get the path to the git backend repository.
 pub fn get_git_backend_repo(

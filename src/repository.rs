@@ -19,13 +19,13 @@ use crate::error::NoCacheError;
 use crate::error::NoRepositoryError;
 use crate::error::NotImplementedError;
 use crate::error::UnknownRemoteHostError;
-use crate::git::SubmoduleInfo;
-use crate::git::{self};
-use crate::jujutsu;
 use crate::repo_id::RepoId;
 use crate::repo_state::RepoState;
 use crate::utils::get_last_modified;
 use crate::version_control_system::VersionControlSystem;
+use crate::version_control_system::git::SubmoduleInfo;
+use crate::version_control_system::git::{self};
+use crate::version_control_system::jujutsu;
 
 /// Metadata about the file containing the repository remote(s).
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
