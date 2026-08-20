@@ -7,9 +7,6 @@ use clap::Args;
 use crate::config::Config;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
-use crate::version_control_system::VersionControlSystem;
-use crate::version_control_system::git;
-use crate::version_control_system::jujutsu;
 
 /// Fetch all the repositories within the repo_tree.
 #[derive(Args)]
@@ -51,28 +48,16 @@ pub fn fetch_repo(
         total += _total;
     }
 
-    ok += if match repository.vcs {
-        VersionControlSystem::Jujutsu | VersionControlSystem::JujutsuGit => {
-            if !quiet {
-                println!(
-                    "Fetching jujutsu {}repository {}",
-                    if is_submodule { "submodule " } else { "" },
-                    repository.id.display(config)
-                );
-            }
-            jujutsu::git::fetch(&repository.root, quiet)
-        }
-        VersionControlSystem::Git => {
-            if !quiet {
-                println!(
-                    "Fetching git repository {}",
-                    repository.id.display(config)
-                );
-            }
-            git::fetch(&repository.root, quiet)
-        }
-    } == 0
-    {
+    if !quiet {
+        println!(
+            "Fetching {} {}repository {}",
+            repository.vcs,
+            if is_submodule { "submodule " } else { "" },
+            repository.id.display(config)
+        );
+    }
+
+    ok += if repository.get_vcs_repo().fetch(quiet) == 0 {
         1
     } else {
         0

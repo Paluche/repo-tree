@@ -85,18 +85,20 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
 
         eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
 
-        if let Some(repo_state) = match &repository.state().await {
-            Ok(v) => Some(v),
-            Err(err) => {
-                if err.downcast_ref::<NotImplementedError>().is_some() {
-                    None
-                } else {
-                    eprintln!("{err}");
+        if let Some(repo_state) =
+            match &repository.get_vcs_repo().get_repo_state().await {
+                Ok(v) => Some(v),
+                Err(err) => {
+                    if err.downcast_ref::<NotImplementedError>().is_some() {
+                        None
+                    } else {
+                        eprintln!("{err}");
 
-                    return 1;
+                        return 1;
+                    }
                 }
             }
-        } {
+        {
             if repo_state.is_ok() {
                 ok += 1;
                 if args.verbose {

@@ -1,6 +1,8 @@
 //! Enumeration listing the different type of Version Control System we support.
+use async_trait::async_trait;
 pub mod git;
 pub mod jujutsu;
+use std::error::Error;
 use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
@@ -10,6 +12,8 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::prompt::Prompt;
+use crate::repo_state::RepoState;
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Default, ValueEnum, Serialize, Deserialize,
@@ -19,8 +23,10 @@ use crate::config::Config;
 pub enum VersionControlSystem {
     /// Git.
     Git,
+
     /// Jujutsu (jj).
     Jujutsu,
+
     /// Jujutsu collocated with Git.
     #[default]
     JujutsuGit,
@@ -92,6 +98,20 @@ impl VersionControlSystem {
     ) -> ShortDisplay<'vcs, 'config> {
         ShortDisplay { vcs: self, config }
     }
+
+    /// Get the struct to use to interact with a repository using this version
+    /// control system.
+    pub fn get_repo(&self, repo_path: &Path) -> Box<dyn VcsRepository> {
+        match self {
+            Self::Git => Box::new(git::GitVcs::new(repo_path)),
+            Self::Jujutsu => {
+                Box::new(jujutsu::JujutsuVcs::new(repo_path, false))
+            }
+            Self::JujutsuGit => {
+                Box::new(jujutsu::JujutsuVcs::new(repo_path, true))
+            }
+        }
+    }
 }
 
 impl Display for VersionControlSystem {
@@ -135,4 +155,26 @@ impl<'vcs, 'config> Display for ShortDisplay<'vcs, 'config> {
             }
         }
     }
+}
+
+/// Functions to interact with a supported Version Control System.
+#[async_trait(?Send)]
+pub trait VcsRepository {
+    /// Get the remote URL of the repository to use to organize the repository
+    /// within the repo tree. This would be either the origin remote or the
+    /// first defined remote.
+    fn get_remote_url(
+        &self,
+    ) -> Result<(PathBuf, Option<String>), Box<dyn Error>>;
+
+    /// Clone a repository.
+    fn clone(&self, remote_url: &str) -> i32;
+
+    /// Fetch the repository.
+    fn fetch(&self, quiet: bool) -> i32;
+
+    /// Build the prompt line for a repository.
+    async fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32;
+
+    async fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
 }
