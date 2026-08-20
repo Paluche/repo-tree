@@ -4,9 +4,9 @@ use std::path::Path;
 use colored::Colorize;
 
 use crate::config::Config;
-use crate::git;
 use crate::prompt::Prompt;
 use crate::prompt::PromptListField;
+use crate::version_control_system::git;
 
 /// Build the shell prompt information for Git repositories.
 pub fn prompt(

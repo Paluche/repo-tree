@@ -7,12 +7,12 @@ use colored::control::SHOULD_COLORIZE;
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::error::NoRepositoryError;
-use crate::git;
-use crate::jujutsu;
 use crate::prompt::Prompt;
 use crate::repository::Repositories;
 use crate::repository::Repository;
 use crate::version_control_system::VersionControlSystem;
+use crate::version_control_system::git;
+use crate::version_control_system::jujutsu;
 
 /// Generate the prompt for your shell.
 #[derive(Args)]
