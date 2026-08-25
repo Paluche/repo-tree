@@ -312,8 +312,8 @@ By default the list is the following:
 ```toml
 [repository]
 ignore = [
-  '/tmp/**',  # Ignore any repository cloned in /tmp.
-  '**/.*/**'  # Ignore any repository cloned within a hidden directory.
+  '/tmp/**',   # Ignore any repository cloned in /tmp.
+  '**/.*/**',  # Ignore any repository cloned within a hidden directory.
 ]
 ```
 
@@ -360,7 +360,7 @@ Configuring repositories to be ignored by the `rt todo` command.
 ```toml
 [command.todo]
 ignore = [  # List of repositories to ignore.
-  'full/repository/id'
+  'full/repository/id',
 ]
 ```
 
