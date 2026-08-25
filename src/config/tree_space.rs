@@ -18,6 +18,9 @@ pub struct TreeSpaceConfig {
     /// Configuration for archived repositories tree-space.
     #[serde(default)]
     pub archive: ArchiveTreeSpace,
+    /// Configuration for agents repositories' workspaces in the tree-space.
+    #[serde(default)]
+    pub agents: AgentsTreeSpace,
 }
 
 /// Configuration for the dev tree-space, the default tree-space for
@@ -77,6 +80,28 @@ impl Default for ArchiveTreeSpace {
                 "archive".to_string(),
                 None,
                 ColoredText::new("󰀼", colored::Color::Yellow),
+            ),
+        }
+    }
+}
+
+/// Configuration for the tree-space that will contain the repositories'
+/// workspaces where agents will work to dissociate them from the workspaces
+/// where the human develop.
+#[derive(Serialize, Deserialize)]
+pub struct AgentsTreeSpace {
+    /// Tree category information for the tree-space.
+    #[serde(flatten)]
+    pub category: TreeCategory,
+}
+
+impl Default for AgentsTreeSpace {
+    fn default() -> Self {
+        Self {
+            category: TreeCategory::new(
+                "agents".to_string(),
+                None,
+                ColoredText::new("󰚩", colored::Color::BrightYellow),
             ),
         }
     }

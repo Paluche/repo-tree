@@ -81,4 +81,16 @@ impl VcsRepository for JujutsuVcs {
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
         repo_state::get_repo_state(&self.repo_path)
     }
+
+    async fn get_workspace_name(&self) -> Result<String, Box<dyn Error>> {
+        Ok("default".to_string())
+    }
+
+    async fn create_workspace(
+        &self,
+        name: &str,
+        destination: &Path,
+    ) -> Result<(), Box<dyn Error>> {
+        Ok(())
+    }
 }

@@ -175,5 +175,12 @@ pub trait VcsRepository {
     fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32;
 
     /// Get the repository state.
-    fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
+    fn get_workspace_name(&self) -> Result<String, Box<dyn Error>>;
+
+    /// Crate a workspace.
+    fn create_workspace(
+        &self,
+        name: &str,
+        destination: &Path,
+    ) -> Result<(), Box<dyn Error>>;
 }

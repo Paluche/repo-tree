@@ -572,6 +572,13 @@ mod tests {
         text = "󰀼"
         color = "yellow"
 
+        [tree.agents]
+        name = "agents"
+
+        [tree.agents.repr]
+        text = "󰚩"
+        color = "bright yellow"
+
         [unknown_host.repr]
         text = ""
         color = "red"
@@ -1144,6 +1151,13 @@ mod tests {
         [tree.archive.repr]
         text = "A"
         color = "red"
+
+        [tree.agents]
+        name = "agents"
+
+        [tree.agents.repr]
+        text = "󰚩"
+        color = "bright yellow"
 
         [unknown_host.repr]
         text = "?"
