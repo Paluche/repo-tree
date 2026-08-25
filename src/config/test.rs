@@ -88,6 +88,13 @@ fn default_config() -> Result<(), Box<dyn Error>> {
     text = "󰀼"
     color = "yellow"
 
+    [tree.agent]
+    name = "agent"
+
+    [tree.agent.repr]
+    text = "󰚩"
+    color = "bright yellow"
+
     [unknown_host.repr]
     text = ""
     color = "red"

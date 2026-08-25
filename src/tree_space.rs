@@ -92,6 +92,16 @@ impl<'config> TreeOrganization<'config> {
 pub enum TreeSpaceKind {
     /// Tree-space containing main repositories.
     Main,
+    /// Tree-space containing workspace repositories associated with a main
+    /// repository from the Main tree space type.
+    Workspace,
+}
+
+impl TreeSpaceKind {
+    /// Is the tree-space of the workspace kind.
+    pub fn is_workspace(&self) -> bool {
+        matches!(self, Self::Workspace)
+    }
 }
 
 /// The different repository trees categories.
@@ -113,6 +123,9 @@ pub enum TreeSpace {
     Dev,
     /// Where archived / read-only repositories are stored.
     Archive,
+    /// Tree containing repositories workspaces where agents, which brings
+    /// modification to your repositories, evolves.
+    Agent,
     /// Tree for repositories which exists only locally.
     Local,
 }
@@ -145,6 +158,7 @@ impl TreeSpace {
     pub fn kind(&self) -> TreeSpaceKind {
         match self {
             Self::Dev | Self::Local | Self::Archive => TreeSpaceKind::Main,
+            Self::Agent => TreeSpaceKind::Workspace,
         }
     }
 
@@ -156,6 +170,7 @@ impl TreeSpace {
         match self {
             Self::Dev => &config.tree.dev.category,
             Self::Local => &config.tree.local.category,
+            Self::Agent => &config.tree.agent.category,
             Self::Archive => &config.tree.archive.category,
         }
     }
@@ -169,6 +184,7 @@ impl TreeSpace {
         match self {
             Self::Dev => TreeOrganization::RemoteBased(config, category),
             Self::Local => TreeOrganization::Local(config, category),
+            Self::Agent => TreeOrganization::RemoteBased(config, category),
             Self::Archive => TreeOrganization::RemoteBased(config, category),
         }
     }
