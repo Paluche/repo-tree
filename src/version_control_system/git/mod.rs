@@ -126,4 +126,26 @@ impl VcsRepository for GitVcs {
             "Repository state for Git Version Control System".to_string(),
         )))
     }
+
+    /// Get the workspace name of the repository instance.
+    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
+        Err(Box::new(NotImplementedError(
+            "Workspace / worktree interaction not for Git Version Control \
+             System"
+                .to_string(),
+        )))
+    }
+
+    /// Crate a workspace.
+    fn create_workspace(
+        &self,
+        _name: &str,
+        _destination: &Path,
+    ) -> Result<(), Box<dyn Error>> {
+        Err(Box::new(NotImplementedError(
+            "Workspace / worktree interaction not for Git Version Control \
+             System"
+                .to_string(),
+        )))
+    }
 }
