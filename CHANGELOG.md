@@ -15,6 +15,7 @@ and this project adheres to
   - `dev`: Active (non-archived) repositories with a remote.
   - `local`: Repositories without a remote.
   - `archive`: Archive repositories with a remote.
+  - `agent`: Workspace tree-space, dedicated for agent workspaces.
 
 - Introduction of the "workspace tree-spaces" allowing to have several copies of
   a same repository on different trees.

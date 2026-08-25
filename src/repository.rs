@@ -22,7 +22,7 @@ use crate::version_control_system::git::SubmoduleInfo;
 use crate::version_control_system::git::{self};
 
 /// Metadata about the file containing the repository remote(s).
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RemoteConfig {
     /// Path to the file containing the remote information.
     file: PathBuf,
@@ -49,7 +49,7 @@ impl RemoteConfig {
 }
 
 /// A repository workspace.
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Workspace {
     /// Workspace located within a known tree-space.
     Tree(TreeSpace, PathBuf),
@@ -102,7 +102,7 @@ impl Workspace {
 }
 
 /// Representation of a repository.
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Repository {
     /// Paths to the different workspaces in the repo tree for that repository.
     pub workspaces: Vec<Workspace>,
@@ -205,6 +205,11 @@ impl Repository {
 }
 
 impl Repository {
+    /// Add a workspace to the repository.
+    pub fn add_workspace(&mut self, other: Self) {
+        eprintln!("Adding {:?} to {:?}", other, self);
+        self.workspaces.extend(other.workspaces);
+    }
     /// Find out if the repository has the specified workspace.
     fn has_workspace(&self, workspace: &Workspace) -> bool {
         self.workspaces.iter().find(|w| w == &workspace).is_some()
