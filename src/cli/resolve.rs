@@ -4,9 +4,9 @@ use clap::Args;
 use clap_complete::engine::ArgValueCompleter;
 
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
+use crate::tree::RepoTree;
 
 /// Resolve the name of a repository into its path.
 #[derive(Args)]
@@ -22,7 +22,7 @@ pub struct ResolveArgs {
 
 /// Execute the `rt resolve` command.
 pub fn run(config: &Config, args: ResolveArgs) -> i32 {
-    let repositories = Repositories::load(config, args.refresh_cache);
+    let repositories = RepoTree::load(config, args.refresh_cache);
     if let Some(repository) = match resolve(config, &repositories, args.repo_id)
     {
         Ok(r) => r,

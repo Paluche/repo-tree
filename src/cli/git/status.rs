@@ -9,8 +9,8 @@ use colored::Colorize;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 // XXX Potentially split between the git specific command which is
 // basically stand-alone from the rest of the tool, against what enters the
 // upcomming new VCS trait.
@@ -130,7 +130,7 @@ fn format_repo_status(
 /// Execute the `rt git status` command.
 pub fn run(config: &Config, args: StatusArgs) -> i32 {
     if args.refresh_cache {
-        Repositories::load(config, true);
+        RepoTree::load(config, true);
     }
 
     let repo_path = cwd_default_path(args.repository);

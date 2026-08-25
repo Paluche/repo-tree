@@ -5,8 +5,8 @@ use std::error::Error;
 use clap::Args;
 
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::git;
 use crate::version_control_system::jujutsu;
@@ -84,7 +84,7 @@ pub fn fetch_repo(
 
 /// Execute `rt fetch` command.
 pub fn run(config: &Config, args: FetchArgs) -> i32 {
-    let repositories = Repositories::load(config, args.refresh_cache);
+    let repositories = RepoTree::load(config, args.refresh_cache);
 
     let (ok, total) = repositories
         .iter()

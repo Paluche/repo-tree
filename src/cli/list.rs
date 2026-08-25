@@ -6,7 +6,7 @@ use globset::Glob;
 
 use crate::config::Config;
 use crate::config::list_host_completer;
-use crate::repository::Repositories;
+use crate::tree::RepoTree;
 
 /// List all repositories in the repo_tree.
 #[derive(Args)]
@@ -34,7 +34,7 @@ pub struct ListArgs {
 
 /// Execute the `rt list` command.
 pub fn run(config: &Config, args: ListArgs) -> i32 {
-    for repository in Repositories::load(config, args.refresh_cache)
+    for repository in RepoTree::load(config, args.refresh_cache)
         .filtered(config, &args.hosts, &args.names)
         .iter()
     {

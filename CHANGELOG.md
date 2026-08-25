@@ -10,8 +10,21 @@ and this project adheres to
 
 ### Release highlights
 
+Introduction of the `tree-spaces`, you have two available ones being:
+
+- `dev`: Repositories with a remote.
+- `local`: Repositories without a remote.
+
 ### Breaking changes
 
+- The introduction of tree-spaces re-organize the repo-tree. To migrate from a
+  previous version you must do the following commands:
+  ```bash
+  mkdir ${REPO_TREE_DIR}/dev
+  mv ${REPO_TREE_DIR}/* ${REPO_TREE_DIR}/dev
+  mv ${REPO_TREE_DIR}/dev/local ${REPO_TREE_DIR}
+  rt refresh-cacge
+  ```
 - The host and name filters arguments used in `rt list` or `rt todo *` commands
   are now glob. Previously we were filtering on exact match for the _host_,
   which is still compatible with the glob syntax, but the _name_ filtering was
@@ -33,16 +46,6 @@ None
   the configuration values.
 
 ## [0.2.0] - 2026-06-21
-
-### Release highlights
-
-### Breaking changes
-
-None
-
-### Deprecations
-
-### New features
 
 ### Fixed bugs
 

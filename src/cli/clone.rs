@@ -3,7 +3,8 @@ use clap::Args;
 
 use crate::config::Config;
 use crate::repo_id::RepoId;
-use crate::repository::Repositories;
+use crate::tree::RepoTree;
+use crate::tree::TreeSpace;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::git;
 use crate::version_control_system::jujutsu;
@@ -24,7 +25,7 @@ fn do_clone(
     repo_id: &RepoId,
     vcs: &VersionControlSystem,
 ) -> i32 {
-    let location = match repo_id.location(config) {
+    let location = match TreeSpace::Dev.repo_location(config, repo_id) {
         Ok(p) => p,
         Err(err) => {
             eprintln!("{err}");
@@ -83,7 +84,7 @@ fn do_clone(
     }
 
     // Refresh the cache.
-    Repositories::load(config, true);
+    RepoTree::load(config, true);
 
     println!("{}", location.display());
     0

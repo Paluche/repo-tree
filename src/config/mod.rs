@@ -12,6 +12,7 @@ mod host;
 mod prompt;
 mod repository_location;
 mod tree_category;
+mod tree_space;
 
 use std::error::Error;
 use std::ffi::OsStr;
@@ -20,6 +21,7 @@ use std::path::PathBuf;
 
 use clap_complete::engine::CompletionCandidate;
 pub use config::Config;
+pub use host::RemoteHost;
 pub use prompt::JujutsuBookmarkConfig;
 pub use prompt::JujutsuPromptConfig;
 pub use tree_category::TreeCategory;

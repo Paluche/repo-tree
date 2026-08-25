@@ -9,8 +9,8 @@ use clap_complete::ArgValueCompleter;
 use clap_complete::PathCompleter;
 
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 
 /// Clone a repository within the repo tree.
 #[derive(Args)]
@@ -26,7 +26,7 @@ pub struct InsertArgs {
 /// Refresh the repositories cache based on the refresh_cache boolean value.
 fn refresh_cache(config: &Config, refresh_cache: bool) {
     if refresh_cache {
-        Repositories::load(config, true);
+        RepoTree::load(config, true);
     }
 }
 

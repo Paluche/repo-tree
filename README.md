@@ -11,36 +11,44 @@ by the `root` configuration or the `REPO_TREE_DIR` environment variable.
 The path where the repositories are stored is computed based on the remote URL
 of the repository. The repositories are then organized by host.
 
+We have 2 "tree-spaces":
+
+- `dev/` Contains active repositories.
+- `local/` Repositories which has no remote associated and exists only locally.
+
 Raw example of output of `rt tree`
 
 ```text
 /home/user/work
-├── github
-│   ├── Paluche/repo-tree
-│   │       git@github.com:Paluche/repo-tree.git 󰊢
-│   └── jj-vcs/jj
-│           git@github.com:jj-vcs/jj.git 
-├── gitlab/hpaluche/configort
-│   │   git@gitlab.com:hpaluche/configort.git 󰊢
-│   ├── home/dot_config/awesome/external_awesome-wm-widgets
-│   │       c257e22ccbc1536de46e8ae83935d173926fd9ec
-│   │       https://github.com/streetturtle/awesome-wm-widgets.git
-│   └── home/dot_config/zsh/external_zsh-syntax-highlighting
-│           1d85c692615a25fe2293bdd44b34c217d5d2bf04
-│           https://github.com/zsh-users/zsh-syntax-highlighting.git
-└── my-company
-    ├── project-Z
-    │   ├── system-A
-    │   │   ├── sub-system-0
-    │   │   │       git@my-company.com:project-Z/system-A/sub-system-0.git 󰊢
-    │   │   └── sub-system-1
-    │   │           git@my-company.com:project-Z/system-A/sub-system-1.git 󰊢
-    │   └── system-B
-    │       ├── sub-system-0
-    │       │       git@my-company.com:project-Z/system-B/sub-system-0.git 󰊢
-    │       └── sub-system-1
-    │               git@my-company.com:project-Z/system-B/sub-system-1.git 󰊢
-    └── ...
+├── dev
+│   ├── github
+│   │   ├── Paluche/repo-tree
+│   │   │       git@github.com:Paluche/repo-tree.git 󰊢
+│   │   └── jj-vcs/jj
+│   │           git@github.com:jj-vcs/jj.git 
+│   ├── gitlab/hpaluche/configort
+│   │   │   git@gitlab.com:hpaluche/configort.git 󰊢
+│   │   ├── home/dot_config/awesome/external_awesome-wm-widgets
+│   │   │       c257e22ccbc1536de46e8ae83935d173926fd9ec
+│   │   │       https://github.com/streetturtle/awesome-wm-widgets.git
+│   │   └── home/dot_config/zsh/external_zsh-syntax-highlighting
+│   │           1d85c692615a25fe2293bdd44b34c217d5d2bf04
+│   │           https://github.com/zsh-users/zsh-syntax-highlighting.git
+│   └── my-company
+│       ├── project-Z
+│       │   ├── system-A
+│       │   │   ├── sub-system-0
+│       │   │   │       git@my-company.com:project-Z/system-A/sub-system-0.git 󰊢
+│       │   │   └── sub-system-1
+│       │   │           git@my-company.com:project-Z/system-A/sub-system-1.git 󰊢
+│       │   └── system-B
+│       │       ├── sub-system-0
+│       │       │       git@my-company.com:project-Z/system-B/sub-system-0.git 󰊢
+│       │       └── sub-system-1
+│       │               git@my-company.com:project-Z/system-B/sub-system-1.git 󰊢
+│       └── ...
+└── local
+    └── ... # Repositories which has no remote configured.
 ```
 
 Main features:
@@ -103,6 +111,77 @@ to color the text with.
   red, green and blue, of the color you want. Each component value being
   between 0 and 255 included.
 
+### Tree categories
+
+The configuration allows you to configure the tree categories. Those categories
+corresponds to directories into which the repositories are stored and they
+categorize them. We currently have two type of categories:
+
+- The tree-spaces directories
+- The host directories
+
+The configuration for tree categories will always include the following keys:
+
+```toml
+name = '<NAME>'  # Pretty name for the category.
+dir_name = '<DIR_NAME>'  # Name to use for the directory that stores the
+                         # categorized repositories will. Optional, defaults to
+                         # the value set to 'name'.
+repr = {
+  text = '<REPR>', # Host representation used in the prompt. Optional, defaults
+                   # to the value set to 'name'.
+  color = <COLOR>  # Color to use to colorize the 'repr.text' value. Optional,
+                   # defaults to no color. See Color Configuration chapter
+                   # above.
+}
+```
+
+In the following configuration examples, when we use `<CATEGORY_KEYS>` you can
+consider that you have the key describe above, this is done to avoid copy paste.
+
+> [!NOTE]
+> You can override these configuration. If you are doing so, note that you will
+> not inherit bits of the default category configuration. For instance if you
+> want to set the `dir_name` and inherit the rest of the values, you will need
+> to specify the `name` and `repr` values.
+
+### Configuring tree-spaces
+
+#### Dev
+
+For default tree-space for the repositories which have a remote configured.
+
+```toml
+[tree.dev]  # Optional, see default configuration below.
+<CATEGORY_KEYS>
+```
+
+The default configuration for the local tree-space is the following:
+
+```toml
+[tree.dev]
+name = 'dev'
+repr = { text = '', color = 'blue' }
+```
+
+#### Local
+
+The tree-space where the repositories, which has no remote configured (therefore
+exists only locally), are stored.
+
+```toml
+[tree.local]  # Optional, see default configuration below.
+<CATEGORY_KEYS>
+```
+
+The default configuration for the local tree-space is the following:
+
+```toml
+[tree.local]
+name = 'local'
+repr = { text = '󰋊', color = 'white' }
+```
+
 ### Configuring known hosts
 
 In order to know how to organize the repositories, `rt` needs to know how. The
@@ -112,20 +191,7 @@ where all the associated repositories will be stored in.
 
 ```toml
 [host."<URL>"]
-# Pretty name for the host.
-name = '<NAME>'
-
-# Name of the directory the host's repositories will be stored. Optional,
-# defaults to the value set to 'name'.
-dir_name = '<DIR_NAME>'
-repr = {
-  # Host representation used in the prompt. Optional, defaults the value set to
-  # 'name'.
-  text = '<REPR>'
-  # Color to use to colorize the 'repr.text' value. Optional, defaults to no
-  # color. See Color Configuration chapter above.
-  color = <COLOR>
-}
+<CATEGORY_KEYS>
 ```
 
 The default configuration for the hosts is the following:
@@ -158,34 +224,6 @@ The special `repr` characters comes from the
 > [!NOTE]
 > You can override these configuration. If you are doing so, you need to
 > redefine the whole host, you cannot override specific elements.
-
-### Configuring local repositories
-
-For repositories which exists only locally, you can define too the directory
-name as similar host configuration.
-
-```toml
-[local]  # Optional, see default configuration below.
-name = '<NAME>'  # Pretty name for the local "host".
-dir_name = '<DIR_NAME>'  # Name of the directory the local repositories will
-                         # be stored. Optional, defaults to the value set to
-                         # 'name'.
-repr = {
-  text = '<REPR>', # Host representation used in the prompt. Optional, defaults
-                   # to the value set to 'name'.
-  color = <COLOR>  # Color to use to colorize the 'repr.text' value. Optional,
-                   # defaults to no color. See Color Configuration chapter
-                   # above.
-}
-```
-
-The default configuration for the local host is the following:
-
-```toml
-[local]
-name = 'local'
-repr = { text = '󰋊', color = 'white' }
-```
 
 ### Configuring management of unknown remote
 

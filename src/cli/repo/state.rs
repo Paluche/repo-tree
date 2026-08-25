@@ -5,8 +5,8 @@ use clap_complete::engine::ArgValueCompleter;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 
 /// Find out if there is something to do by the user in order to keep this
 /// repository updated.
@@ -27,7 +27,7 @@ pub struct StateArgs {
 /// Execute the `rt repo state` command.
 pub async fn run(config: &Config, args: StateArgs) -> i32 {
     if args.refresh_cache {
-        Repositories::load(config, true);
+        RepoTree::load(config, true);
     }
 
     let repository = match Repository::discover(
@@ -42,10 +42,16 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
     };
 
     if args.verbose {
+        if let Some(name) = repository.id.remote_host_name(config) {
+            print!("{name} ");
+        }
+
+        if let Some(repr) = repository.id.remote_host_repr(config) {
+            print!("{repr} ");
+        }
+
         println!(
-            "{} {} {}{}",
-            repository.id.host_name(config),
-            repository.id.host_repr(config),
+            "{}{}",
             repository.id.name,
             repository
                 .id

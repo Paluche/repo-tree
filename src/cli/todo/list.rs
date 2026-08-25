@@ -10,7 +10,7 @@ use globset::Glob;
 use crate::config::Config;
 use crate::config::list_host_completer;
 use crate::error::NotImplementedError;
-use crate::repository::Repositories;
+use crate::tree::RepoTree;
 
 /// Custom git status. Concise, with all the data and without help text.
 #[derive(Args)]
@@ -46,20 +46,26 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
     let mut n_a: usize = 0;
     let mut skipped: usize = 0;
 
-    for repository in Repositories::load(config, args.refresh_cache)
+    for repository in RepoTree::load(config, args.refresh_cache)
         .filtered(config, &args.hosts, &args.names)
         .iter()
     {
-        let id = format!(
-            "{} {:20}",
-            repository.id.host_repr(config),
-            repository.id.name
-        );
+        let remote_host_repr =
+            if let Some(repr) = repository.id.remote_host_repr(config) {
+                format!("{repr}")
+            } else {
+                " ".to_string()
+            };
+
+        let name = format!("{:20}", repository.id.name);
 
         if repository.id.is_local() {
             if args.verbose {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
-                println!("{id} {}", "Ignored (local)".bright_black());
+                println!(
+                    "{remote_host_repr} {name} {}",
+                    "Ignored (local)".bright_black()
+                );
             }
             skipped += 1;
             continue;
@@ -68,7 +74,10 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
         if config.command.todo.ignore.contains(&repository.id.name) {
             if args.verbose {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
-                println!("{id} {}", "Ignored (configuration)".bright_black());
+                println!(
+                    "{remote_host_repr} {name} {}",
+                    "Ignored (configuration)".bright_black()
+                );
             }
             skipped += 1;
             continue;
@@ -92,18 +101,18 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
                 ok += 1;
                 if args.verbose {
                     eprint!("\r{}", Clear(ClearType::CurrentLine));
-                    println!("{id} {repo_state}");
+                    println!("{remote_host_repr} {name} {repo_state}");
                 }
             } else {
                 todo += 1;
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
-                println!("{id} {repo_state}");
+                println!("{remote_host_repr} {name} {repo_state}");
             }
         } else {
             n_a += 1;
             if args.verbose {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
-                println!("{id} {}", "N/A".bright_yellow());
+                println!("{remote_host_repr} {name} {}", "N/A".bright_yellow());
             }
         }
     }

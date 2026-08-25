@@ -6,9 +6,9 @@ use clap_complete::engine::ArgValueCompleter;
 
 use crate::config::Config;
 use crate::error::NotImplementedError;
-use crate::repository::Repositories;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
+use crate::tree::RepoTree;
 
 /// Remove a repository from the repo tree.
 #[derive(Args)]
@@ -26,7 +26,7 @@ pub struct RmArgs {
 
 /// Execute the `rt rm` command.
 pub async fn run(config: &Config, args: RmArgs) -> i32 {
-    let repositories = Repositories::load(config, args.refresh_cache);
+    let repositories = RepoTree::load(config, args.refresh_cache);
     let repository = match resolve(config, &repositories, args.repo_id) {
         Ok(v) => match v {
             Some(repo) => repo,
@@ -87,7 +87,7 @@ pub async fn run(config: &Config, args: RmArgs) -> i32 {
     }
 
     // Refresh the cache.
-    Repositories::load(config, true);
+    RepoTree::load(config, true);
 
     0
 }

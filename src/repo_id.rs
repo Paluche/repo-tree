@@ -2,7 +2,6 @@
 use std::error::Error;
 use std::fmt::Display;
 use std::path::Path;
-use std::path::PathBuf;
 
 use regex::Regex;
 use serde::Deserialize;
@@ -10,33 +9,10 @@ use serde::Serialize;
 
 use crate::colors::ColoredText;
 use crate::config::Config;
-use crate::config::TreeCategory;
+use crate::config::RemoteHost;
 use crate::error::ParseUrlError;
 use crate::error::UnknownRemoteHostError;
-
-/// Either the repository is within the local/ directory allowing the user to
-/// organize as see fits this directory.
-/// Or take the directory name.
-fn compute_local_path<P: AsRef<Path>>(
-    config: &Config,
-    repo_path: &P,
-) -> String {
-    let local_dir = config.root.join(config.local.category.dir_name());
-    let repo_path = repo_path.as_ref();
-    assert!(repo_path.is_absolute(), "repo_path is not absolute");
-    assert!(local_dir.is_absolute(), "local_dir is not absolute");
-
-    if repo_path.starts_with(&local_dir) {
-        repo_path
-            .iter()
-            .skip(local_dir.iter().count())
-            .collect::<PathBuf>()
-            .display()
-            .to_string()
-    } else {
-        repo_path.file_name().unwrap().to_str().unwrap().to_owned()
-    }
-}
+use crate::tree::TreeSpace;
 
 /// Parse the remote URL, to capture the different parts.
 fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
@@ -69,7 +45,7 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
 }
 
 /// Representation of the URL of a remote.
-#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Serialize, Deserialize)]
 pub struct Remote {
     /// URL of the remote.
     pub url: String,
@@ -78,7 +54,7 @@ pub struct Remote {
     pub host_url: String,
 }
 
-#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Serialize, Deserialize)]
 /// Repository Identifier.
 pub struct RepoId {
     /// Information about the host associated with the repository.
@@ -110,7 +86,6 @@ impl RepoId {
     /// This version (in regard to parse_url()) defaults to the local host
     /// location configuration if the remote_url argument is None.
     pub fn from_repo<P: AsRef<Path>>(
-        config: &Config,
         repo_path: &P,
         remote_url: Option<&String>,
     ) -> Result<RepoId, ParseUrlError> {
@@ -119,52 +94,62 @@ impl RepoId {
         } else {
             Ok(Self {
                 remote: None,
-                name: compute_local_path(config, repo_path),
+                name: repo_path
+                    .as_ref()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string(),
             })
         }
     }
 
-    /// Get the path in the repo tree, where the repository should be located.
-    pub fn location(
-        &self,
-        config: &Config,
-    ) -> Result<PathBuf, UnknownRemoteHostError> {
-        Ok(config
-            .root
-            .join(self.host_category(config)?.dir_name())
-            .join(self.name.split('/').collect::<PathBuf>()))
-    }
-
     /// Get the host tree category associated with the repository.
-    pub fn host_category<'config>(
+    pub fn remote_host<'config>(
         &self,
         config: &'config Config,
-    ) -> Result<&'config TreeCategory, UnknownRemoteHostError> {
+    ) -> Result<Option<&'config RemoteHost>, UnknownRemoteHostError> {
         match &self.remote {
             Some(remote) => config
                 .get_remote_host(&remote.host_url)
                 .ok_or(UnknownRemoteHostError(remote.host_url.to_string()))
-                .map(|h| &h.category),
-            None => Ok(&config.local.category),
+                .map(Some),
+            None => Ok(None),
         }
     }
 
     /// Get the host representation associated with that repository. This method
     /// is deterministic compared to getting the category using
     /// host_category().
-    pub fn host_repr<'config>(
+    pub fn remote_host_repr<'config>(
         &self,
         config: &'config Config,
-    ) -> &'config ColoredText {
-        self.host_category(config)
-            .map_or(&config.unknown_host.repr, |c| &c.repr)
+    ) -> Option<&'config ColoredText> {
+        self.remote_host(config)
+            .map_or(Some(&config.unknown_host.repr), |r| {
+                r.map(|r| &r.category.repr)
+            })
     }
 
     /// Get the host name associated with that repository. This method is
     /// deterministic compared to getting the category using
     /// host_category().
-    pub fn host_name<'config>(&self, config: &'config Config) -> &'config str {
-        self.host_category(config).map_or("unknown", |c| &c.name)
+    pub fn remote_host_name<'config>(
+        &self,
+        config: &'config Config,
+    ) -> Option<&'config str> {
+        self.remote_host(config)
+            .map_or(Some("unknown"), |c| c.map(|c| c.category.name.as_str()))
+    }
+
+    /// In which tree the repository should be, based on its ID.
+    pub fn expected_tree(&self) -> TreeSpace {
+        if self.remote.is_some() {
+            TreeSpace::Dev
+        } else {
+            TreeSpace::Local
+        }
     }
 
     /// Find out if a repository exists only locally (no remote configured).
@@ -197,7 +182,7 @@ impl RepoId {
     ) -> RepoIdDisplay<'repo_id, 'config> {
         RepoIdDisplay {
             repo_id: self,
-            host_category: self.host_category(config).ok(),
+            remote_host_name: self.remote_host_name(config),
         }
     }
 }
@@ -207,17 +192,15 @@ pub struct RepoIdDisplay<'repo_id, 'config> {
     /// RepoId to display.
     repo_id: &'repo_id RepoId,
     /// Host category data of the RepoId.
-    host_category: Option<&'config TreeCategory>,
+    remote_host_name: Option<&'config str>,
 }
 
 impl<'repo_id, 'config> Display for RepoIdDisplay<'repo_id, 'config> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {}",
-            self.host_category.map_or("?????", |c| c.dir_name()),
-            self.repo_id.name
-        )?;
+        if let Some(name) = self.remote_host_name {
+            write!(f, "{name} ")?;
+        }
+        write!(f, "{}", self.repo_id.name)?;
         if let Some(remote) = &self.repo_id.remote {
             write!(f, " {}", remote.url)?;
         }

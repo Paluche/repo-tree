@@ -8,8 +8,8 @@ use colored::ColoredString;
 use colored::Colorize;
 
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 
 /// Display a tree of your repo_tree.
 #[derive(Args)]
@@ -252,10 +252,7 @@ struct RootDirectory<'config, 'repos> {
 
 impl<'config, 'repos> RootDirectory<'config, 'repos> {
     /// Instantiate a RootDirectory.
-    fn new(
-        config: &'config Config,
-        repositories: &'repos Repositories,
-    ) -> Self {
+    fn new(config: &'config Config, repositories: &'repos RepoTree) -> Self {
         let mut directory: Directory<'repos> = Directory::default();
 
         for repository in repositories.iter() {
@@ -282,10 +279,7 @@ impl<'config, 'repos> Display for RootDirectory<'config, 'repos> {
 pub fn run(config: &Config, args: TreeArgs) -> i32 {
     println!(
         "{}",
-        RootDirectory::new(
-            config,
-            &Repositories::load(config, args.refresh_cache)
-        )
+        RootDirectory::new(config, &RepoTree::load(config, args.refresh_cache))
     );
 
     0
