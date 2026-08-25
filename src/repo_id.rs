@@ -11,7 +11,9 @@ use crate::colors::ColoredText;
 use crate::config::Config;
 use crate::config::RemoteHost;
 use crate::error::ParseUrlError;
+use crate::error::UnimplementedForgeApi;
 use crate::error::UnknownRemoteHostError;
+use crate::forge::ForgeApi;
 use crate::tree::TreeSpace;
 
 /// Parse the remote URL, to capture the different parts.
@@ -61,6 +63,26 @@ pub struct RepoId {
     pub remote: Option<Remote>,
     /// Name of the repository.
     pub name: String,
+}
+
+/// Definition of the different strategies available to obtain the expected
+/// tree-space the repository should be in.
+pub enum ExpectedTreeStrategy {
+    /// Lazy strategy. Do what you can with what you have access locally. In
+    /// other words if if we hesitate somehow between dev and archive
+    /// tree-spaces, trust the current repository location.
+    Lazy,
+    /// Force the tree space to be dev if it cannot be determined based on
+    /// the repository ID. In other words, if we hesitate somehow between dev
+    /// and archive tree-spaces, choose dev.
+    ForceDev,
+    /// Force the tree space to be archive if it cannot be determined based on
+    /// the repository ID. In other words, if we hesitate somehow between Dev
+    /// and Archive tree-space, choose Archive.
+    ForceArchive,
+    /// We want the exact tree-space, so it might mean to do some API requests
+    /// to determinate if the repository is archived.
+    Exact,
 }
 
 impl RepoId {
@@ -144,11 +166,63 @@ impl RepoId {
     }
 
     /// In which tree the repository should be, based on its ID.
-    pub fn expected_tree(&self) -> TreeSpace {
-        if self.remote.is_some() {
-            TreeSpace::Dev
-        } else {
-            TreeSpace::Local
+    pub async fn expected_tree(
+        &self,
+        config: &Config,
+        repo_path: Option<&Path>,
+        strategy: ExpectedTreeStrategy,
+    ) -> Result<TreeSpace, Box<dyn Error>> {
+        if self.remote.is_none() {
+            return Ok(TreeSpace::Local);
+        }
+
+        fn dev_or_archive(
+            config: &Config,
+            strategy: ExpectedTreeStrategy,
+            repo_path: Option<&Path>,
+        ) -> Result<TreeSpace, Box<dyn Error>> {
+            Ok(if matches!(strategy, ExpectedTreeStrategy::ForceDev) {
+                TreeSpace::Dev
+            } else if matches!(strategy, ExpectedTreeStrategy::ForceArchive) {
+                TreeSpace::Archive
+            } else if let Some(repo_path) = repo_path {
+                match TreeSpace::from_path(config, repo_path) {
+                    Some(TreeSpace::Archive) => TreeSpace::Archive,
+                    None | Some(_) => TreeSpace::Dev,
+                }
+            } else {
+                TreeSpace::Dev
+            })
+        }
+
+        match self.forge_api(config) {
+            Ok(Some(forge_api)) => {
+                Ok(
+                    // This is case where you might opt for the lazy approach.
+                    if matches!(strategy, ExpectedTreeStrategy::Lazy)
+                        && let Some(repo_path) = repo_path
+                        && let Some(tree_space) =
+                            TreeSpace::from_path(config, repo_path)
+                    {
+                        tree_space
+                    } else if forge_api.is_archived(self).await? {
+                        TreeSpace::Archive
+                    } else {
+                        TreeSpace::Dev
+                    },
+                )
+            }
+            Ok(None) => dev_or_archive(config, strategy, repo_path),
+            Err(err) => {
+                if let Some(err) = err.downcast_ref::<UnimplementedForgeApi>() {
+                    if matches!(strategy, ExpectedTreeStrategy::Exact) {
+                        eprintln!("{err}");
+                    }
+                    dev_or_archive(config, strategy, repo_path)
+                } else {
+                    Err(err)
+                }
+            }
         }
     }
 
@@ -157,17 +231,17 @@ impl RepoId {
         self.remote.is_none()
     }
 
-    /// Find out if the repository is archived on the forge it is hosted on.
-    #[allow(dead_code)]
-    pub async fn is_archived(
+    /// Get the struct to use to interact with the forge where the remote
+    /// repository is hosted.
+    pub fn forge_api(
         &self,
         config: &Config,
-    ) -> Result<Option<bool>, Box<dyn Error>> {
+    ) -> Result<Option<Box<dyn ForgeApi>>, Box<dyn Error>> {
         if let Some(remote) = &self.remote {
             if let Some(remote_host) = config.get_remote_host(&remote.host_url)
             {
                 if let Some(forge) = &remote_host.info.forge {
-                    forge.api()?.is_archived(self).await.map(Some)
+                    Ok(Some(forge.api()?))
                 } else {
                     Ok(None)
                 }
@@ -175,8 +249,7 @@ impl RepoId {
                 Err(Box::new(UnknownRemoteHostError(remote.host_url.clone())))
             }
         } else {
-            // Local repositories should be considered non-archived.
-            Ok(Some(false))
+            Ok(None)
         }
     }
 
@@ -212,4 +285,167 @@ impl<'repo_id, 'config> Display for RepoIdDisplay<'repo_id, 'config> {
 
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use pollster::FutureExt;
+
+    use super::*;
+
+    /// Check the different tree strategies against a repository stored in dev.
+    fn check_expected_tree_dev(
+        strategy: ExpectedTreeStrategy,
+        expected_tree: TreeSpace,
+    ) {
+        let config = Config::test_default();
+        let id = RepoId::from_remote_url("https://test.com/foo/bar.git")
+            .expect("URL is a correct one");
+        let repo_path = config
+            .root
+            .join(config.tree.dev.category.dir_name())
+            .join("test")
+            .join("foo")
+            .join("bar");
+        let tree = id
+            .expected_tree(&config, Some(&repo_path), strategy)
+            .block_on()
+            .unwrap();
+
+        assert_eq!(tree, expected_tree)
+    }
+
+    #[test]
+    fn check_expected_tree_dev_lazy() {
+        check_expected_tree_dev(ExpectedTreeStrategy::Lazy, TreeSpace::Dev)
+    }
+
+    #[test]
+    fn check_expected_tree_dev_force_dev() {
+        check_expected_tree_dev(ExpectedTreeStrategy::ForceDev, TreeSpace::Dev)
+    }
+
+    #[test]
+    fn check_expected_tree_dev_force_archive() {
+        check_expected_tree_dev(
+            ExpectedTreeStrategy::ForceArchive,
+            TreeSpace::Archive,
+        )
+    }
+
+    // XXX Need some API mocking which returns the repository to be not an
+    // archive. #[test]
+    // fn check_expected_tree_dev_exact_dev() {
+    //     check_expected_tree_dev(ExpectedTreeStrategy::Exact, TreeSpace::Dev)
+    // }
+
+    // XXX Need some API mocking which returns the repository to be an archive.
+    // #[test]
+    // fn check_expected_tree_dev_exact_dev() {
+    //     check_expected_tree_dev(ExpectedTreeStrategy::Exact,
+    // TreeSpace::Archive) }
+
+    /// Check the different tree strategies against a repository stored in
+    /// archive.
+    fn check_expected_tree_archive(
+        strategy: ExpectedTreeStrategy,
+        expected_tree: TreeSpace,
+    ) {
+        let config = Config::test_default();
+        let id = RepoId::from_remote_url("https://test.com/foo/bar.git")
+            .expect("URL is a correct one");
+        let repo_path = config
+            .root
+            .join(config.tree.archive.category.dir_name())
+            .join("test")
+            .join("foo")
+            .join("bar");
+        let tree = id
+            .expected_tree(&config, Some(&repo_path), strategy)
+            .block_on()
+            .unwrap();
+
+        assert_eq!(tree, expected_tree)
+    }
+
+    #[test]
+    fn check_expected_tree_archive_lazy() {
+        check_expected_tree_archive(
+            ExpectedTreeStrategy::Lazy,
+            TreeSpace::Archive,
+        )
+    }
+
+    #[test]
+    fn check_expected_tree_archive_force_dev() {
+        check_expected_tree_archive(
+            ExpectedTreeStrategy::ForceDev,
+            TreeSpace::Dev,
+        )
+    }
+
+    #[test]
+    fn check_expected_tree_archive_force_archive() {
+        check_expected_tree_archive(
+            ExpectedTreeStrategy::ForceArchive,
+            TreeSpace::Archive,
+        )
+    }
+
+    // XXX Need some API mocking which returns the repository to be not an
+    // archive. #[test]
+    // fn check_expected_tree_archive_exact_dev() {
+    //     check_expected_tree_archive(ExpectedTreeStrategy::Exact,
+    // TreeSpace::Dev) }
+
+    // XXX Need some API mocking which returns the repository to be an archive.
+    // #[test]
+    // fn check_expected_tree_archive_exact_dev() {
+    //     check_expected_tree_archive(ExpectedTreeStrategy::Exact,
+    // TreeSpace::Archive) }
+
+    /// No matter the strategy a local repository, without remote will be in the
+    /// local tree-space.
+    fn check_expected_tree_local(strategy: ExpectedTreeStrategy) {
+        let config = Config::default();
+        let repo_path = config
+            .root
+            .join(config.tree.local.category.dir_name())
+            .join("foo");
+        let id = RepoId::from_repo(&repo_path, None)
+            .expect("No remote no parse URL error");
+        let tree = id
+            .expected_tree(&config, Some(&repo_path), strategy)
+            .block_on()
+            .unwrap();
+
+        assert_eq!(tree, TreeSpace::Local)
+    }
+
+    #[test]
+    fn check_expected_tree_lazy_local() {
+        check_expected_tree_local(ExpectedTreeStrategy::Lazy);
+    }
+
+    #[test]
+    fn check_expected_tree_lazy_force_dev() {
+        check_expected_tree_local(ExpectedTreeStrategy::ForceDev);
+    }
+
+    #[test]
+    fn check_expected_tree_lazy_force_archive() {
+        check_expected_tree_local(ExpectedTreeStrategy::ForceArchive);
+    }
+
+    // XXX Need some API mocking which returns the repository to be not an
+    // archive. #[test]
+    // fn check_expected_tree_local_exact_dev() {
+    //     check_expected_tree_local(ExpectedTreeStrategy::Exact)
+    // }
+
+    // XXX Need some API mocking which returns the repository to be an archive.
+    // #[test]
+    // fn check_expected_tree_local_exact_dev() {
+    //     check_expected_tree_local(ExpectedTreeStrategy::Exact)
+    // }
 }

@@ -1,10 +1,13 @@
 //! Clone a repository into the repo tree.
+use std::error::Error;
+
 use clap::Args;
 
+use super::ForceTreeSpace;
+use super::force_tree_into_strategy;
 use crate::config::Config;
 use crate::repo_id::RepoId;
 use crate::tree::RepoTree;
-use crate::tree::TreeSpace;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::git;
 use crate::version_control_system::jujutsu;
@@ -17,21 +20,22 @@ pub struct CloneArgs {
     /// Type of version control system to use to clone the repository.
     #[arg(long, short)]
     vcs: Option<VersionControlSystem>,
+    /// If a doubt subsist as if the repository to clone is an archive or not.
+    #[arg(long, short)]
+    force_tree: Option<ForceTreeSpace>,
 }
 
 /// Do the cloning of the repository.
-fn do_clone(
+async fn do_clone(
     config: &Config,
+    force_tree: Option<ForceTreeSpace>,
     repo_id: &RepoId,
     vcs: &VersionControlSystem,
-) -> i32 {
-    let location = match TreeSpace::Dev.repo_location(config, repo_id) {
-        Ok(p) => p,
-        Err(err) => {
-            eprintln!("{err}");
-            return 1;
-        }
-    };
+) -> Result<i32, Box<dyn Error>> {
+    let location = repo_id
+        .expected_tree(config, None, force_tree_into_strategy(force_tree))
+        .await?
+        .repo_location(config, repo_id)?;
 
     if location.exists() {
         if let Some((current_vcs, _)) = VersionControlSystem::try_new(&location)
@@ -47,7 +51,7 @@ fn do_clone(
                 eprintln!("Repository already cloned, initializing JJ into");
                 let res = jujutsu::git::init_colocate(&location);
                 if res != 0 {
-                    return res;
+                    return Ok(res);
                 }
             } else {
                 eprintln!(
@@ -58,7 +62,7 @@ fn do_clone(
             }
         } else {
             eprintln!("Clone location {} already exists", location.display());
-            return 1;
+            return Ok(1);
         }
     } else {
         let remote_url = &repo_id
@@ -79,7 +83,7 @@ fn do_clone(
         };
 
         if res != 0 {
-            return res;
+            return Ok(res);
         }
     }
 
@@ -87,15 +91,21 @@ fn do_clone(
     RepoTree::load(config, true);
 
     println!("{}", location.display());
-    0
+    Ok(0)
 }
 
 /// Execute the `rt clone` command.
-pub fn run(config: &Config, args: CloneArgs) -> i32 {
+pub async fn run(config: &Config, args: CloneArgs) -> i32 {
     let vcs = args.vcs.unwrap_or(config.command.clone.default_vcs);
 
     if let Ok(repo_id) = RepoId::from_remote_url(&args.url) {
-        do_clone(config, &repo_id, &vcs)
+        match do_clone(config, args.force_tree, &repo_id, &vcs).await {
+            Ok(c) => c,
+            Err(err) => {
+                eprintln!("{err}");
+                1
+            }
+        }
     } else {
         eprintln!("Error parsing the provided URL");
         1

@@ -11,6 +11,7 @@ use serde::Serialize;
 use crate::config::Config;
 use crate::error::NoRepositoryError;
 use crate::error::NotImplementedError;
+use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_id::RepoId;
 use crate::repo_state::RepoState;
 use crate::tree::TreeSpace;
@@ -89,13 +90,15 @@ impl Repository {
     }
 
     /// Search for a repository at the given path.
-    pub fn discover(
+    pub async fn discover(
         config: &Config,
         path: &Path,
+        strategy: ExpectedTreeStrategy,
     ) -> Result<Self, Box<dyn Error>> {
         let repository = Self::discover_silent(config, path)?;
 
-        if let Some(expected_root) = repository.expected_root(config)?
+        if let Some(expected_root) =
+            repository.expected_root(config, strategy).await?
             && repository.root != expected_root
             && !config.should_be_ignored(&repository.root)
         {
@@ -148,14 +151,22 @@ impl Repository {
     /// Get the expected path to the root of the repository within the repo
     /// tree. If the repository is a submodule then, it has to be at its place
     /// within its main repository and therefore we return None.
-    pub fn expected_root(
+    // TODO: Cache the result of that function. This might do API access which
+    // we should not have to do uselessly multiple times.
+    pub async fn expected_root(
         &self,
         config: &Config,
+        strategy: ExpectedTreeStrategy,
     ) -> Result<Option<PathBuf>, Box<dyn Error>> {
         Ok(if self.is_submodule {
             None
         } else {
-            Some(self.id.expected_tree().repo_location(config, &self.id)?)
+            Some(
+                self.id
+                    .expected_tree(config, Some(&self.root), strategy)
+                    .await?
+                    .repo_location(config, &self.id)?,
+            )
         })
     }
 

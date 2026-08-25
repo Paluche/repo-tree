@@ -9,6 +9,7 @@ use colored::Colorize;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
+use crate::repo_id::ExpectedTreeStrategy;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
 // XXX Potentially split between the git specific command which is
@@ -128,13 +129,19 @@ fn format_repo_status(
 }
 
 /// Execute the `rt git status` command.
-pub fn run(config: &Config, args: StatusArgs) -> i32 {
+pub async fn run(config: &Config, args: StatusArgs) -> i32 {
     if args.refresh_cache {
         RepoTree::load(config, true);
     }
 
     let repo_path = cwd_default_path(args.repository);
-    let repository = match Repository::discover(config, &repo_path) {
+    let repository = match Repository::discover(
+        config,
+        &repo_path,
+        ExpectedTreeStrategy::Lazy,
+    )
+    .await
+    {
         Ok(r) => r,
         Err(err) => {
             eprintln!("{err}");

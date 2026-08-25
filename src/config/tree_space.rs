@@ -15,6 +15,9 @@ pub struct TreeSpaceConfig {
     /// Configuration for local only repositories.
     #[serde(default)]
     pub local: LocalTreeSpace,
+    /// Configuration for archived repositories tree-space.
+    #[serde(default)]
+    pub archive: ArchiveTreeSpace,
 }
 
 /// Configuration for the dev tree-space, the default tree-space for
@@ -54,6 +57,26 @@ impl Default for LocalTreeSpace {
                 "local".to_string(),
                 None,
                 ColoredText::new("󰋊", colored::Color::White),
+            ),
+        }
+    }
+}
+
+/// Configuration for the tree-space that will contain archived repositories.
+#[derive(Serialize, Deserialize)]
+pub struct ArchiveTreeSpace {
+    /// Tree category information for the tree-space.
+    #[serde(flatten)]
+    pub category: TreeCategory,
+}
+
+impl Default for ArchiveTreeSpace {
+    fn default() -> Self {
+        Self {
+            category: TreeCategory::new(
+                "archive".to_string(),
+                None,
+                ColoredText::new("󰀼", colored::Color::Yellow),
             ),
         }
     }

@@ -117,6 +117,8 @@ impl<'config> TreeOrganization<'config> {
 pub enum TreeSpace {
     /// Main tree, where active, user-modified repository are
     Dev,
+    /// Where archived / read-only repositories are stored.
+    Archive,
     /// Tree for repositories which exists only locally.
     Local,
 }
@@ -129,6 +131,8 @@ impl TreeSpace {
 
         if dir_name == tree_config.dev.category.dir_name() {
             Some(Self::Dev)
+        } else if dir_name == tree_config.archive.category.dir_name() {
+            Some(Self::Archive)
         } else if dir_name == tree_config.local.category.dir_name() {
             Some(Self::Local)
         } else {
@@ -157,6 +161,10 @@ impl TreeSpace {
             Self::Local => {
                 TreeOrganization::Local(config, &config.tree.local.category)
             }
+            Self::Archive => TreeOrganization::RemoteBased(
+                config,
+                &config.tree.archive.category,
+            ),
         }
     }
 
@@ -373,5 +381,67 @@ impl Drop for RepoTree {
         {
             eprintln!("Unable to create cache file: {err}");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn check_tree_space_from_path(
+        config: &Config,
+        category: &TreeCategory,
+        expected_tree_space: Option<TreeSpace>,
+    ) {
+        let repo_path = config
+            .root
+            .join(category.dir_name())
+            .join("test")
+            .join("foo")
+            .join("bar");
+
+        let tree_space = TreeSpace::from_path(config, &repo_path);
+        assert_eq!(tree_space, expected_tree_space);
+    }
+
+    #[test]
+    fn check_tree_space_from_path_dev() {
+        let config = Config::test_default();
+
+        check_tree_space_from_path(
+            &config,
+            &config.tree.dev.category,
+            Some(TreeSpace::Dev),
+        )
+    }
+
+    #[test]
+    fn check_tree_space_from_path_archive() {
+        let config = Config::test_default();
+
+        check_tree_space_from_path(
+            &config,
+            &config.tree.archive.category,
+            Some(TreeSpace::Archive),
+        )
+    }
+
+    #[test]
+    fn check_tree_space_from_path_local() {
+        let config = Config::test_default();
+
+        check_tree_space_from_path(
+            &config,
+            &config.tree.local.category,
+            Some(TreeSpace::Local),
+        )
+    }
+
+    #[test]
+    fn check_tree_space_from_path_invalid() {
+        let config = Config::test_default();
+        let repo_path = PathBuf::from("/home/not-user/work/dev/test/foo/bar");
+        let tree_space = TreeSpace::from_path(&config, &repo_path);
+        assert_eq!(tree_space, None)
     }
 }

@@ -12,6 +12,7 @@ use crate::config::Config;
 use crate::config::list_host_completer;
 use crate::error::NoRepositoryError;
 use crate::error::NotImplementedError;
+use crate::repo_id::ExpectedTreeStrategy;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
 use crate::utils::into_iter_from;
@@ -44,7 +45,13 @@ pub struct NextPrevArgs {
 /// Execute the `rt todo next` or `rt todo prev` command.
 pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
     let repo_path = cwd_default_path(None);
-    let current_repository = match Repository::discover(config, &repo_path) {
+    let current_repository = match Repository::discover(
+        config,
+        &repo_path,
+        ExpectedTreeStrategy::Lazy,
+    )
+    .await
+    {
         Ok(r) => Some(r),
         Err(err) => {
             if err.downcast_ref::<NoRepositoryError>().is_none() {
