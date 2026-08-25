@@ -33,7 +33,7 @@ enum RepoAction {
 pub async fn run(config: &Config, args: RepoArgs) -> i32 {
     match args.action {
         RepoAction::Root(args) => root::run(config, args),
-        RepoAction::Remote(args) => remote::run(config, args),
+        RepoAction::Remote(args) => remote::run(config, args).await,
         RepoAction::State(args) => state::run(config, args).await,
         RepoAction::Prompt(args) => prompt::run(config, args).await,
     }

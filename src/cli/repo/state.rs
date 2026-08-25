@@ -5,6 +5,7 @@ use clap_complete::engine::ArgValueCompleter;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
+use crate::repo_id::ExpectedTreeStrategy;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
 
@@ -33,7 +34,10 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
     let repository = match Repository::discover(
         config,
         &cwd_default_path(args.repository),
-    ) {
+        ExpectedTreeStrategy::Lazy,
+    )
+    .await
+    {
         Ok(r) => r,
         Err(err) => {
             eprintln!("Error: {err}");

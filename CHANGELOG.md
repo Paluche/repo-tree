@@ -10,10 +10,11 @@ and this project adheres to
 
 ### Release highlights
 
-Introduction of the `tree-spaces`, you have two available ones being:
+Introduction of the `tree-spaces`, you have three available ones being:
 
-- `dev`: Repositories with a remote.
+- `dev`: Active (non-archived) repositories with a remote.
 - `local`: Repositories without a remote.
+- `archive`: Archive repositories with a remote.
 
 ### Breaking changes
 

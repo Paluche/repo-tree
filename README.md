@@ -11,9 +11,11 @@ by the `root` configuration or the `REPO_TREE_DIR` environment variable.
 The path where the repositories are stored is computed based on the remote URL
 of the repository. The repositories are then organized by host.
 
-We have 2 "tree-spaces":
+We have 3 "tree-spaces":
 
 - `dev/` Contains active repositories.
+- `archive/` Contains repositories marked as archived by the forge they a
+  stored on.
 - `local/` Repositories which has no remote associated and exists only locally.
 
 Raw example of output of `rt tree`
@@ -34,19 +36,26 @@ Raw example of output of `rt tree`
 │   │   └── home/dot_config/zsh/external_zsh-syntax-highlighting
 │   │           1d85c692615a25fe2293bdd44b34c217d5d2bf04
 │   │           https://github.com/zsh-users/zsh-syntax-highlighting.git
-│   └── my-company
-│       ├── project-Z
-│       │   ├── system-A
-│       │   │   ├── sub-system-0
-│       │   │   │       git@my-company.com:project-Z/system-A/sub-system-0.git 󰊢
-│       │   │   └── sub-system-1
-│       │   │           git@my-company.com:project-Z/system-A/sub-system-1.git 󰊢
-│       │   └── system-B
-│       │       ├── sub-system-0
-│       │       │       git@my-company.com:project-Z/system-B/sub-system-0.git 󰊢
-│       │       └── sub-system-1
-│       │               git@my-company.com:project-Z/system-B/sub-system-1.git 󰊢
-│       └── ...
+│   ├── my-company
+│   │   ├── project-Z
+│   │   │   ├── system-A
+│   │   │   │   ├── sub-system-0
+│   │   │   │   │       git@my-company.com:project-Z/system-A/sub-system-0.git 󰊢
+│   │   │   │   └── sub-system-1
+│   │   │   │           git@my-company.com:project-Z/system-A/sub-system-1.git 󰊢
+│   │   │   └── system-B
+│   │   │       ├── sub-system-0
+│   │   │       │       git@my-company.com:project-Z/system-B/sub-system-0.git 󰊢
+│   │   │       └── sub-system-1
+│   │   │               git@my-company.com:project-Z/system-B/sub-system-1.git 󰊢
+│   │   └── ...
+│   └── ...
+├── archive
+│   ├── github
+│   │   ├── Paluche/Lawsty
+│   │   │         git@github.com:Paluche/Lawsty.git 󰊢
+│   │   └── ...
+│   └── ...
 └── local
     └── ... # Repositories which has no remote configured.
 ```

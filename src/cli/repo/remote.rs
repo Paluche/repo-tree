@@ -5,6 +5,7 @@ use clap_complete::engine::ArgValueCompleter;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
+use crate::repo_id::ExpectedTreeStrategy;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
 
@@ -21,7 +22,7 @@ pub struct RemoteArgs {
 }
 
 /// Execute the `rt repo remote` command.
-pub fn run(config: &Config, args: RemoteArgs) -> i32 {
+pub async fn run(config: &Config, args: RemoteArgs) -> i32 {
     if args.refresh_cache {
         RepoTree::load(config, true);
     }
@@ -29,7 +30,10 @@ pub fn run(config: &Config, args: RemoteArgs) -> i32 {
     let repository = match Repository::discover(
         config,
         &cwd_default_path(args.repository),
-    ) {
+        ExpectedTreeStrategy::Lazy,
+    )
+    .await
+    {
         Ok(r) => r,
         Err(err) => {
             println!("{err}");

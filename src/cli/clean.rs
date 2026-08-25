@@ -7,8 +7,10 @@ use std::fs::rename;
 use std::path::PathBuf;
 
 use clap::Args;
+use pollster::FutureExt;
 
 use crate::config::Config;
+use crate::repo_id::ExpectedTreeStrategy;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
 
@@ -23,17 +25,22 @@ pub struct CleanArgs {
 }
 
 /// Execute the `rt clean` command.
-pub fn run(config: &Config, args: CleanArgs) -> i32 {
+pub async fn run(config: &Config, args: CleanArgs) -> i32 {
     // Do not use the cache, assure we have an up-to-date list of repositories
     // before doing any action that will modify the directories.
     let repo_tree = RepoTree::load_silent(config, true);
     let repos_to_move: Vec<(&Repository, PathBuf)> = repo_tree
         .iter()
-        .filter_map(|r| match r.expected_root(config) {
-            Ok(v) => v.and_then(|p| (p != r.root).then_some((r, p))),
-            Err(err) => {
-                eprintln!("{err}");
-                None
+        .filter_map(|r| {
+            match r
+                .expected_root(config, ExpectedTreeStrategy::Exact)
+                .block_on()
+            {
+                Ok(v) => v.and_then(|p| (p != r.root).then_some((r, p))),
+                Err(err) => {
+                    eprintln!("{err}");
+                    None
+                }
             }
         })
         .collect();

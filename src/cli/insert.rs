@@ -8,6 +8,8 @@ use clap::Args;
 use clap_complete::ArgValueCompleter;
 use clap_complete::PathCompleter;
 
+use super::ForceTreeSpace;
+use super::force_tree_into_strategy;
 use crate::config::Config;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
@@ -18,6 +20,10 @@ pub struct InsertArgs {
     /// Path to the repository to insert.
     #[arg(add=ArgValueCompleter::new(PathCompleter::dir()))]
     path: String,
+    /// If the repository to insert, has a remote and doubt subsist as if is an
+    /// archived or not repository tree-space.
+    #[arg(long, short)]
+    force_tree: Option<ForceTreeSpace>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
@@ -31,7 +37,7 @@ fn refresh_cache(config: &Config, refresh_cache: bool) {
 }
 
 /// Execute the `rt insert` command.
-pub fn run(config: &Config, args: InsertArgs) -> i32 {
+pub async fn run(config: &Config, args: InsertArgs) -> i32 {
     let repository =
         match Repository::discover_silent(config, &PathBuf::from(args.path)) {
             Ok(r) => r,
@@ -41,7 +47,10 @@ pub fn run(config: &Config, args: InsertArgs) -> i32 {
             }
         };
 
-    let expected_root = match repository.expected_root(config) {
+    let expected_root = match repository
+        .expected_root(config, force_tree_into_strategy(args.force_tree))
+        .await
+    {
         Ok(value) => match value {
             Some(value) => value,
             None => {

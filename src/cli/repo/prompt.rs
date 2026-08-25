@@ -8,6 +8,7 @@ use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::error::NoRepositoryError;
 use crate::prompt::Prompt;
+use crate::repo_id::ExpectedTreeStrategy;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
 use crate::version_control_system::VersionControlSystem;
@@ -34,7 +35,13 @@ pub async fn run(config: &Config, args: PromptArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);
 
-    let repository = match Repository::discover(config, &repo_path) {
+    let repository = match Repository::discover(
+        config,
+        &repo_path,
+        ExpectedTreeStrategy::Lazy,
+    )
+    .await
+    {
         Ok(r) => r,
         Err(err) => {
             if err.downcast_ref::<NoRepositoryError>().is_some() {

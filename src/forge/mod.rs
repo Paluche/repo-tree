@@ -23,7 +23,6 @@ pub enum Forge {
 
 /// All possible interactions we want to have with a forge API.
 #[async_trait(?Send)]
-#[allow(dead_code)]
 pub trait ForgeApi {
     /// Find out if the repository is archived.
     async fn is_archived(
@@ -32,6 +31,7 @@ pub trait ForgeApi {
     ) -> Result<bool, Box<dyn Error>>;
 
     /// Get the name of the repository as it is on the forge.
+    #[allow(dead_code)]
     async fn get_name(
         &self,
         repo_id: &RepoId,
@@ -40,11 +40,10 @@ pub trait ForgeApi {
 
 impl Forge {
     /// Get the struct implementing the ForgeApi for the respective forge.
-    #[allow(dead_code)]
     pub fn api(&self) -> Result<Box<dyn ForgeApi>, Box<dyn Error>> {
         match self {
             Self::GitHub | Self::GitLab | Self::Forgejo | Self::Bitbucket => {
-                Err(Box::new(UnimplementedForgeApi(self.clone())))
+                Err(Box::new(UnimplementedForgeApi(format!("{self:?}"))))
             }
         }
     }
