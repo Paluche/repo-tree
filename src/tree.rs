@@ -94,6 +94,14 @@ impl<'config> TreeOrganization<'config> {
     }
 }
 
+/// The different kind of tree-space.
+pub enum TreeSpaceKind {
+    /// Tree-space containing main repositories.
+    Main,
+    /// Tree-space containing "read-only" repositories.
+    ReadOnly,
+}
+
 /// The different repository trees categories.
 #[derive(
     Debug,
@@ -132,6 +140,13 @@ impl TreeSpace {
             config,
             path.strip_prefix(&config.root).ok()?.iter().next()?,
         )
+    }
+
+    pub fn kind(&self) -> TreeSpaceKind {
+        match self {
+            Self::Dev | Self::Local => TreeSpaceKind::Main,
+            Self::Archive => TreeSpaceKind::ReadOnly,
+        }
     }
 
     /// Get the tree category associated with the tree space.
