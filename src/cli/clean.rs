@@ -8,8 +8,8 @@ use std::fs::rename;
 use clap::Args;
 
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
@@ -25,8 +25,8 @@ pub struct CleanArgs {
 pub fn run(config: &Config, args: CleanArgs) -> i32 {
     // Do not use the cache, assure we have an up-to-date list of repositories
     // before doing any action that will modify the directories.
-    let repositories = Repositories::load_silent(config, true);
-    let repos_to_move: Vec<&Repository> = repositories
+    let repo_tree = RepoTree::load_silent(config, true);
+    let repos_to_move: Vec<&Repository> = repo_tree
         .iter()
         .filter(|r| match r.expected_root(config) {
             Ok(v) => v.is_some_and(|p| p != r.root),
@@ -78,7 +78,7 @@ pub fn run(config: &Config, args: CleanArgs) -> i32 {
         // Force the cache to be refreshed at the same time as loading the empty
         // directories.
         let (_, Some(empty_dirs)) =
-            Repositories::load_silent_with_empty_dirs(config, true)
+            RepoTree::load_silent_with_empty_dirs(config, true)
         else {
             panic!(
                 "Cache forced to be refreshed so empty_dirs should be \

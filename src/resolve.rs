@@ -14,8 +14,8 @@ use itertools::Itertools;
 use which::which;
 
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 
 /// Find the shortest end-path to identify two path.
 fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
@@ -45,17 +45,16 @@ fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
 /// each repositories individually.
 fn reduce_repo_names<'repos>(
     config: &Config,
-    repositories: &'repos Repositories,
+    repositories: &'repos RepoTree,
 ) -> BTreeMap<String, &'repos Repository> {
     let mut ret: BTreeMap<String, &Repository> = BTreeMap::new();
 
     for repository in repositories.iter() {
         let name = repository.id.name.clone();
-        if let Ok(full_name) = repository
+        if let Some(full_name) = repository
             .id
-            .host_category(config)
-            .inspect_err(|err| eprintln!("{err}"))
-            .map(|host_category| format!("{}/{name}", host_category.name))
+            .remote_host_name(config)
+            .map(|remote_host_name| format!("{remote_host_name}/{name}"))
         {
             if let Some(conflict) = ret.remove(&full_name) {
                 eprintln!(
@@ -92,7 +91,7 @@ fn reduce_repo_names<'repos>(
 /// repository present in the repo tree.
 fn get_candidates<'repos>(
     config: &Config,
-    repositories: &'repos Repositories,
+    repositories: &'repos RepoTree,
 ) -> BTreeMap<String, &'repos Repository> {
     let mut ret = reduce_repo_names(config, repositories);
 
@@ -146,7 +145,7 @@ fn fzf_ask(
 /// Resolve a repository identifier into a local repository.
 pub fn resolve<'repos>(
     config: &Config,
-    repositories: &'repos Repositories,
+    repositories: &'repos RepoTree,
     repo_id: Option<String>,
 ) -> Result<Option<&'repos Repository>, Box<dyn Error>> {
     let mut candidates = get_candidates(config, repositories);
@@ -222,7 +221,7 @@ pub fn resolve_completer(
     let Ok(config) = Config::load() else {
         return vec![];
     };
-    let repositories = Repositories::load_silent(&config, false);
+    let repositories = RepoTree::load_silent(&config, false);
     let candidates = get_candidates(&config, &repositories);
     let matcher = SkimMatcherV2::default();
     candidates
@@ -232,13 +231,9 @@ pub fn resolve_completer(
                 let repository = candidates.get(item).unwrap();
 
                 CompletionCandidate::new(item)
-                    .tag(
-                        repository
-                            .id
-                            .host_category(&config)
-                            .ok()
-                            .map(|c| StyledStr::from(c.dir_name().to_string())),
-                    )
+                    .tag(repository.id.remote_host(&config).ok().flatten().map(
+                        |r| StyledStr::from(r.category.dir_name().to_string()),
+                    ))
                     .help(
                         repository
                             .id

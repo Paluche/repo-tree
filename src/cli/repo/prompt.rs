@@ -8,8 +8,8 @@ use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::error::NoRepositoryError;
 use crate::prompt::Prompt;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::git;
 use crate::version_control_system::jujutsu;
@@ -28,7 +28,7 @@ pub struct PromptArgs {
 /// Execute `rt repo prompt` command.
 pub async fn run(config: &Config, args: PromptArgs) -> i32 {
     if args.refresh_cache {
-        Repositories::load(config, true);
+        RepoTree::load(config, true);
     }
 
     let repo_path = cwd_default_path(args.repository);

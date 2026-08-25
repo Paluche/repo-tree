@@ -12,6 +12,7 @@ mod repo_id;
 mod repo_state;
 mod repository;
 mod resolve;
+mod tree;
 mod utils;
 mod version_control_system;
 

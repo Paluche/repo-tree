@@ -19,6 +19,11 @@ pub struct ParseUrlError(pub String);
 pub struct NoRepositoryError(pub PathBuf);
 
 #[derive(Debug, Error)]
+#[error("Repository {0}, should not be in {0} tree-space")]
+/// No repository found.
+pub struct UnexpectedTreeSpaceError(pub String, pub String);
+
+#[derive(Debug, Error)]
 #[error("Missing host configuration for {0}")]
 /// Error when trying to obtain configuration information about a host, which
 /// has no configuration associated.

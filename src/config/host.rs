@@ -19,7 +19,7 @@ pub struct HostInfo {
 /// Configuration of a remote host.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct RemoteHost {
-    /// Tree object information.
+    /// Tree category information.
     #[serde(flatten)]
     pub category: TreeCategory,
     /// Host information.
@@ -99,26 +99,6 @@ pub fn default_remote_hosts() -> RemoteHosts {
         )
     })
     .collect()
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, Hash)]
-/// Representation of a repository local host.
-pub struct LocalHost {
-    /// Information for the local host
-    #[serde(flatten)]
-    pub category: TreeCategory,
-}
-
-impl Default for LocalHost {
-    fn default() -> Self {
-        Self {
-            category: TreeCategory::new(
-                "local".to_string(),
-                None,
-                ColoredText::new("󰋊", colored::Color::White),
-            ),
-        }
-    }
 }
 
 /// Configuration when having to handle an unknown host (unknown from the

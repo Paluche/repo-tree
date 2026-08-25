@@ -3,7 +3,7 @@ use clap::Args;
 
 use crate::cli::get_cwd;
 use crate::config::Config;
-use crate::repository::Repositories;
+use crate::tree::RepoTree;
 use crate::version_control_system::VersionControlSystem;
 
 /// Get the root and type of the repository the working directory or its
@@ -27,7 +27,7 @@ pub struct RootArgs {
 /// Execute the `rt repo root` command.
 pub fn run(config: &Config, args: RootArgs) -> i32 {
     if args.refresh_cache {
-        Repositories::load(config, true);
+        RepoTree::load(config, true);
     }
 
     let mut cwd = get_cwd();

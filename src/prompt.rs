@@ -49,6 +49,7 @@ impl<'repo> Prompt<'repo> {
 pub struct Display<'prompt, 'repo, 'config> {
     /// Prompt we are displaying.
     prompt: &'prompt Prompt<'repo>,
+    // XXX Tree representation!!!!
     /// Configuration customizing the prompt.
     config: &'config Config,
 }
@@ -59,11 +60,29 @@ impl<'prompt, 'repo, 'config> std::fmt::Display
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}{}{}{}{}{}",
+            "{}{}",
             self.config.prompt.prefix,
             self.prompt.repository.vcs.short_display(self.config),
-            self.config.prompt.separator,
-            self.prompt.repository.id.host_repr(self.config),
+        )?;
+
+        if let Some(tree) = &self.prompt.repository.tree {
+            write!(
+                f,
+                "{}{}",
+                self.config.prompt.separator,
+                tree.repr(self.config)
+            )?;
+        }
+
+        if let Some(repr) =
+            self.prompt.repository.id.remote_host_repr(self.config)
+        {
+            write!(f, "{}{}", self.config.prompt.separator, repr)?;
+        }
+
+        write!(
+            f,
+            "{}{}",
             self.config.prompt.separator,
             self.prompt.repository.id.name.green()
         )?;

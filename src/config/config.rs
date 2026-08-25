@@ -14,13 +14,13 @@ use serde::Serialize;
 
 use super::command::CommandConfig;
 use super::config_dir;
-use super::host::LocalHost;
 use super::host::RemoteHost;
 use super::host::RemoteHosts;
 use super::host::UnknownHost;
 use super::host::default_remote_hosts;
 use super::prompt::PromptConfig;
 use super::repository_location::RepositoryLocation;
+use super::tree_space::TreeSpaceConfig;
 use crate::error::ConfigError;
 
 /// Obtain a default value for the repo tree root.
@@ -49,9 +49,9 @@ pub struct Config {
     /// which host there remote.
     #[serde(default = "default_remote_hosts", rename = "host")]
     pub remote_hosts: RemoteHosts,
-    /// Configuration for local only repositories.
+    /// Configuration for the tree-spaces
     #[serde(default)]
-    pub local: LocalHost,
+    pub tree: TreeSpaceConfig,
     /// Configuration when having to handle an unknown host (unknown from the
     /// configuration).
     #[serde(default)]
@@ -104,8 +104,7 @@ impl Config {
 
     /// Obtain completion candidates for a CLI host argument.
     pub fn host_completer(&self, current: &OsStr) -> Vec<CompletionCandidate> {
-        let mut ret: Vec<CompletionCandidate> = self
-            .remote_hosts
+        self.remote_hosts
             .iter()
             .filter(|(host, _)| {
                 host.starts_with(current.to_str().unwrap_or(""))
@@ -114,14 +113,7 @@ impl Config {
                 CompletionCandidate::new(data.category.name.clone())
                     .help(Some(StyledStr::from(host)))
             })
-            .collect();
-
-        ret.push(
-            CompletionCandidate::new(self.local.category.name.clone())
-                .help(Some(StyledStr::from("Local repositories"))),
-        );
-
-        ret
+            .collect()
     }
 
     /// Get the specified RemoteHost struct for a given host.
@@ -252,15 +244,28 @@ mod tests {
         );
     }
 
-    struct LocalHostRef {
+    struct DevTreeSpaceRef {
         category: TreeCategoryRef,
     }
 
-    fn check_local_host(config: &Config, expected: LocalHostRef) {
+    struct LocalTreeSpaceRef {
+        category: TreeCategoryRef,
+    }
+
+    fn check_tree_spaces(
+        config: &Config,
+        expected_dev: DevTreeSpaceRef,
+        expected_local: LocalTreeSpaceRef,
+    ) {
         check_tree_category(
-            "config.local.remote_host.category",
-            &config.local.category,
-            &expected.category,
+            "config.tree.dev.category",
+            &config.tree.dev.category,
+            &expected_dev.category,
+        );
+        check_tree_category(
+            "config.tree.local.category",
+            &config.tree.local.category,
+            &expected_local.category,
         );
     }
 
@@ -363,9 +368,17 @@ mod tests {
         );
 
         // Check local.
-        check_local_host(
+        check_tree_spaces(
             &config,
-            LocalHostRef {
+            DevTreeSpaceRef {
+                category: TreeCategoryRef {
+                    name: "dev",
+                    raw_dir_name: None,
+                    dir_name: "dev",
+                    repr: ColoredText::new("", colored::Color::Blue),
+                },
+            },
+            LocalTreeSpaceRef {
                 category: TreeCategoryRef {
                     name: "local",
                     raw_dir_name: None,
@@ -508,10 +521,17 @@ mod tests {
         text = "󰮠"
         color = 166
 
-        [local]
+        [tree.dev]
+        name = "dev"
+
+        [tree.dev.repr]
+        text = ""
+        color = "blue"
+
+        [tree.local]
         name = "local"
 
-        [local.repr]
+        [tree.local.repr]
         text = "󰋊"
         color = "white"
 
@@ -617,6 +637,14 @@ mod tests {
         let config = Config::load_internal(indoc! {r#"
         root = "/home/user/repos"
 
+        [tree.dev]
+        name = 'dev'
+        repr = {text = 'D', color = 'red'}
+
+        [tree.local]
+        name = 'local'
+        repr = {text = 'L', color = 'blue'}
+
         [host."my.custom-domain.fr"]
         name = 'mine'
         repr = { text = '󱘎', color = 'blue' }
@@ -636,10 +664,6 @@ mod tests {
         [host."alice-and-bob.net"]
         name = 'alice-and-bob'
         repr = { text = '',  color = [48, 15, 16]}
-
-        [local]
-        name = 'local'
-        repr = {text = 'L', color = 'blue'}
 
         [unknown_host]
         repr = {text = '?', color = 'bright red'}
@@ -870,24 +894,31 @@ mod tests {
             },
         );
 
-        // Check local.
-        check_local_host(
+        // Check unknown host.
+        check_unknown_host(
             &config,
-            LocalHostRef {
+            UnknownHost {
+                repr: ColoredText::new("?", colored::Color::BrightRed),
+            },
+        );
+
+        check_tree_spaces(
+            &config,
+            DevTreeSpaceRef {
+                category: TreeCategoryRef {
+                    name: "dev",
+                    raw_dir_name: None,
+                    dir_name: "dev",
+                    repr: ColoredText::new("D", colored::Color::Red),
+                },
+            },
+            LocalTreeSpaceRef {
                 category: TreeCategoryRef {
                     name: "local",
                     raw_dir_name: None,
                     dir_name: "local",
                     repr: ColoredText::new("L", colored::Color::Blue),
                 },
-            },
-        );
-
-        // Check unknown host.
-        check_unknown_host(
-            &config,
-            UnknownHost {
-                repr: ColoredText::new("?", colored::Color::BrightRed),
             },
         );
 
@@ -1076,10 +1107,17 @@ mod tests {
         text = "󱘎"
         color = "blue"
 
-        [local]
+        [tree.dev]
+        name = "dev"
+
+        [tree.dev.repr]
+        text = "D"
+        color = "red"
+
+        [tree.local]
         name = "local"
 
-        [local.repr]
+        [tree.local.repr]
         text = "L"
         color = "blue"
 

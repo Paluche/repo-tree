@@ -12,8 +12,8 @@ use crate::config::Config;
 use crate::config::list_host_completer;
 use crate::error::NoRepositoryError;
 use crate::error::NotImplementedError;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 use crate::utils::into_iter_from;
 
 /// Go to the next or previous repository where you have to do something to keep
@@ -55,11 +55,11 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
         }
     };
 
-    let repositories = Repositories::load(config, args.refresh_cache);
+    let repo_tree = RepoTree::load(config, args.refresh_cache);
 
     // Skip the current repository.
     for repository in into_iter_from(
-        repositories.filtered(config, &args.hosts, &args.names),
+        repo_tree.filtered(config, &args.hosts, &args.names),
         &current_repository,
         reverse,
     ) {
@@ -82,10 +82,16 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
             if repo_state.is_ok() {
                 continue;
             }
+            let remote_host_repr =
+                if let Some(r) = repository.id.remote_host_repr(config) {
+                    format!("{r} ")
+                } else {
+                    "".to_string()
+                };
             eprintln!(
-                "\r{}{} {:20} {}",
+                "\r{}{}{:20} {}",
                 Clear(ClearType::CurrentLine),
-                repository.id.host_repr(config),
+                remote_host_repr,
                 repository.id.name,
                 repo_state
             );

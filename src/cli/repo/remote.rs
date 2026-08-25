@@ -5,8 +5,8 @@ use clap_complete::engine::ArgValueCompleter;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
-use crate::repository::Repositories;
 use crate::repository::Repository;
+use crate::tree::RepoTree;
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.
@@ -23,7 +23,7 @@ pub struct RemoteArgs {
 /// Execute the `rt repo remote` command.
 pub fn run(config: &Config, args: RemoteArgs) -> i32 {
     if args.refresh_cache {
-        Repositories::load(config, true);
+        RepoTree::load(config, true);
     }
 
     let repository = match Repository::discover(
