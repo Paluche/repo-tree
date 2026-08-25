@@ -10,6 +10,7 @@ use colored::Colorize;
 use crate::config::Config;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
+use crate::tree::TreeSpaceKind;
 
 /// Display a tree of your repo_tree.
 #[derive(Args)]
@@ -155,7 +156,7 @@ impl<'repos> Directory<'repos> {
             if let Some(remote) = &r.id.remote {
                 writeln!(
                     f,
-                    "{prefix}{}{} {}{}",
+                    "{prefix}{}{} {}{}{}",
                     if submodules.is_empty() {
                         DirState::FinalSubDir
                     } else {
@@ -166,6 +167,13 @@ impl<'repos> Directory<'repos> {
                     r.vcs.short_display(config),
                     if let Some(workspace) = workspace {
                         format!(" {workspace}@").bright_green().to_string()
+                    } else {
+                        "".to_string()
+                    },
+                    if let Some(tree) = &r.tree
+                        && matches!(tree.kind(), TreeSpaceKind::ReadOnly)
+                    {
+                        " 󰌾".red().to_string()
                     } else {
                         "".to_string()
                     },
