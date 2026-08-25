@@ -14,7 +14,6 @@ use serde::Serialize;
 
 use super::command::CommandConfig;
 use super::config_dir;
-use super::host::HostInfo;
 use super::host::LocalHost;
 use super::host::RemoteHost;
 use super::host::RemoteHosts;
@@ -67,11 +66,6 @@ pub struct Config {
     /// Configuration for the different rt sub-commands.
     #[serde(default)]
     pub command: CommandConfig,
-    /// Internal data, do not modify. This is to have a pointer to a default
-    /// instance of HostInfo with the lifetime of the configuration struct.
-    /// Could be a const as 'static will be always a bigger lifetime.
-    #[serde(skip, default)]
-    pub default_host_info: HostInfo,
 }
 
 impl Config {
@@ -152,6 +146,7 @@ mod tests {
     use super::*;
     use crate::colors::ColoredList;
     use crate::colors::ColoredText;
+    use crate::config::host::HostInfo;
     use crate::config::prompt::GitPromptConfig;
     use crate::config::prompt::GitUpstreamConfig;
     use crate::config::prompt::JujutsuBookmarkConfig;

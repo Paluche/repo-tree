@@ -20,7 +20,6 @@ use std::path::PathBuf;
 
 use clap_complete::engine::CompletionCandidate;
 pub use config::Config;
-pub use host::HostInfo;
 pub use prompt::JujutsuBookmarkConfig;
 pub use prompt::JujutsuPromptConfig;
 pub use tree_category::TreeCategory;
