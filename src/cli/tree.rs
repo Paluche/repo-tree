@@ -17,6 +17,9 @@ use crate::ui::Ui;
 /// Display a tree of your repo_tree.
 #[derive(Args)]
 pub struct TreeArgs {
+    /// Filter the tree view based on a specific tree.
+    #[arg(short, long, add=TreeSpace::completer())]
+    tree: Option<TreeSpace>,
     /// Force recreating the cache.
     #[arg(short, long, global = true)]
     refresh_cache: bool,
@@ -294,10 +297,16 @@ impl<'config, 'ui, 'ui_config, 'repo_tree>
         config: &'config Config,
         ui: &'ui Ui<'ui_config>,
         repo_tree: &'repo_tree RepoTree,
+        maybe_tree_space: Option<TreeSpace>,
     ) -> Self {
         let mut directory: Directory<'repo_tree> = Directory::default();
 
         for (repository, workspace) in repo_tree.workspace_iter() {
+            if let Some(tree_space) = &maybe_tree_space
+                && workspace.tree_space() != Some(tree_space)
+            {
+                continue;
+            }
             directory.insert(config, repository, workspace);
         }
 
@@ -331,7 +340,8 @@ pub fn run(config: &Config, ui: &Ui<'_>, args: TreeArgs) -> i32 {
         RootDirectory::new(
             config,
             ui,
-            &RepoTree::load(config, ui, args.refresh_cache)
+            &RepoTree::load(config, ui, args.refresh_cache),
+            args.tree,
         )
     );
 
