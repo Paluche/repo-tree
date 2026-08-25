@@ -246,6 +246,7 @@ impl RepoTree {
     ) -> Box<dyn Iterator<Item = &'repo_tree Repository> + 'repo_tree> {
         Box::new(self.repositories.iter())
     }
+
     /// Obtain an iterator on all the repositories workspaces.
     pub fn workspace_iter<'repo_tree>(
         &'repo_tree self,
@@ -258,6 +259,16 @@ impl RepoTree {
                 .iter()
                 .flat_map(|r| r.workspaces.iter().map(move |w| (r, w))),
         )
+    }
+
+    /// Obtain the Repository and Workspace of the repository workspace at the
+    /// provided path.
+    pub fn get_workspace(
+        &self,
+        workspace_path: &Path,
+    ) -> Option<(&Repository, &Workspace)> {
+        self.workspace_iter()
+            .find(|(_, w)| w.path() == workspace_path)
     }
 }
 

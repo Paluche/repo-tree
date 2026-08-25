@@ -1,5 +1,6 @@
 //! Definition of the rt CLI.
 use std::env;
+use std::error::Error;
 use std::fs::canonicalize;
 use std::path::PathBuf;
 use std::process::exit;
@@ -22,8 +23,15 @@ mod resolve_url;
 mod rm;
 mod todo;
 mod tree;
+mod workspace;
 
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
+use crate::repository::Repository;
+use crate::repository::Workspace;
+use crate::resolve::ResolveFilter;
+use crate::resolve::resolve;
+use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
 
 /// Control of the colored output.
@@ -67,6 +75,7 @@ enum Action {
     Fetch(fetch::FetchArgs),
     Todo(todo::TodoArgs),
     Repo(repo::RepoArgs),
+    Workspace(workspace::WorkspaceArgs),
     Git(git::GitArgs),
     Rm(rm::RmArgs),
     RefreshCache(refresh_cache::RefreshCacheArgs),
@@ -99,6 +108,30 @@ fn cwd_default_path(ui: &Ui, path: Option<String>) -> PathBuf {
     }
 }
 
+/// Get the repository in the current working directory or, if a repository ID is provided get the
+/// asked repository.
+fn get_current_repo_or_main<'repo_tree>(
+    config: &Config,
+    ui: &Ui<'_>,
+    repo_tree: &'repo_tree RepoTree,
+    repo_id: Option<String>,
+) -> Result<
+    Option<(&'repo_tree Repository, &'repo_tree Workspace)>,
+    Box<dyn Error>,
+> {
+    if let Some(repo_id) = repo_id {
+        resolve(
+            config,
+            ui,
+            repo_tree,
+            Some(repo_id),
+            ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
+        )
+    } else {
+        Ok(repo_tree.get_workspace(&get_cwd(ui)))
+    }
+}
+
 /// Entry point for the executable.
 pub async fn run() -> i32 {
     complete_env::complete();
@@ -128,6 +161,7 @@ pub async fn run() -> i32 {
         Action::Fetch(args) => fetch::run(&config, &ui, args),
         Action::Todo(args) => todo::run(&config, &mut ui, args).await,
         Action::Repo(args) => repo::run(&config, &mut ui, args).await,
+        Action::Workspace(args) => workspace::run(&config, &ui, args).await,
         Action::Git(args) => git::run(&config, &mut ui, args).await,
         Action::Clone(args) => clone::run(&config, &mut ui, args).await,
         Action::Rm(args) => rm::run(&config, &ui, args).await,

@@ -61,7 +61,7 @@ pub fn add_workspace(
         }
     }
 
-    JujutsuCommand::repo(repo_path)?
+    JujutsuCommand::repo_with_snapshot(repo_path)?
         .arg("workspace")
         .arg("add")
         .arg("--name")

@@ -1,5 +1,4 @@
 //! Remove a repository from the repo tree.
-use std::fs::remove_dir_all;
 
 use clap::Args;
 
@@ -83,19 +82,7 @@ pub async fn run(config: &Config, ui: &Ui<'_>, args: RmArgs) -> i32 {
     }
 
     for workspace in repository.workspaces.iter() {
-        let root = workspace.path();
-        // Remove the repository from the repo tree.
-        remove_dir_all(root).expect("Failed to remove the repository");
-
-        // Remove parent directories if they are empty.
-        let parent = &root;
-        while let Some(parent) = parent.parent() {
-            if parent.read_dir().unwrap().next().is_none() {
-                std::fs::remove_dir(parent).unwrap();
-            } else {
-                break;
-            }
-        }
+        workspace.rm()
     }
 
     // Refresh the cache.

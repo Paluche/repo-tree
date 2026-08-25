@@ -185,7 +185,7 @@ pub trait VcsRepository {
     fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>>;
 
     /// Create a new workspace of the repository.
-    fn create_workspace(
+    fn add_workspace(
         &self,
         name: &str,
         destination: &Path,

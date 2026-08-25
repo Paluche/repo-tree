@@ -116,7 +116,7 @@ impl VcsRepository for GitVcs {
     }
 
     /// Crate a workspace.
-    fn create_workspace(
+    fn add_workspace(
         &self,
         _name: &str,
         _destination: &Path,

@@ -1,5 +1,6 @@
 //! Representation of a repository.
 use std::error::Error;
+use std::fs::remove_dir_all;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -97,6 +98,23 @@ impl Workspace {
         match self {
             Self::Tree(_, path) => path,
             Self::Other(path) => path,
+        }
+    }
+
+    /// Remove a workspace.
+    pub fn rm(&self) {
+        let root = self.path();
+        // Remove the repository from the repo tree.
+        remove_dir_all(root).expect("Failed to remove the repository");
+
+        // Remove parent directories if they are empty.
+        let parent = &root;
+        while let Some(parent) = parent.parent() {
+            if parent.read_dir().unwrap().next().is_none() {
+                std::fs::remove_dir(parent).unwrap();
+            } else {
+                break;
+            }
         }
     }
 }
@@ -205,9 +223,9 @@ impl Repository {
 impl Repository {
     /// Add a workspace to the repository.
     pub fn add_workspace(&mut self, other: Self) {
-        eprintln!("Adding {:?} to {:?}", other, self);
         self.workspaces.extend(other.workspaces);
     }
+
     /// Find out if the repository has the specified workspace.
     fn has_workspace(&self, workspace: &Workspace) -> bool {
         self.workspaces.iter().find(|w| w == &workspace).is_some()
@@ -316,5 +334,24 @@ impl Repository {
         assert!(self.has_workspace(workspace));
 
         self.vcs.get_repo(workspace.path())
+    }
+
+    /// Add a workspace in the specified tree-space.
+    pub fn add_workspace_in_tree(
+        &self,
+        ui: &Ui,
+        config: &Config,
+        tree_space: &TreeSpace,
+    ) -> Result<(), Box<dyn Error>> {
+        let workspace_root = tree_space.repo_location(config, &self.id)?;
+
+        self.get_vcs_repo(self.get_main_workspace(ui))
+            .add_workspace(tree_space.name(config), &workspace_root)?;
+
+        // TODO mutable RepoTree requires some work...
+        // self.workspaces.push(Workspace::new(Some(tree_space.clone()),
+        // &workspace_root));
+
+        Ok(())
     }
 }

@@ -103,7 +103,7 @@ impl VcsRepository for JujutsuVcs {
             .map(|w| w.name))
     }
 
-    fn create_workspace(
+    fn add_workspace(
         &self,
         name: &str,
         destination: &Path,
