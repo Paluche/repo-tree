@@ -16,10 +16,12 @@ use std::path::PathBuf;
 pub use git::init_colocate;
 
 use super::VcsRepository;
+use super::VcsWorkspace;
 use crate::config::Config;
 use crate::error::NotARepositoryError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
+use crate::repository::Workspace;
 
 /// Get the path to the jj directory from the repository root path.
 pub fn get_jj_dir(repo_path: &Path) -> PathBuf {
@@ -40,36 +42,36 @@ pub fn get_repo_dir(jj_dir: &Path) -> io::Result<PathBuf> {
 }
 
 /// Interact with a JuJutsu repository.
-pub struct JujutsuVcs {
+pub struct JujutsuVcs<'repo_tree> {
     /// Path to the root of the JuJutsu repository.
-    repo_path: PathBuf,
+    workspace: &'repo_tree Workspace,
     /// If the Jujutsu repository is colocated with a Git repository.
     colocated: bool,
 }
 
-impl JujutsuVcs {
+impl<'repo_tree> JujutsuVcs<'repo_tree> {
     /// Create a new JujutsuVcs structure.
-    pub fn new(repo_path: &Path, colocated: bool) -> Self {
+    pub fn new(workspace: &'repo_tree Workspace, colocated: bool) -> Self {
         Self {
-            repo_path: repo_path.to_path_buf(),
+            workspace,
             colocated,
         }
     }
 }
 
-impl VcsRepository for JujutsuVcs {
+impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
     fn get_remote_url(
         &self,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {
-        git::get_remote_url(&self.repo_path)
+        git::get_remote_url(self.workspace.path())
     }
 
     fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
-        git::clone(remote_url, &self.repo_path, self.colocated)
+        git::clone(remote_url, self.workspace.path(), self.colocated)
     }
 
     fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>> {
-        git::fetch(&self.repo_path, quiet)
+        git::fetch(self.workspace.path(), quiet)
     }
 
     fn prompt(
@@ -77,21 +79,24 @@ impl VcsRepository for JujutsuVcs {
         config: &Config,
         prompt: &mut Prompt<'_>,
     ) -> Result<(), Box<dyn Error>> {
-        if let Err(err) =
-            super::git::prompt::prompt(config, prompt, &self.repo_path, true)
-            && err.downcast_ref::<NotARepositoryError>().is_none()
+        if let Err(err) = super::git::prompt::prompt(
+            config,
+            prompt,
+            self.workspace.path(),
+            true,
+        ) && err.downcast_ref::<NotARepositoryError>().is_none()
         {
             return Err(err);
         }
-        prompt::prompt(config, prompt, &self.repo_path)
+        prompt::prompt(config, prompt, self.workspace.path())
     }
 
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
-        repo_state::get_repo_state(&self.repo_path)
+        repo_state::get_repo_state(self.workspace.path())
     }
 
-    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
-        let workspaces = workspace::list_workspaces(&self.repo_path)?;
+    fn get_workspace(&self) -> Result<Option<VcsWorkspace>, Box<dyn Error>> {
+        let workspaces = workspace::list_workspaces(self.workspace.path())?;
 
         if workspaces.len() <= 1 {
             return Ok(None);
@@ -99,15 +104,32 @@ impl VcsRepository for JujutsuVcs {
 
         Ok(workspaces
             .into_iter()
-            .find(|w| w.path == self.repo_path)
-            .map(|w| w.name))
+            .find(|w| &w.path == self.workspace.path()))
     }
 
-    fn create_workspace(
+    fn add_workspace(
         &self,
         name: &str,
         destination: &Path,
     ) -> Result<(), Box<dyn Error>> {
-        workspace::add_workspace(&self.repo_path, name, destination)
+        workspace::add_workspace(self.workspace.path(), name, destination)
+    }
+
+    fn remove_workspace(&self) -> Result<(), Box<dyn Error>> {
+        let Some(workspace) = self.get_workspace()? else {
+            eprintln!("No workspace to remove");
+            return Ok(()); // TODO Return an Err
+        };
+
+        if workspace.name == "default" {
+            eprintln!("Cannot remove default workspace.");
+            return Ok(()); // TODO Return an Err
+        }
+
+        workspace::forget_workspace(self.workspace.path(), &workspace.name)?;
+
+        self.workspace.rm();
+
+        Ok(())
     }
 }

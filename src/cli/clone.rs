@@ -6,6 +6,7 @@ use clap::Args;
 use crate::config::Config;
 use crate::repo_id::RepoId;
 use crate::repo_tree::RepoTree;
+use crate::repository::Workspace;
 use crate::tree_space::ForceTreeSpace;
 use crate::ui::Ui;
 use crate::version_control_system::VersionControlSystem;
@@ -71,7 +72,8 @@ async fn do_clone(
             .expect("Remote URL provided by the CLI")
             .url;
 
-        vcs.get_repo(&location).clone(remote_url)?;
+        vcs.get_repo(&Workspace::Other(location.clone()))
+            .clone(remote_url)?;
     }
 
     // Refresh the cache.

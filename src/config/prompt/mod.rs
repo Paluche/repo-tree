@@ -55,6 +55,9 @@ pub struct PromptConfig {
     /// Configuration relative to the Jujutsu prompt.
     #[serde(default)]
     pub jj: JujutsuPromptConfig,
+    /// How to colorize the name of the repository workspace in the prompt.
+    #[serde(default = "PromptConfig::default_workspace")]
+    pub workspace: Color,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
@@ -70,6 +73,10 @@ impl PromptConfig {
     fn default_id() -> Color {
         Color::green()
     }
+
+    fn default_workspace() -> Color {
+        Color::bright_green()
+    }
 }
 
 impl Default for PromptConfig {
@@ -81,6 +88,7 @@ impl Default for PromptConfig {
             id: Self::default_id(),
             git: GitPromptConfig::default(),
             jj: JujutsuPromptConfig::default(),
+            workspace: Self::default_workspace(),
         }
     }
 }

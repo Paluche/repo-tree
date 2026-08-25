@@ -101,6 +101,7 @@ fn default_config() -> Result<(), Box<dyn Error>> {
 
     [prompt]
     id = "green"
+    workspace = "bright green"
 
     [prompt.prefix]
     text = "┣━┫"

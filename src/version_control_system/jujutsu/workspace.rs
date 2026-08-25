@@ -4,38 +4,26 @@ use std::error::Error;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::path::PathBuf;
-use std::path::absolute;
 
+use super::super::VcsWorkspace;
 use super::command::JujutsuCommand;
-
-/// Representation of a Jujutsu workspace.
-pub struct JujutsuWorkspace {
-    /// Name of the workspace.
-    pub name: String,
-
-    /// Path where the workspace is located.
-    pub path: PathBuf,
-}
 
 /// List all workspaces associated with the specified repository.
 pub fn list_workspaces(
     repo_path: &Path,
-) -> Result<Vec<JujutsuWorkspace>, Box<dyn Error>> {
+) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
     Ok(JujutsuCommand::repo(repo_path)?
         .arg("workspace")
         .arg("list")
         .arg("--template")
-        .arg(r#"name ++ "\t" ++ "\n""#)
+        .arg(r#"name ++ "\t" ++ root ++ "\n""#)
         .output_lines()?
         .iter()
         .map(|l| {
             let mut parts = l.split("\t");
             let name = parts.next().unwrap().to_string();
-            let path =
-                absolute(repo_path.join(PathBuf::from(parts.next().unwrap())))
-                    .unwrap();
-
-            JujutsuWorkspace { name, path }
+            let path = PathBuf::from(parts.next().unwrap());
+            VcsWorkspace { name, path }
         })
         .collect())
 }
@@ -47,25 +35,46 @@ pub fn add_workspace(
     destination: &Path,
 ) -> Result<(), Box<dyn Error>> {
     if destination.is_dir() {
-        panic!("Destination directory already exists"); // XXX Use of panic -> Return Err
+        panic!(
+            "Destination directory {} already exists",
+            destination.display()
+        ); // XXX Use of panic -> Return Err
     }
 
     // Create the parent directory where to put the workspace.
     if let Some(parent) = destination.parent() {
         if parent.exists() {
             if !parent.is_file() {
-                panic!("Destination parent directory is actually a file"); // XXX Use of panic -> Return Err
+                panic!(
+                    "Destination parent directory {} is actually a file",
+                    destination.display()
+                ); // XXX Use of panic -> Return Err
             }
         } else {
             create_dir_all(parent)?;
         }
     }
 
-    JujutsuCommand::repo(repo_path)?
+    JujutsuCommand::repo_with_snapshot(repo_path)?
         .arg("workspace")
         .arg("add")
         .arg("--name")
         .arg(name)
         .arg(destination)
+        .status()
+}
+
+/// Forget a Jujutsu workspace.
+/// This will not delete the workspace repository files and folder.
+/// A workspace which repository files and folder are deleted, will not be
+/// forgotten automatically by Jujutsu.
+pub fn forget_workspace(
+    repo_path: &Path,
+    name: &str,
+) -> Result<(), Box<dyn Error>> {
+    JujutsuCommand::repo(repo_path)?
+        .arg("workspace")
+        .arg("forget")
+        .arg(name)
         .status()
 }

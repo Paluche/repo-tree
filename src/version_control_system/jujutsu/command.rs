@@ -38,7 +38,6 @@ impl JujutsuCommand {
 
     /// Create a new Jujutsu command to run in a specific repository. Where jj
     /// is allowed to snapshot the repository.
-    #[expect(dead_code)]
     pub fn repo_with_snapshot<S: AsRef<OsStr>>(
         repository: S,
     ) -> Result<Self, which::Error> {

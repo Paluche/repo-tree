@@ -102,6 +102,20 @@ impl<'prompt, 'repo, 'config> Display
             write!(f, "{}{field}", self.config.prompt.separator)?;
         }
 
+        if let Ok(Some(name)) = self
+            .prompt
+            .repository
+            .get_vcs_repo(self.prompt.workspace)
+            .get_workspace()
+        {
+            write!(
+                f,
+                "{}{}",
+                self.config.prompt.separator,
+                name.display_name(self.config)
+            )?;
+        }
+
         Ok(())
     }
 }
