@@ -32,7 +32,7 @@ pub fn fetch_repo(
     let mut ok: usize = 0;
     let mut total: usize = 0;
 
-    if repository.id.remote.is_local() {
+    if repository.id.is_local() {
         eprintln!(
             "Skipping local repository {}",
             repository.id.display(config)

@@ -2,9 +2,6 @@
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use serde::Deserialize;
-use serde::Serialize;
-
 use crate::config::Config;
 use crate::config::HostInfo;
 use crate::config::LocalHost;
@@ -12,41 +9,6 @@ use crate::config::RemoteHost;
 use crate::config::UnknownHost;
 use crate::error::UnknownRemoteHostError;
 use crate::forge::Forge;
-
-#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
-/// The different type of host one repository can be associated with.
-pub enum Remote {
-    /// Remote of the repository associated with the repository.
-    Remote(String, String),
-    /// Repository exists only locally.
-    Local,
-}
-
-impl Remote {
-    /// Get the remote URL, if the host is remote.
-    pub fn url(&self) -> Option<&String> {
-        match self {
-            Self::Remote(url, _host) => Some(url),
-            Self::Local => None,
-        }
-    }
-
-    /// Resolve the host based on the configuration.
-    pub fn host<'config>(&self, config: &'config Config) -> Host<'config> {
-        match self {
-            Self::Remote(_url, host) => config.get_remote_host(host).map_or(
-                Host::UnknownRemote(host.to_string(), &config.unknown_host),
-                Host::Remote,
-            ),
-            Self::Local => Host::Local(&config.local),
-        }
-    }
-
-    /// Find out if the repository is hosted locally.
-    pub fn is_local(&self) -> bool {
-        matches!(self, Self::Local)
-    }
-}
 
 #[derive(Clone, Hash)]
 /// The different type of host one repository can be associated with.

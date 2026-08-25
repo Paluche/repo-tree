@@ -315,7 +315,7 @@ impl Repositories {
             .filter(|r| {
                 (filter_hosts.is_empty()
                     || filter_hosts.iter().any(|host| {
-                        match r.id.remote.host(config).name() {
+                        match r.id.host(config).name() {
                             Ok(name) => host.compile_matcher().is_match(name),
                             Err(err) => {
                                 eprintln!("{err}");

@@ -62,8 +62,9 @@ fn do_clone(
     } else {
         let remote_url = &repo_id
             .remote
-            .url()
-            .expect("Remote URL provided by the CLI");
+            .as_ref()
+            .expect("Remote URL provided by the CLI")
+            .url;
 
         let res = match vcs {
             VersionControlSystem::Git => git::clone(remote_url, &location),
