@@ -24,13 +24,19 @@ pub struct NextPrevArgs {
     /// as an union filter.
     #[arg(short='H', long="host", action=ArgAction::Append, add=Config::host_completer())]
     hosts: Vec<Glob>,
-    /// Filter the repositories to by their name. You can specify glob
-    /// patterns. For example to filter only GitHub repositories from a
-    /// certain organization (e.g. 'owner'), you could use the 'owner/*' as
-    /// value for this argument, and "github" as value of the --host
-    /// argument. Can be specified multiple times as an union filter.
+    /// Filter the repositories to list by their name. You can specify glob
+    /// patterns. For example to filter only GitHub repositories from a certain
+    /// organization (e.g. 'owner'), you could use the 'owner/*' as value for
+    /// this argument, and "github" as value of the --host argument. Can be
+    /// specified multiple times as an union filter.
     #[arg(short = 'N', long = "name", action=ArgAction::Append)]
     names: Vec<Glob>,
+    /// Filter the repositories to list by the tree-space they belong to. You
+    /// can specify glob patterns. For example to filter only archived
+    /// repositories you could use the "archive" value for this argument. Can
+    /// be specified multiple times as an union filter.
+    #[arg(short = 'T', long = "tree", action=ArgAction::Append)]
+    trees: Vec<Glob>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
@@ -60,7 +66,11 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
 
     // Skip the current repository.
     for repository in into_iter_from(
-        repo_tree.filtered(config, &args.hosts, &args.names),
+        repo_tree
+            .filtered(config, &args.hosts, &args.names, &args.trees)
+            .into_iter()
+            .map(|(r, _)| r)
+            .collect::<Vec<&Repository>>(),
         &current_repository,
         reverse,
     ) {
@@ -68,8 +78,9 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
             continue;
         }
         eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
+        let workspace = repository.get_main_workspace();
         if let Some(repo_state) =
-            match &repository.get_vcs_repo().get_repo_state() {
+            match &repository.get_vcs_repo(workspace).get_repo_state() {
                 Ok(v) => Some(v),
                 Err(err) => {
                     if err.downcast_ref::<NotImplementedError>().is_some() {
@@ -98,7 +109,7 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
                 repository.id.name,
                 repo_state
             );
-            println!("{}", repository.root.display());
+            println!("{}", workspace.path().display());
             return 0;
         }
     }

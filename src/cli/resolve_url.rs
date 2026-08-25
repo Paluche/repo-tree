@@ -27,13 +27,15 @@ pub struct ResolveUrlArgs {
 /// Get the map associating remote URL to the repository present in the repo
 /// tree.
 fn get_candidates(repo_tree: &RepoTree) -> BTreeMap<&String, &PathBuf> {
-    BTreeMap::from_iter(repo_tree.iter().filter_map(|repository| {
-        repository
-            .id
-            .remote
-            .as_ref()
-            .map(|r| (&r.url, &repository.root))
-    }))
+    BTreeMap::from_iter(repo_tree.workspace_iter().filter_map(
+        |(repository, workspace)| {
+            repository
+                .id
+                .remote
+                .as_ref()
+                .map(|r| (&r.url, workspace.path()))
+        },
+    ))
 }
 
 /// Execute the `rt resolve-url` command.

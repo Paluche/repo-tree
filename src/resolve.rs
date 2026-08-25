@@ -18,6 +18,7 @@ use which::which;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
 
 /// Find the shortest end-path to identify two path.
@@ -44,28 +45,51 @@ fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
     }
 }
 
+/// Get the workspace associated with the repository candidate. Based on the
+/// filtering.
+fn get_workspace<'repo_tree>(
+    repository: &'repo_tree Repository,
+    maybe_tree_space: Option<&TreeSpace>,
+) -> Option<&'repo_tree Workspace> {
+    match maybe_tree_space {
+        Some(tree_space) => repository.get_tree_workspace(tree_space),
+        None => Some(repository.get_main_workspace()),
+    }
+}
+
 /// Reduce the name of the repositories to the shortest path that identifies
 /// each repositories individually.
 fn reduce_repo_names<'repo_tree>(
     config: &Config,
     repo_tree: &'repo_tree RepoTree,
+    maybe_tree_space: Option<&TreeSpace>,
 ) -> BTreeMap<String, &'repo_tree Repository> {
     let mut ret: BTreeMap<String, &Repository> = BTreeMap::new();
 
-    for repository in repo_tree.iter() {
+    for repository in repo_tree.repo_iter() {
+        let Some(workspace) = get_workspace(repository, maybe_tree_space)
+        else {
+            continue;
+        };
+
         let name = repository.id.name.clone();
         if let Some(full_name) = repository
             .id
             .remote_host_name(config)
             .map(|remote_host_name| format!("{remote_host_name}/{name}"))
         {
-            if let Some(conflict) = ret.remove(&full_name) {
+            if let Some(conflict_repository) = ret.remove(&full_name) {
+                let conflict_workspace =
+                    get_workspace(conflict_repository, maybe_tree_space)
+                        .unwrap();
+
                 eprintln!(
                     "Duplicated repository with name {name}: {0} and {1}\n
                     {1} is ignored!",
-                    conflict.root.display(),
-                    repository.root.display(),
+                    conflict_workspace.path().display(),
+                    workspace.path().display(),
                 );
+                continue;
             }
             ret.insert(full_name, repository);
         }
@@ -75,11 +99,11 @@ fn reduce_repo_names<'repo_tree>(
             ret.insert(name.clone(), repository);
         }
 
-        if let Some(conflict) = ret.remove(&short_name) {
+        if let Some(conflict_repository) = ret.remove(&short_name) {
             if let Some((conflict_reduced_name, reduced_name)) =
-                reduce(&conflict.id.name, &name)
+                reduce(&conflict_repository.id.name, &name)
             {
-                ret.insert(conflict_reduced_name, conflict);
+                ret.insert(conflict_reduced_name, conflict_repository);
                 ret.insert(reduced_name, repository);
             }
         } else {
@@ -95,13 +119,16 @@ fn reduce_repo_names<'repo_tree>(
 fn get_candidates<'repo_tree>(
     config: &Config,
     repo_tree: &'repo_tree RepoTree,
+    maybe_tree_space: Option<&TreeSpace>,
 ) -> BTreeMap<String, &'repo_tree Repository> {
-    let mut ret = reduce_repo_names(config, repo_tree);
+    let mut ret = reduce_repo_names(config, repo_tree, maybe_tree_space);
 
     for (alias, repo_name) in config.command.resolve.aliases.iter() {
         if let Some(repo) = ret.get(repo_name) {
             ret.insert(alias.to_string(), repo);
-        } else {
+        } else if maybe_tree_space.is_none() {
+            // This warning is no more reliable when there is filtering. So
+            // print it only if there is no filtering.
             eprintln!(
                 "Configured alias \"{alias}\" => \"{repo_name}\", does not \
                  correspond to any existing repository."
@@ -113,9 +140,10 @@ fn get_candidates<'repo_tree>(
 }
 
 /// Interactively ask the user to select the repository.
-fn fzf_ask(
-    repositories: &BTreeMap<String, &Repository>,
-) -> Result<String, Box<dyn Error>> {
+fn fzf_ask<'c, I>(mut candidates: I) -> Result<Option<String>, Box<dyn Error>>
+where
+    I: Iterator<Item = &'c String>,
+{
     let fzf = which("fzf")?;
 
     let mut child = Command::new(fzf)
@@ -132,16 +160,22 @@ fn fzf_ask(
     // Provide choices on stdin.
     {
         let stdin = child.stdin.as_mut().unwrap();
-        stdin.write_all(&repositories.keys().join("\n").into_bytes())?
+        stdin.write_all(&candidates.join("\n").into_bytes())?
     }
 
     // Wait and read selection.
     let output = child.wait_with_output()?;
     let res = String::from_utf8_lossy(&output.stdout).into_owned();
-    if let Some(res) = res.strip_suffix('\n') {
-        Ok(res.to_string())
+    let res = if let Some(res) = res.strip_suffix('\n') {
+        res.to_string()
     } else {
-        Ok(res)
+        res
+    };
+
+    if res.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(res))
     }
 }
 
@@ -155,10 +189,11 @@ fn repository_candidate_help(
         StyledStr::from(format!(
             "{}{}",
             r.url,
-            if let Some(tree) = &repository.tree
-                && !matches!(tree, TreeSpace::Dev)
+            if let Some(tree_space) =
+                &repository.get_main_workspace().tree_space()
+                && !matches!(tree_space, TreeSpace::Dev)
             {
-                format!(" <{}>", tree.display(config))
+                format!(" <{}>", tree_space.display(config))
             } else {
                 "".to_string()
             }
@@ -167,20 +202,35 @@ fn repository_candidate_help(
 }
 
 /// Resolve a repository identifier into a local repository.
-pub fn resolve<'repo_tree>(
+pub fn resolve_repo<'repo_tree>(
     config: &Config,
     repo_tree: &'repo_tree RepoTree,
     repo_id: Option<String>,
+    maybe_tree_space: Option<&TreeSpace>,
 ) -> Result<Option<&'repo_tree Repository>, Box<dyn Error>> {
-    let mut candidates = get_candidates(config, repo_tree);
+    let mut candidates = get_candidates(config, repo_tree, maybe_tree_space);
+
     if candidates.is_empty() {
-        eprintln!("No repository in repo-tree");
+        eprintln!(
+            "No repository in {}",
+            if let Some(tree_space) = &maybe_tree_space {
+                format!("tree space {}", tree_space.display(config))
+            } else {
+                "repo-tree".to_string()
+            }
+        );
         return Ok(None);
     }
 
     let repo_id = match repo_id {
         Some(repo_id) => repo_id,
-        None => fzf_ask(&candidates)?,
+        None => match fzf_ask(candidates.keys())? {
+            Some(repo_id) => repo_id,
+            None => {
+                eprintln!("Nothing selected");
+                return Ok(None);
+            }
+        },
     };
 
     let repo = candidates.remove(&repo_id);
@@ -255,6 +305,45 @@ pub fn resolve<'repo_tree>(
     }
 }
 
+/// Resolve a repository identifier into a local repository.
+pub fn resolve<'repo_tree>(
+    config: &Config,
+    repo_tree: &'repo_tree RepoTree,
+    repo_id: Option<String>,
+    maybe_tree_space: Option<&TreeSpace>,
+) -> Result<
+    Option<(&'repo_tree Repository, &'repo_tree Workspace)>,
+    Box<dyn Error>,
+> {
+    if let Some(repo) =
+        resolve_repo(config, repo_tree, repo_id, maybe_tree_space)?
+    {
+        let workspace =
+            if maybe_tree_space.is_none() && repo.workspaces.len() != 1 {
+                if let Some(tree_space) = fzf_ask(
+                    repo.workspaces
+                        .iter()
+                        .map(|w| w.tree_space().unwrap().name(config)),
+                )?
+                .map(|name| TreeSpace::from_name(config, &name).unwrap())
+                {
+                    repo.get_tree_workspace(&tree_space).unwrap()
+                } else {
+                    eprintln!(
+                        "No tree space specified, defaulting to the default \
+                         workspace"
+                    );
+                    repo.get_main_workspace()
+                }
+            } else {
+                get_workspace(repo, maybe_tree_space).unwrap()
+            };
+        Ok(Some((repo, workspace)))
+    } else {
+        Ok(None)
+    }
+}
+
 /// Get auto-completion candidate for a repository identifier argument.
 pub fn resolve_completer() -> ArgValueCompleter {
     ArgValueCompleter::new(|current: &OsStr| {
@@ -265,7 +354,7 @@ pub fn resolve_completer() -> ArgValueCompleter {
             return vec![];
         };
         let repo_tree = RepoTree::load_silent(&config, false);
-        let candidates = get_candidates(&config, &repo_tree);
+        let candidates = get_candidates(&config, &repo_tree, None);
         let matcher = SkimMatcherV2::default();
 
         candidates

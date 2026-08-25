@@ -4,20 +4,27 @@ use itertools::join;
 use crate::colors::IsEmpty;
 use crate::config::Config;
 use crate::repository::Repository;
+use crate::repository::Workspace;
 
 /// Context to build the prompt line.
 pub struct Prompt<'repo> {
     /// Repository for which the prompt is for.
     repository: &'repo Repository,
+    /// Exact workspace of the repository for which the prompt is for.
+    workspace: &'repo Workspace,
     /// Fields of the prompt.
     fields: Vec<String>,
 }
 
 impl<'repo> Prompt<'repo> {
     /// Instantiate new Prompt for a repository.
-    pub fn new(repository: &'repo Repository) -> Self {
+    pub fn new(
+        repository: &'repo Repository,
+        workspace: &'repo Workspace,
+    ) -> Self {
         Self {
             repository,
+            workspace,
             fields: Vec::new(),
         }
     }
@@ -48,7 +55,6 @@ impl<'repo> Prompt<'repo> {
 pub struct Display<'prompt, 'repo, 'config> {
     /// Prompt we are displaying.
     prompt: &'prompt Prompt<'repo>,
-    // XXX Tree representation!!!!
     /// Configuration customizing the prompt.
     config: &'config Config,
 }
@@ -64,12 +70,12 @@ impl<'prompt, 'repo, 'config> std::fmt::Display
             self.prompt.repository.vcs.short_display(self.config),
         )?;
 
-        if let Some(tree) = &self.prompt.repository.tree {
+        if let Some(tree_space) = &self.prompt.workspace.tree_space() {
             write!(
                 f,
                 "{}{}",
                 self.config.prompt.separator,
-                tree.repr(self.config)
+                tree_space.repr(self.config)
             )?;
         }
 

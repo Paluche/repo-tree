@@ -25,7 +25,6 @@ pub struct StatusArgs {
     /// Path to within the git repository to work with.
     #[arg(short, long, add=ArgValueCompleter::new(PathCompleter::dir()))]
     repository: Option<String>,
-
     /// Print path relative to the root of the repository and not the
     /// current working directory.
     #[arg(long, action=ArgAction::SetTrue)]
@@ -148,6 +147,7 @@ pub async fn run(config: &Config, args: StatusArgs) -> i32 {
             return 1;
         }
     };
+    let root = repository.get_latest_workspace().path();
 
     if !repository.vcs.is_git() {
         eprintln!("Status not implemented for {}", repository.vcs);
@@ -158,13 +158,13 @@ pub async fn run(config: &Config, args: StatusArgs) -> i32 {
         "{}",
         format_repo_status(
             if args.no_relative_path {
-                &repository.root
+                root
             } else {
                 repo_path.as_path()
             },
-            &repository.root,
+            root,
             None,
-            git::status(&repository.root).expect("Error obtaining git status"),
+            git::status(root).expect("Error obtaining git status"),
             0
         )
     );

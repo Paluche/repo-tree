@@ -13,6 +13,7 @@ use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::repository::Workspace;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
@@ -29,14 +30,14 @@ pub async fn run(config: &Config, args: CleanArgs) -> i32 {
     // Do not use the cache, assure we have an up-to-date list of repositories
     // before doing any action that will modify the directories.
     let repo_tree = RepoTree::load_silent(config, true);
-    let repos_to_move: Vec<(&Repository, PathBuf)> = repo_tree
-        .iter()
-        .filter_map(|r| {
+    let repos_to_move: Vec<(&Repository, &Workspace, PathBuf)> = repo_tree
+        .workspace_iter()
+        .filter_map(|(r, w)| {
             match r
-                .expected_root(config, ExpectedTreeStrategy::Exact)
+                .expected_root(w, config, ExpectedTreeStrategy::Exact)
                 .block_on()
             {
-                Ok(v) => v.and_then(|p| (p != r.root).then_some((r, p))),
+                Ok(v) => v.and_then(|p| (&p != w.path()).then_some((r, w, p))),
                 Err(err) => {
                     eprintln!("{err}");
                     None
@@ -51,11 +52,11 @@ pub async fn run(config: &Config, args: CleanArgs) -> i32 {
         println!("All repositories are where they belong");
     } else {
         println!("Repositories to move:");
-        for (repository, expected_root) in repos_to_move {
+        for (repository, workspace, expected_root) in repos_to_move {
             println!(
                 "- {}: {} => {}",
                 repository.id.name,
-                repository.root.display(),
+                workspace.path().display(),
                 expected_root.display(),
             );
 
@@ -72,7 +73,7 @@ pub async fn run(config: &Config, args: CleanArgs) -> i32 {
                 ret = 1;
             }
 
-            if let Err(err) = rename(&repository.root, expected_root) {
+            if let Err(err) = rename(workspace.path(), expected_root) {
                 eprintln!("{err}");
                 ret = 1;
             }

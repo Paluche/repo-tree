@@ -6,6 +6,10 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use clap::ValueEnum;
+use clap::builder::StyledStr;
+use clap_complete::engine::ArgValueCompleter;
+use clap_complete::engine::CompletionCandidate;
+use enum_docs_derive::EnumDocs;
 use serde::Deserialize;
 use serde::Serialize;
 use strum::EnumIter;
@@ -88,8 +92,6 @@ impl<'config> TreeOrganization<'config> {
 pub enum TreeSpaceKind {
     /// Tree-space containing main repositories.
     Main,
-    /// Tree-space containing "read-only" repositories.
-    ReadOnly,
 }
 
 /// The different repository trees categories.
@@ -104,6 +106,7 @@ pub enum TreeSpaceKind {
     Deserialize,
     ValueEnum,
     EnumIter,
+    EnumDocs,
 )]
 pub enum TreeSpace {
     /// Main tree, where active, user-modified repository are
@@ -115,6 +118,12 @@ pub enum TreeSpace {
 }
 
 impl TreeSpace {
+    /// Obtain the TreeSpace value based on its name, as defined by the
+    /// configuration.
+    pub fn from_name(config: &Config, name: &str) -> Option<Self> {
+        Self::iter().find(|tree_space| name == tree_space.name(config))
+    }
+
     /// Obtain the TreeSpace value based on a directory name, directory should
     /// match a tree-category.
     pub fn from_dir_name(config: &Config, dir_name: &OsStr) -> Option<Self> {
@@ -135,13 +144,12 @@ impl TreeSpace {
     /// Obtain the TreeSpaceKind associated with the tree-space.
     pub fn kind(&self) -> TreeSpaceKind {
         match self {
-            Self::Dev | Self::Local => TreeSpaceKind::Main,
-            Self::Archive => TreeSpaceKind::ReadOnly,
+            Self::Dev | Self::Local | Self::Archive => TreeSpaceKind::Main,
         }
     }
 
     /// Get the tree category associated with the tree space.
-    fn category<'config>(
+    pub fn category<'config>(
         &self,
         config: &'config Config,
     ) -> &'config TreeCategory {
@@ -191,6 +199,37 @@ impl TreeSpace {
             tree_space: self,
             config,
         }
+    }
+
+    /// Get the name associated with the tree-space.
+    pub fn name<'config>(&self, config: &'config Config) -> &'config String {
+        &self.category(config).name
+    }
+
+    /// Turn the tree-space into a CLI completion candidate.
+    fn into_completion_candidate(
+        self,
+        config: &Config,
+        current: &OsStr,
+    ) -> Option<CompletionCandidate> {
+        let name = self.category(config).name.clone();
+        name.starts_with(current.to_str().unwrap_or("")).then_some(
+            CompletionCandidate::new(name)
+                .help(Some(StyledStr::from(self.doc()))),
+        )
+    }
+
+    /// CLI completion candidates for a tree space argument.
+    pub fn completer() -> ArgValueCompleter {
+        ArgValueCompleter::new(|current: &OsStr| {
+            Config::load().map_or(Vec::new(), |config| {
+                TreeSpace::iter()
+                    .filter_map(|tree_space| {
+                        tree_space.into_completion_candidate(&config, current)
+                    })
+                    .collect()
+            })
+        })
     }
 }
 

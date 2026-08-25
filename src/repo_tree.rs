@@ -8,7 +8,6 @@ use std::fs::read_to_string;
 use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
-use std::slice::Iter;
 
 use globset::Glob;
 use serde::Deserialize;
@@ -17,6 +16,7 @@ use serde::Serialize;
 use crate::config::Config;
 use crate::error::NoCacheError;
 use crate::repository::Repository;
+use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
 
 /// Search recursively repositories in a directory.
@@ -109,7 +109,7 @@ impl RepoTree {
         if !refresh_cache {
             match Self::from_cache() {
                 Ok(repo_tree) => {
-                    if repo_tree.iter().all(|r| {
+                    if repo_tree.repo_iter().all(|r| {
                         !r.remote_config.has_been_modified().unwrap_or(true)
                     }) {
                         return (repo_tree, None);
@@ -157,10 +157,10 @@ impl RepoTree {
         config: &Config,
         filter_hosts: &[Glob],
         filter_names: &[Glob],
-    ) -> Vec<&'repo_tree Repository> {
-        self.repositories
-            .iter()
-            .filter(|r| {
+        filter_trees: &[Glob],
+    ) -> Vec<(&'repo_tree Repository, &'repo_tree Workspace)> {
+        self.workspace_iter()
+            .filter(|(r, w)| {
                 (filter_hosts.is_empty()
                     || filter_hosts.iter().any(|host| {
                         match r.id.remote_host(config) {
@@ -178,19 +178,45 @@ impl RepoTree {
                         || filter_names.iter().any(|filter_name| {
                             filter_name.compile_matcher().is_match(&r.id.name)
                         }))
+                    && (filter_trees.is_empty()
+                        || filter_trees.iter().any(|filter_tree| {
+                            if let Some(tree_space) = &w.tree_space() {
+                                filter_tree
+                                    .compile_matcher()
+                                    .is_match(&tree_space.category(config).name)
+                            } else {
+                                false
+                            }
+                        }))
             })
             .collect()
     }
 
-    /// Obtain an iterator on the repositories.
-    pub fn iter(&self) -> Iter<'_, Repository> {
-        self.repositories.iter()
+    /// Obtain an iterator on all the repositories.
+    pub fn repo_iter<'repo_tree>(
+        &'repo_tree self,
+    ) -> Box<dyn Iterator<Item = &'repo_tree Repository> + 'repo_tree> {
+        Box::new(self.repositories.iter())
+    }
+    /// Obtain an iterator on all the repositories workspaces.
+    pub fn workspace_iter<'repo_tree>(
+        &'repo_tree self,
+    ) -> Box<
+        dyn Iterator<Item = (&'repo_tree Repository, &'repo_tree Workspace)>
+            + 'repo_tree,
+    > {
+        Box::new(
+            self.repositories
+                .iter()
+                .flat_map(|r| r.workspaces.iter().map(move |w| (r, w))),
+        )
     }
 }
 
 /// Path to the repositories cache file.
 fn cache_file() -> PathBuf {
     PathBuf::from(std::env::var("HOME").unwrap())
+        .join(".cache")
         .join("repo-tree")
         .join("repo-tree.toml")
 }
