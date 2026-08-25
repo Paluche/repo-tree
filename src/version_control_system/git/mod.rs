@@ -14,10 +14,12 @@ pub use status::status;
 pub use submodules::SubmoduleInfo;
 
 use super::VcsRepository;
+use super::VcsWorkspace;
 use crate::config::Config;
 use crate::error::NotImplementedError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
+use crate::repository::Workspace;
 
 /// Get the remote URL of the repository to use to organize the repository
 /// within the repo tree. This would be either the origin remote or the first
@@ -40,26 +42,24 @@ pub fn get_remote_url_repo(
 }
 
 /// Interact with a Git repository.
-pub struct GitVcs {
+pub struct GitVcs<'repo_tree> {
     /// Path to the root of the Git repository.
-    repo_path: PathBuf,
+    workspace: &'repo_tree Workspace,
 }
 
-impl GitVcs {
+impl<'repo_tree> GitVcs<'repo_tree> {
     /// Create a new GitVcs structure.
-    pub fn new(repo_path: &Path) -> Self {
-        Self {
-            repo_path: repo_path.to_path_buf(),
-        }
+    pub fn new(workspace: &'repo_tree Workspace) -> Self {
+        Self { workspace }
     }
 }
 
-impl VcsRepository for GitVcs {
+impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
     fn get_remote_url(
         &self,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {
         let (remote_config, remote_url) =
-            git2::Repository::discover(&self.repo_path)
+            git2::Repository::discover(self.workspace.path())
                 .and_then(|r| get_remote_url_repo(&r))?;
 
         Ok((remote_config, remote_url))
@@ -69,10 +69,10 @@ impl VcsRepository for GitVcs {
         GitCommand::global()?
             .arg("clone")
             .arg(remote_url)
-            .arg(&self.repo_path)
+            .arg(self.workspace.path())
             .status()?;
 
-        GitCommand::repo(&self.repo_path)?
+        GitCommand::repo(self.workspace.path())?
             .arg("submodule")
             .arg("update")
             .arg("--recursive")
@@ -81,7 +81,7 @@ impl VcsRepository for GitVcs {
     }
 
     fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>> {
-        let mut command = GitCommand::repo(&self.repo_path)?;
+        let mut command = GitCommand::repo(self.workspace.path())?;
 
         command.arg("fetch").arg("--prune-tags").arg("--force");
 
@@ -97,7 +97,7 @@ impl VcsRepository for GitVcs {
         config: &Config,
         prompt: &mut Prompt<'_>,
     ) -> Result<(), Box<dyn Error>> {
-        prompt::prompt(config, prompt, &self.repo_path, false)
+        prompt::prompt(config, prompt, self.workspace.path(), false)
     }
 
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
@@ -106,8 +106,7 @@ impl VcsRepository for GitVcs {
         )))
     }
 
-    /// Get the workspace name of the repository instance.
-    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
+    fn get_workspace(&self) -> Result<Option<VcsWorkspace>, Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Workspace / worktree interaction not for Git Version Control \
              System"
@@ -115,12 +114,19 @@ impl VcsRepository for GitVcs {
         )))
     }
 
-    /// Crate a workspace.
-    fn create_workspace(
+    fn add_workspace(
         &self,
         _name: &str,
         _destination: &Path,
     ) -> Result<(), Box<dyn Error>> {
+        Err(Box::new(NotImplementedError(
+            "Workspace / worktree interaction not for Git Version Control \
+             System"
+                .to_string(),
+        )))
+    }
+
+    fn remove_workspace(&self) -> Result<(), Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Workspace / worktree interaction not for Git Version Control \
              System"

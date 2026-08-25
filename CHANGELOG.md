@@ -49,6 +49,8 @@ None
   pushed and deleted from the remote too or to be forgotten locally about.
 - **jj prompt**: Make the bookmark and tags prompt even more configurable. Might
   break local configuration.
+- Add new command `rt workspace add` and `rt workspace rm` to manage our
+  repositories workspace in the different workspace tree-space.
 
 ### Fixed bugs
 

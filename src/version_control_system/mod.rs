@@ -13,6 +13,7 @@ use serde::Serialize;
 use crate::config::Config;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
+use crate::repository::Workspace;
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Default, ValueEnum, Serialize, Deserialize,
@@ -100,14 +101,17 @@ impl VersionControlSystem {
 
     /// Get the struct to use to interact with a repository using this version
     /// control system.
-    pub fn get_repo(&self, repo_path: &Path) -> Box<dyn VcsRepository> {
+    pub fn get_repo<'repo_tree>(
+        &self,
+        workspace: &'repo_tree Workspace,
+    ) -> Box<dyn VcsRepository + 'repo_tree> {
         match self {
-            Self::Git => Box::new(git::GitVcs::new(repo_path)),
+            Self::Git => Box::new(git::GitVcs::new(workspace)),
             Self::Jujutsu => {
-                Box::new(jujutsu::JujutsuVcs::new(repo_path, false))
+                Box::new(jujutsu::JujutsuVcs::new(workspace, false))
             }
             Self::JujutsuGit => {
-                Box::new(jujutsu::JujutsuVcs::new(repo_path, true))
+                Box::new(jujutsu::JujutsuVcs::new(workspace, true))
             }
         }
     }
@@ -156,6 +160,53 @@ impl<'vcs, 'config> Display for ShortDisplay<'vcs, 'config> {
     }
 }
 
+/// Representation of a Repository workspace.
+pub struct VcsWorkspace {
+    /// Name of the workspace.
+    pub name: String,
+
+    /// Path where the workspace is located.
+    pub path: PathBuf,
+}
+
+impl VcsWorkspace {
+    /// Get a struct that will implement the Display trait to display the
+    /// workspace name.
+    pub fn display_name<'vcs_workspace, 'config>(
+        &'vcs_workspace self,
+        config: &'config Config,
+    ) -> VcsWorkspaceDisplayName<'vcs_workspace, 'config> {
+        VcsWorkspaceDisplayName {
+            vcs_workspace: self,
+            config,
+        }
+    }
+}
+
+/// Implement the Display trait for VcsWorkspace, displaying the name of the
+/// workspace.
+pub struct VcsWorkspaceDisplayName<'vcs_workspace, 'config> {
+    /// The VcsWorkspace struct to display.
+    vcs_workspace: &'vcs_workspace VcsWorkspace,
+    /// The configuration dictating how to display.
+    config: &'config Config,
+}
+
+impl<'vcs_workspace, 'config> Display
+    for VcsWorkspaceDisplayName<'vcs_workspace, 'config>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.config
+                .prompt
+                .workspace
+                .colorize(format!("{}@", self.vcs_workspace.name))
+        )
+    }
+}
+
 /// Functions to interact with a supported Version Control System.
 pub trait VcsRepository {
     /// Get the remote URL of the repository to use to organize the repository
@@ -182,12 +233,15 @@ pub trait VcsRepository {
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
 
     /// The name of the workspace associated with the repository.
-    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>>;
+    fn get_workspace(&self) -> Result<Option<VcsWorkspace>, Box<dyn Error>>;
 
     /// Create a new workspace of the repository.
-    fn create_workspace(
+    fn add_workspace(
         &self,
         name: &str,
         destination: &Path,
     ) -> Result<(), Box<dyn Error>>;
+
+    /// Remove the workspace.
+    fn remove_workspace(&self) -> Result<(), Box<dyn Error>>;
 }
