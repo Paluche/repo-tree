@@ -49,8 +49,11 @@ pub async fn run(config: &Config, args: PromptArgs) -> i32 {
         }
     };
 
-    let mut prompt = Prompt::new(&repository);
-    let ret = repository.get_vcs_repo().prompt(config, &mut prompt);
+    let workspace = repository.get_latest_workspace();
+    let mut prompt = Prompt::new(&repository, workspace);
+    let ret = repository
+        .get_vcs_repo(workspace)
+        .prompt(config, &mut prompt);
     if ret == 0 {
         println!("{}", prompt.display(config));
     }
