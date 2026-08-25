@@ -205,6 +205,11 @@ impl Repository {
 }
 
 impl Repository {
+    /// Add a workspace to the repository.
+    pub fn add_workspace(&mut self, other: Self) {
+        // XXX Add asserts?
+        self.workspaces.extend(other.workspaces);
+    }
     /// Find out if the repository has the specified workspace.
     fn has_workspace(&self, workspace: &Workspace) -> bool {
         self.workspaces.iter().find(|w| w == &workspace).is_some()
