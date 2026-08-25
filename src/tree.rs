@@ -16,6 +16,8 @@ use clap::ValueEnum;
 use globset::Glob;
 use serde::Deserialize;
 use serde::Serialize;
+use strum::EnumIter;
+use strum::IntoEnumIterator;
 
 use crate::colors::ColoredText;
 use crate::config::Config;
@@ -90,17 +92,6 @@ impl<'config> TreeOrganization<'config> {
             }
         }
     }
-
-    /// Get the tree-category for this organization.
-    /// Note: This method exists so the association TreeSpace <->
-    /// TreeOrganization <-> TreeCategory is specified only once in the
-    /// TreeSpace::organization() method.
-    pub fn category(&self) -> &'config TreeCategory {
-        match self {
-            Self::RemoteBased(_, tree_category) => tree_category,
-            Self::Local(_, tree_category) => tree_category,
-        }
-    }
 }
 
 /// The different repository trees categories.
@@ -114,6 +105,7 @@ impl<'config> TreeOrganization<'config> {
     Serialize,
     Deserialize,
     ValueEnum,
+    EnumIter,
 )]
 pub enum TreeSpace {
     /// Main tree, where active, user-modified repository are
@@ -128,17 +120,9 @@ impl TreeSpace {
     /// Obtain the TreeSpace value based on a directory name, directory should
     /// match a tree-category.
     fn from_dir_name(config: &Config, dir_name: &OsStr) -> Option<Self> {
-        let tree_config = &config.tree;
-
-        if dir_name == tree_config.dev.category.dir_name() {
-            Some(Self::Dev)
-        } else if dir_name == tree_config.archive.category.dir_name() {
-            Some(Self::Archive)
-        } else if dir_name == tree_config.local.category.dir_name() {
-            Some(Self::Local)
-        } else {
-            None
-        }
+        Self::iter().find(|tree_space| {
+            dir_name == tree_space.category(config).dir_name()
+        })
     }
 
     /// Obtain the TreeSpace value based on a path which should be inside a
@@ -150,22 +134,28 @@ impl TreeSpace {
         )
     }
 
+    /// Get the tree category associated with the tree space.
+    fn category<'config>(
+        &self,
+        config: &'config Config,
+    ) -> &'config TreeCategory {
+        match self {
+            Self::Dev => &config.tree.dev.category,
+            Self::Local => &config.tree.local.category,
+            Self::Archive => &config.tree.archive.category,
+        }
+    }
+
     /// Get the organization model associated with the tree-space.
     fn organization<'config>(
         &self,
         config: &'config Config,
     ) -> TreeOrganization<'config> {
+        let category = self.category(config);
         match self {
-            Self::Dev => {
-                TreeOrganization::RemoteBased(config, &config.tree.dev.category)
-            }
-            Self::Local => {
-                TreeOrganization::Local(config, &config.tree.local.category)
-            }
-            Self::Archive => TreeOrganization::RemoteBased(
-                config,
-                &config.tree.archive.category,
-            ),
+            Self::Dev => TreeOrganization::RemoteBased(config, category),
+            Self::Local => TreeOrganization::Local(config, category),
+            Self::Archive => TreeOrganization::RemoteBased(config, category),
         }
     }
 
@@ -183,7 +173,7 @@ impl TreeSpace {
         &self,
         config: &'config Config,
     ) -> &'config ColoredText {
-        &self.organization(config).category().repr
+        &self.category(config).repr
     }
 
     /// Get a struct which knows how to display the tree space.
@@ -208,11 +198,7 @@ pub struct TreeSpaceDisplay<'tree_space, 'config> {
 
 impl<'tree_space, 'config> Display for TreeSpaceDisplay<'tree_space, 'config> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.tree_space.organization(self.config).category().name
-        )
+        write!(f, "{}", self.tree_space.category(self.config).name)
     }
 }
 
