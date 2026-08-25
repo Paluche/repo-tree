@@ -123,7 +123,7 @@ impl RepoId {
         self.remote
             .host(config)
             .dir_path(config)
-            .map(|p| p.join(&self.name))
+            .map(|p| p.join(self.name.split('/').collect::<PathBuf>()))
     }
 
     /// Find out if the repository is archived on the forge it is hosted on.
