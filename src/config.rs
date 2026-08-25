@@ -423,6 +423,21 @@ define_host_struct!(RemoteHost, remote);
 /// A group of host as map indexed by the URL of the host.
 type RemoteHosts = BTreeMap<String, RemoteHost>;
 
+/// Obtain a default value for the repo tree root.
+fn default_root() -> PathBuf {
+    let repo_tree_dir = PathBuf::from(&env::var("REPO_TREE_DIR").expect(
+        "Missing \"root\" in configuration file, and REPO_TREE_DIR \
+         environment variable",
+    ));
+
+    assert!(
+        repo_tree_dir.is_absolute(),
+        "REPO_TREE_DIR environment variable value must be an absolute path"
+    );
+
+    repo_tree_dir
+}
+
 /// Obtain the default host to add to the configuration if they are not already
 /// configured by the user.
 fn default_remote_hosts() -> RemoteHosts {
@@ -963,10 +978,10 @@ pub struct CommandConfig {
 /// Configuration of the rt executable.
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
-    /// Path the root of the repo tree. Value obtained through environment
-    /// variable REPO_TREE_DIR.
-    #[serde(skip)]
-    pub repo_tree_dir: PathBuf,
+    /// Path the root of the repo tree. Default value obtained through
+    /// the environment variable REPO_TREE_DIR.
+    #[serde(default = "default_root")]
+    pub root: PathBuf,
     /// Configuration related to the hosts we know how to organize repositories
     /// which host there remote.
     #[serde(default = "default_remote_hosts", rename = "host")]
@@ -1021,8 +1036,7 @@ impl Config {
     /// Find out if the specified path is to be ignored regarding the
     /// configuration.
     pub fn should_be_ignored(&self, path: &Path) -> bool {
-        !path.starts_with(&self.repo_tree_dir)
-            && self.repository.should_be_ignored(path)
+        !path.starts_with(&self.root) && self.repository.should_be_ignored(path)
     }
 }
 
@@ -1031,17 +1045,10 @@ impl Config {
     fn load_internal(content: &str) -> Result<Self, Box<dyn Error>> {
         let mut ret: Config = toml::from_str(content)?;
 
-        let repo_tree_dir = PathBuf::from(
-            &env::var("REPO_TREE_DIR")
-                .expect("Missing REPO_TREE_DIR environment variable"),
-        );
-
         assert!(
-            repo_tree_dir.is_absolute(),
-            "REPO_TREE_DIR value must be an absolute path"
+            ret.root.is_absolute(),
+            "\"root\" value in configuration file must be an absolute path"
         );
-
-        ret.repo_tree_dir = repo_tree_dir;
 
         for (url, host) in default_remote_hosts() {
             if ret.remote_hosts.contains_key(&url) {
@@ -1157,6 +1164,9 @@ mod tests {
 
     #[test]
     fn default_config() -> Result<(), Box<dyn Error>> {
+        unsafe {
+            env::set_var("REPO_TREE_DIR", "/home/user/work");
+        }
         let config = Config::load_internal("")?;
 
         // Check remote (remote hosts) values.
@@ -1335,6 +1345,8 @@ mod tests {
 
         // Check the serialized output if the expected one.
         insta::assert_snapshot!(toml::to_string(&config)?, @r#"
+        root = "/home/user/work"
+
         [host."bitbucket.org"]
         name = "bitbucket"
 
@@ -1477,6 +1489,8 @@ mod tests {
     #[test]
     fn full_config() -> Result<(), Box<dyn Error>> {
         let config = Config::load_internal(indoc! {r#"
+        root = "/home/user/repos"
+
         [host."my.custom-domain.fr"]
         name = 'mine'
         repr = { text = '󱘎', color = 'blue' }
@@ -1825,6 +1839,8 @@ mod tests {
         );
 
         insta::assert_snapshot!(toml::to_string(&config)?, @r#"
+        root = "/home/user/repos"
+
         [host."alice-and-bob.net"]
         name = "alice-and-bob"
 

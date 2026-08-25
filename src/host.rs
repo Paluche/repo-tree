@@ -88,7 +88,7 @@ impl<'config> Host<'config> {
         &self,
         config: &Config,
     ) -> Result<PathBuf, UnknownRemoteHostError> {
-        self.dir_name().map(|d| config.repo_tree_dir.join(d))
+        self.dir_name().map(|d| config.root.join(d))
     }
 
     /// Get the short representation of the host.

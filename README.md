@@ -6,7 +6,7 @@ clone within a single executable `rt`.
 ## Organize your repositories
 
 The repositories are organized in the Repository Tree root directory specified
-by the `REPO_TREE_DIR` environment variable.
+by the `root` configuration or the `REPO_TREE_DIR` environment variable.
 
 The path where the repositories are stored is computed based on the remote URL
 of the repository. The repositories are then organized by host.
