@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   check-gitlint:
-    name: check (gitlint)
+    name: gitlint
     # Do not run this check if the PR has been created by dependabot.
     if: contains(github.event.pull_request.user.login , 'dependabot[bot]') == false
     runs-on: ubuntu-latest
@@ -108,7 +108,7 @@ jobs:
             await core.summary.write();
 
   check-rustfmt:
-    name: check (rustfmt)
+    name: rustfmt
     runs-on: ubuntu-24.04
     steps:
       - &pr-details
@@ -221,7 +221,7 @@ jobs:
             await core.summary.write();
 
   check-clippy:
-    name: check (clippy)
+    name: clippy
     permissions:
       checks: write
     runs-on: ubuntu-24.04
@@ -316,7 +316,7 @@ jobs:
             await core.summary.write();
 
   check-build:
-    name: check (build)
+    name: cargo build
     permissions:
       checks: write
     runs-on: ubuntu-24.04
@@ -385,7 +385,7 @@ jobs:
           echo "All commits passed build validation! 🎉" >> "${GITHUB_STEP_SUMMARY}"
 
   check-tests:
-    name: check (cargo test)
+    name: cargo test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -402,7 +402,7 @@ jobs:
         run: cargo test
 
   check-prettier:
-    name: check (prettier)
+    name: prettier
     permissions:
       checks: write
     runs-on: ubuntu-24.04
@@ -493,6 +493,24 @@ jobs:
 
             await core.summary.write();
 
+  check-zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read # only needed for private or internal repos
+      actions: read # only needed for private or internal repos
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor 🌈
+        uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
+        with:
+          advanced-security: false
+
   merge-checks:
     name: Merge checks
     if: always()
@@ -503,6 +521,7 @@ jobs:
       - check-build
       - check-tests
       - check-prettier
+      - check-zizmor
     runs-on: ubuntu-latest
     steps:
       - name: Block merge if required checks fail
