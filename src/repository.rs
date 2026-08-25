@@ -78,8 +78,7 @@ impl Repository {
     ) -> Result<Self, Box<dyn Error>> {
         let mut current_path = Some(path);
 
-        while current_path.is_some() {
-            let root = current_path.unwrap();
+        while let Some(root) = current_path {
             match Self::try_new(config, root) {
                 Ok(repo) => return Ok(repo),
                 Err(err) => {
@@ -88,7 +87,7 @@ impl Repository {
                     }
                 }
             }
-            current_path = current_path.unwrap().parent();
+            current_path = root.parent();
         }
 
         Err(Box::new(NoRepositoryError(path.to_path_buf())))
@@ -126,26 +125,26 @@ impl Repository {
         config: &Config,
         root: &Path,
     ) -> Result<Self, Box<dyn Error>> {
-        let vcs = VersionControlSystem::try_new(root);
-        if vcs.is_none() {
-            return Err(Box::new(NoRepositoryError(root.to_path_buf())));
-        }
-        let (vcs, is_submodule) = vcs.unwrap();
-        let (remote_config, remote_url) = match vcs {
-            VersionControlSystem::Git | VersionControlSystem::JujutsuGit => {
-                git::get_remote_url(root)?
-            }
-            VersionControlSystem::Jujutsu => jujutsu::get_remote_url(root)?,
-        };
-        let id = RepoId::from_repo(config, &root, remote_url.as_ref())?;
+        if let Some((vcs, is_submodule)) = VersionControlSystem::try_new(root) {
+            let (remote_config, remote_url) = match vcs {
+                VersionControlSystem::Git
+                | VersionControlSystem::JujutsuGit => {
+                    git::get_remote_url(root)?
+                }
+                VersionControlSystem::Jujutsu => jujutsu::get_remote_url(root)?,
+            };
+            let id = RepoId::from_repo(config, &root, remote_url.as_ref())?;
 
-        Ok(Self {
-            vcs,
-            is_submodule,
-            id,
-            root: root.to_path_buf(),
-            remote_config: RemoteConfig::new(remote_config)?,
-        })
+            Ok(Self {
+                vcs,
+                is_submodule,
+                id,
+                root: root.to_path_buf(),
+                remote_config: RemoteConfig::new(remote_config)?,
+            })
+        } else {
+            Err(Box::new(NoRepositoryError(root.to_path_buf())))
+        }
     }
 
     /// Get the expected path to the root of the repository within the repo
@@ -345,9 +344,9 @@ impl Repositories {
 impl Drop for Repositories {
     fn drop(&mut self) {
         let cache_file = cache_file();
-        let parent = cache_file.parent().unwrap();
 
-        if !parent.exists()
+        if let Some(parent) = cache_file.parent()
+            && !parent.exists()
             && let Err(err) = create_dir_all(parent)
         {
             eprintln!(
@@ -355,6 +354,7 @@ impl Drop for Repositories {
                 parent.display()
             );
         }
+
         if let Err(err) = File::create(cache_file)
             .map(|mut f| f.write_all(toml::to_string(self).unwrap().as_bytes()))
         {
