@@ -53,7 +53,6 @@ fn reduce_repo_names<'repos>(
         let name = repository.id.name.clone();
         if let Ok(full_name) = repository
             .id
-            .remote
             .host(config)
             .name()
             .inspect_err(|err| eprintln!("{err}"))
@@ -237,13 +236,18 @@ pub fn resolve_completer(
                     .tag(
                         repository
                             .id
-                            .remote
                             .host(&config)
                             .dir_name()
                             .ok()
                             .map(StyledStr::from),
                     )
-                    .help(repository.id.remote.url().map(StyledStr::from))
+                    .help(
+                        repository
+                            .id
+                            .remote
+                            .as_ref()
+                            .map(|r| StyledStr::from(&r.url)),
+                    )
             })
         })
         .collect()

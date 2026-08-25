@@ -35,8 +35,8 @@ pub fn run(config: &Config, args: RemoteArgs) -> i32 {
             }
         };
 
-    if let Some(remote_url) = repository.id.remote.url() {
-        println!("{remote_url}");
+    if let Some(remote) = repository.id.remote {
+        println!("{}", remote.url);
         0
     } else {
         eprintln!("No remote URL found for the repository");

@@ -52,11 +52,11 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
     {
         let id = format!(
             "{} {:20}",
-            repository.id.remote.host(config).repr(),
+            repository.id.host(config).repr(),
             repository.id.name
         );
 
-        if repository.id.remote.is_local() {
+        if repository.id.is_local() {
             if args.verbose {
                 eprint!("\r{}", Clear(ClearType::CurrentLine));
                 println!("{id} {}", "Ignored (local)".bright_black());

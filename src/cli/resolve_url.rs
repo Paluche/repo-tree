@@ -28,7 +28,11 @@ pub struct ResolveUrlArgs {
 /// tree.
 fn get_candidates(repositories: &Repositories) -> BTreeMap<&String, &PathBuf> {
     BTreeMap::from_iter(repositories.iter().filter_map(|repository| {
-        repository.id.remote.url().map(|u| (u, &repository.root))
+        repository
+            .id
+            .remote
+            .as_ref()
+            .map(|r| (&r.url, &repository.root))
     }))
 }
 

@@ -150,7 +150,7 @@ impl<'repos> Directory<'repos> {
         if let Some(r) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
             let submodules = r.submodules().unwrap();
-            if let Some(remote_url) = &r.id.remote.url() {
+            if let Some(remote) = &r.id.remote {
                 writeln!(
                     f,
                     "{prefix}{}{} {}",
@@ -160,7 +160,7 @@ impl<'repos> Directory<'repos> {
                         DirState::SubDir
                     }
                     .get_subdir_prefix(),
-                    remote_url.green(),
+                    remote.url.green(),
                     r.vcs.short_display(config),
                 )?;
             }

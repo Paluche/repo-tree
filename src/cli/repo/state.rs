@@ -39,7 +39,7 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
             }
         };
 
-    let host = repository.id.remote.host(config);
+    let host = repository.id.host(config);
 
     if args.verbose {
         println!(
@@ -50,8 +50,8 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
             repository
                 .id
                 .remote
-                .url()
-                .map_or("".to_string(), |u| format!(": {u}"))
+                .as_ref()
+                .map_or("".to_string(), |r| format!(": {}", r.url))
         );
         println!(
             "{} {}",

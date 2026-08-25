@@ -8,7 +8,7 @@ use git2::Oid;
 use regex::Regex;
 use url::Url;
 
-use crate::host::Remote;
+use crate::repo_id::Remote;
 
 /// Resolve a submodule URL that may be relative into an absolute URL,
 /// using the repository's remote URL as the base.
@@ -33,7 +33,7 @@ use crate::host::Remote;
 ///   behaviour, call git itself or replicate git's source logic.
 fn resolve_url<P: AsRef<Path>>(
     main_repo_root: P,
-    main_repo_remote: &Remote,
+    main_repo_remote: &Option<Remote>,
     submodule_url: &str,
 ) -> Result<Option<String>, Box<dyn Error>> {
     // If it already looks like an absolute URL with a scheme, return as-is.
@@ -53,9 +53,9 @@ fn resolve_url<P: AsRef<Path>>(
         Regex::new(r"^(?:(?P<user>[^@]+)@)?(?P<host>[^:]+):(?P<path>.+)$")
             .unwrap();
 
-    Ok(if let Some(main_remote_url) = main_repo_remote.url() {
+    Ok(if let Some(main_remote) = main_repo_remote {
         // Try to parse base as a normal URL (http/https/git/file).
-        if let Ok(mut base) = Url::parse(main_remote_url) {
+        if let Ok(mut base) = Url::parse(&main_remote.url) {
             // We want to join against the parent directory of the repository's
             // path component e.g. base path: /owner/repo.git -> parent: /owner/
             let base_path = base.path();
@@ -71,9 +71,9 @@ fn resolve_url<P: AsRef<Path>>(
 
             let joined = base.join(submodule_url)?;
             Some(joined.to_string())
-        } else if scp_re.is_match(main_remote_url) {
+        } else if scp_re.is_match(&main_remote.url) {
             // Parse base as scp-like.
-            let caps = scp_re.captures(main_remote_url).unwrap();
+            let caps = scp_re.captures(&main_remote.url).unwrap();
             let user = caps.name("user").map(|m| m.as_str());
             let host = caps.name("host").unwrap().as_str();
             let base_path = caps.name("path").unwrap().as_str();
@@ -108,7 +108,7 @@ fn resolve_url<P: AsRef<Path>>(
             // Fallback: if base_remote_url is just a local path or otherwise
             // unparseable, resolve path-like by treating base_remote_url as a
             // directory.
-            resolve_url_as_relpath(main_remote_url, submodule_url)
+            resolve_url_as_relpath(&main_remote.url, submodule_url)
         }
     } else {
         resolve_url_as_relpath(main_repo_root, submodule_url)
@@ -163,7 +163,7 @@ impl SubmoduleInfo {
 /// Get the submodules information.
 pub fn get<P: AsRef<Path>>(
     main_repo_root: P,
-    main_repo_remote: &Remote,
+    main_repo_remote: &Option<Remote>,
 ) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
     let main_repo_root = main_repo_root.as_ref().to_path_buf();
     let repo = git2::Repository::discover(&main_repo_root)?;

@@ -13,7 +13,6 @@ use crate::config::HostInfo;
 use crate::error::ParseUrlError;
 use crate::error::UnknownRemoteHostError;
 use crate::host::Host;
-use crate::host::Remote;
 
 /// Either the repository is within the local/ directory allowing the user to
 /// organize as see fits this directory.
@@ -69,13 +68,44 @@ fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
         .ok_or(ParseUrlError(url.to_string()))
 }
 
+/// Representation of the URL of a remote.
+#[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
+pub struct Remote {
+    /// URL of the remote.
+    pub url: String,
+
+    /// The host part of the URL of the remote.
+    pub host_url: String,
+}
+
 #[derive(Clone, Hash, PartialEq, Serialize, Deserialize)]
 /// Repository Identifier.
 pub struct RepoId {
     /// Information about the host associated with the repository.
-    pub remote: Remote,
+    pub remote: Option<Remote>,
     /// Name of the repository.
     pub name: String,
+}
+
+impl RepoId {
+    /// Resolve the host based on the configuration.
+    pub fn host<'config>(&self, config: &'config Config) -> Host<'config> {
+        match &self.remote {
+            Some(remote) => config.get_remote_host(&remote.host_url).map_or(
+                Host::UnknownRemote(
+                    remote.host_url.to_string(),
+                    &config.unknown_host,
+                ),
+                Host::Remote,
+            ),
+            None => Host::Local(&config.local),
+        }
+    }
+
+    /// Find out if the repository is hosted locally.
+    pub fn is_local(&self) -> bool {
+        self.remote.is_none()
+    }
 }
 
 impl RepoId {
@@ -87,10 +117,10 @@ impl RepoId {
         let name = remote_cap["path"].to_string();
 
         Ok(Self {
-            remote: Remote::Remote(
-                remote_url.to_string(),
-                host_url.to_string(),
-            ),
+            remote: Some(Remote {
+                url: remote_url.to_string(),
+                host_url: host_url.to_string(),
+            }),
             name,
         })
     }
@@ -109,7 +139,7 @@ impl RepoId {
             Self::from_remote_url(remote_url)
         } else {
             Ok(Self {
-                remote: Remote::Local,
+                remote: None,
                 name: compute_local_path(config, repo_path),
             })
         }
@@ -120,8 +150,7 @@ impl RepoId {
         &self,
         config: &Config,
     ) -> Result<PathBuf, UnknownRemoteHostError> {
-        self.remote
-            .host(config)
+        self.host(config)
             .dir_path(config)
             .map(|p| p.join(self.name.split('/').collect::<PathBuf>()))
     }
@@ -132,12 +161,7 @@ impl RepoId {
         &self,
         config: &Config,
     ) -> Result<bool, Box<dyn Error>> {
-        self.remote
-            .host(config)
-            .forge()
-            .api()
-            .is_archived(self)
-            .await
+        self.host(config).forge().api().is_archived(self).await
     }
 
     /// Obtain a struct implementing the display for the RepoId.
@@ -147,7 +171,7 @@ impl RepoId {
     ) -> RepoIdDisplay<'repo_id, 'config> {
         RepoIdDisplay {
             repo_id: self,
-            host: self.remote.host(config),
+            host: self.host(config),
         }
     }
 }
@@ -163,8 +187,8 @@ pub struct RepoIdDisplay<'repo_id, 'config> {
 impl<'repo_id, 'config> Display for RepoIdDisplay<'repo_id, 'config> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {}", self.host, self.repo_id.name)?;
-        if let Some(remote_url) = &self.repo_id.remote.url() {
-            write!(f, " {remote_url}")?;
+        if let Some(remote) = &self.repo_id.remote {
+            write!(f, " {}", remote.url)?;
         }
 
         Ok(())
