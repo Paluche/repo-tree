@@ -89,9 +89,31 @@ impl<'config> TreeOrganization<'config> {
 }
 
 /// The different kind of tree-space.
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Serialize,
+    Deserialize,
+    Default,
+)]
 pub enum TreeSpaceKind {
     /// Tree-space containing main repositories.
+    #[default]
     Main,
+    /// Tree-space containing workspace repositories associated with a main
+    /// repository from the Main tree space type.
+    Workspace,
+}
+
+impl TreeSpaceKind {
+    /// Is the tree-space of the workspace kind.
+    pub fn is_workspace(&self) -> bool {
+        matches!(self, Self::Workspace)
+    }
 }
 
 /// The different repository trees categories.
@@ -104,15 +126,17 @@ pub enum TreeSpaceKind {
     Ord,
     Serialize,
     Deserialize,
-    ValueEnum,
-    EnumIter,
     EnumDocs,
+    EnumIter,
 )]
 pub enum TreeSpace {
     /// Main tree, where active, user-modified repository are
     Dev,
     /// Where archived / read-only repositories are stored.
     Archive,
+    /// Tree containing repositories workspaces where agents, which brings
+    /// modification to your repositories, evolves.
+    Agent,
     /// Tree for repositories which exists only locally.
     Local,
 }
@@ -145,6 +169,7 @@ impl TreeSpace {
     pub fn kind(&self) -> TreeSpaceKind {
         match self {
             Self::Dev | Self::Local | Self::Archive => TreeSpaceKind::Main,
+            Self::Agent => TreeSpaceKind::Workspace,
         }
     }
 
@@ -156,6 +181,7 @@ impl TreeSpace {
         match self {
             Self::Dev => &config.tree.dev.category,
             Self::Local => &config.tree.local.category,
+            Self::Agent => &config.tree.agent.category,
             Self::Archive => &config.tree.archive.category,
         }
     }
@@ -169,6 +195,7 @@ impl TreeSpace {
         match self {
             Self::Dev => TreeOrganization::RemoteBased(config, category),
             Self::Local => TreeOrganization::Local(config, category),
+            Self::Agent => TreeOrganization::RemoteBased(config, category),
             Self::Archive => TreeOrganization::RemoteBased(config, category),
         }
     }
@@ -244,6 +271,42 @@ pub struct TreeSpaceDisplay<'tree_space, 'config> {
 impl<'tree_space, 'config> Display for TreeSpaceDisplay<'tree_space, 'config> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.tree_space.category(self.config).name)
+    }
+}
+
+/// Enum for CLI arguments where you can specify a workspace tree-space.
+#[derive(Debug, Clone, ValueEnum, EnumIter)]
+pub enum WorkspaceTreeSpace {
+    Agent,
+}
+
+impl WorkspaceTreeSpace {
+    /// CLI completion candidates for a workspace tree space argument.
+    pub fn completer() -> ArgValueCompleter {
+        ArgValueCompleter::new(|current: &OsStr| {
+            Config::load().map_or(Vec::new(), |config| {
+                WorkspaceTreeSpace::iter()
+                    .filter_map(|wts| {
+                        let tree_space: TreeSpace = wts.into();
+                        if matches!(tree_space.kind(), TreeSpaceKind::Workspace)
+                        {
+                            tree_space
+                                .into_completion_candidate(&config, current)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<CompletionCandidate>>()
+            })
+        })
+    }
+}
+
+impl From<WorkspaceTreeSpace> for TreeSpace {
+    fn from(value: WorkspaceTreeSpace) -> Self {
+        match value {
+            WorkspaceTreeSpace::Agent => Self::Agent,
+        }
     }
 }
 

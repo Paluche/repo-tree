@@ -11,6 +11,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
+use crate::tree_space::WorkspaceTreeSpace;
 
 /// Resolve the URL of a repository into its path.
 #[derive(Args)]
@@ -19,6 +20,9 @@ pub struct ResolveUrlArgs {
     /// repo_tree.
     #[arg(add=ArgValueCompleter::new(resolve_completer))]
     repo_id: String,
+    /// Workspace tree-space to search for the repository.
+    #[arg(short, long, add=WorkspaceTreeSpace::completer())]
+    workspace: Option<WorkspaceTreeSpace>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
