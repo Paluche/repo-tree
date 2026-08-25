@@ -34,7 +34,7 @@ pub async fn run(config: &Config, args: PromptArgs) -> i32 {
     let repo_path = cwd_default_path(args.repository);
     SHOULD_COLORIZE.set_override(true);
 
-    let repository = match Repository::discover(config, repo_path) {
+    let repository = match Repository::discover(config, &repo_path) {
         Ok(r) => r,
         Err(err) => {
             if err.downcast_ref::<NoRepositoryError>().is_some() {

@@ -44,7 +44,7 @@ pub fn fetch_repo(
     }
     for submodule in repository.submodules()? {
         let root = submodule.abs_path();
-        let repository = Repository::try_new(config, root.clone())?;
+        let repository = Repository::try_new(config, &root)?;
 
         let (_ok, _total) = fetch_repo(config, quiet, &repository, true)?;
         ok += _ok;

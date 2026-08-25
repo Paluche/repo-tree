@@ -33,7 +33,7 @@ fn refresh_cache(config: &Config, refresh_cache: bool) {
 /// Execute the `rt insert` command.
 pub fn run(config: &Config, args: InsertArgs) -> i32 {
     let repository =
-        match Repository::discover_silent(config, PathBuf::from(args.path)) {
+        match Repository::discover_silent(config, &PathBuf::from(args.path)) {
             Ok(r) => r,
             Err(err) => {
                 eprintln!("{err}");

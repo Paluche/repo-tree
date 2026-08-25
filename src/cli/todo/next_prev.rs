@@ -44,17 +44,16 @@ pub struct NextPrevArgs {
 /// Execute the `rt todo next` or `rt todo prev` command.
 pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
     let repo_path = cwd_default_path(None);
-    let current_repository =
-        match Repository::discover(config, repo_path.clone()) {
-            Ok(r) => Some(r),
-            Err(err) => {
-                if err.downcast_ref::<NoRepositoryError>().is_none() {
-                    eprintln!("Error: {err}");
-                    return 1;
-                }
-                None
+    let current_repository = match Repository::discover(config, &repo_path) {
+        Ok(r) => Some(r),
+        Err(err) => {
+            if err.downcast_ref::<NoRepositoryError>().is_none() {
+                eprintln!("Error: {err}");
+                return 1;
             }
-        };
+            None
+        }
+    };
 
     let repositories = Repositories::load(config, args.refresh_cache);
 

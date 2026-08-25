@@ -74,12 +74,12 @@ impl Repository {
     /// about the repository location.
     pub fn discover_silent(
         config: &Config,
-        path: PathBuf,
+        path: &Path,
     ) -> Result<Self, Box<dyn Error>> {
-        let mut current_path = Some(path.clone());
+        let mut current_path = Some(path);
 
         while current_path.is_some() {
-            let root = current_path.clone().unwrap();
+            let root = current_path.unwrap();
             match Self::try_new(config, root) {
                 Ok(repo) => return Ok(repo),
                 Err(err) => {
@@ -88,17 +88,16 @@ impl Repository {
                     }
                 }
             }
-            current_path =
-                current_path.unwrap().parent().map(|p| p.to_path_buf());
+            current_path = current_path.unwrap().parent();
         }
 
-        Err(Box::new(NoRepositoryError(path)))
+        Err(Box::new(NoRepositoryError(path.to_path_buf())))
     }
 
     /// Search for a repository at the given path.
     pub fn discover(
         config: &Config,
-        path: PathBuf,
+        path: &Path,
     ) -> Result<Self, Box<dyn Error>> {
         let repository = Self::discover_silent(config, path)?;
 
@@ -125,26 +124,26 @@ impl Repository {
     /// Try loading a repository which root is the one provided.
     pub fn try_new(
         config: &Config,
-        root: PathBuf,
+        root: &Path,
     ) -> Result<Self, Box<dyn Error>> {
-        let vcs = VersionControlSystem::try_new(&root);
+        let vcs = VersionControlSystem::try_new(root);
         if vcs.is_none() {
-            return Err(Box::new(NoRepositoryError(root)));
+            return Err(Box::new(NoRepositoryError(root.to_path_buf())));
         }
         let (vcs, is_submodule) = vcs.unwrap();
         let (remote_config, remote_url) = match vcs {
             VersionControlSystem::Git | VersionControlSystem::JujutsuGit => {
-                git::get_remote_url(&root)?
+                git::get_remote_url(root)?
             }
-            VersionControlSystem::Jujutsu => jujutsu::get_remote_url(&root)?,
+            VersionControlSystem::Jujutsu => jujutsu::get_remote_url(root)?,
         };
         let id = RepoId::from_repo(config, &root, remote_url.as_ref())?;
 
         Ok(Self {
             vcs,
             is_submodule,
-            root,
             id,
+            root: root.to_path_buf(),
             remote_config: RemoteConfig::new(remote_config)?,
         })
     }
@@ -199,7 +198,7 @@ fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
     for entry in dir.read_dir().expect("read dir call failed").flatten() {
         empty_dir = false;
         let root = entry.path();
-        let repo = Repository::try_new(config, root.clone());
+        let repo = Repository::try_new(config, &root);
         if let Ok(repo) = repo {
             repositories.push(repo);
         } else {
