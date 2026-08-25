@@ -53,7 +53,9 @@ pub struct Display<'prompt, 'repo, 'config> {
     config: &'config Config,
 }
 
-impl<'pb, 'repo, 'config> std::fmt::Display for Display<'pb, 'repo, 'config> {
+impl<'prompt, 'repo, 'config> std::fmt::Display
+    for Display<'prompt, 'repo, 'config>
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
