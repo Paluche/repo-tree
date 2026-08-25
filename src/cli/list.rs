@@ -5,7 +5,6 @@ use clap_complete::engine::ArgValueCompleter;
 use globset::Glob;
 
 use crate::config::Config;
-use crate::config::list_host_completer;
 use crate::tree::RepoTree;
 
 /// List all repositories in the repo_tree.
@@ -16,7 +15,7 @@ pub struct ListArgs {
     /// as an union filter.
     #[arg(
         short='H', long="host", action=ArgAction::Append,
-        add=ArgValueCompleter::new(list_host_completer)
+        add=ArgValueCompleter::new(Config::host_completer)
         )
     ]
     hosts: Vec<Glob>,
