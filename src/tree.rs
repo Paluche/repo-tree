@@ -119,6 +119,9 @@ pub enum TreeSpace {
     Dev,
     /// Where archived / read-only repositories are stored.
     Archive,
+    /// Where repositories workspaces where agents which brings modification to
+    /// your repositories evolves.
+    Agents,
     /// Tree for repositories which exists only locally.
     Local,
 }
@@ -161,6 +164,10 @@ impl TreeSpace {
             Self::Local => {
                 TreeOrganization::Local(config, &config.tree.local.category)
             }
+            Self::Agents => TreeOrganization::RemoteBased(
+                config,
+                &config.tree.agents.category,
+            ),
             Self::Archive => TreeOrganization::RemoteBased(
                 config,
                 &config.tree.archive.category,
