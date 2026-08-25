@@ -176,4 +176,16 @@ pub trait VcsRepository {
 
     /// Get the repository state.
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
+
+    /// The name of the workspace associated with the repository.
+    #[allow(dead_code)]
+    fn get_workspace_name(&self) -> Result<String, Box<dyn Error>>;
+
+    /// Create a new workspace of the repository.
+    #[allow(dead_code)]
+    fn create_workspace(
+        &self,
+        name: &str,
+        destination: &Path,
+    ) -> Result<(), Box<dyn Error>>;
 }
