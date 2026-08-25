@@ -22,6 +22,7 @@ mod resolve_url;
 mod rm;
 mod todo;
 mod tree;
+mod workspace;
 
 use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
