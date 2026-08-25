@@ -26,14 +26,16 @@ pub fn run(config: &Config, args: RemoteArgs) -> i32 {
         Repositories::load(config, true);
     }
 
-    let repository =
-        match Repository::discover(config, cwd_default_path(args.repository)) {
-            Ok(r) => r,
-            Err(err) => {
-                println!("{err}");
-                return 1;
-            }
-        };
+    let repository = match Repository::discover(
+        config,
+        &cwd_default_path(args.repository),
+    ) {
+        Ok(r) => r,
+        Err(err) => {
+            println!("{err}");
+            return 1;
+        }
+    };
 
     if let Some(remote) = repository.id.remote {
         println!("{}", remote.url);

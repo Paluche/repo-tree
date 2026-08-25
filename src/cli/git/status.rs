@@ -134,7 +134,7 @@ pub fn run(config: &Config, args: StatusArgs) -> i32 {
     }
 
     let repo_path = cwd_default_path(args.repository);
-    let repository = match Repository::discover(config, repo_path.clone()) {
+    let repository = match Repository::discover(config, &repo_path) {
         Ok(r) => r,
         Err(err) => {
             eprintln!("{err}");

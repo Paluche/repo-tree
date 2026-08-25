@@ -30,14 +30,16 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
         Repositories::load(config, true);
     }
 
-    let repository =
-        match Repository::discover(config, cwd_default_path(args.repository)) {
-            Ok(r) => r,
-            Err(err) => {
-                eprintln!("Error: {err}");
-                return 1;
-            }
-        };
+    let repository = match Repository::discover(
+        config,
+        &cwd_default_path(args.repository),
+    ) {
+        Ok(r) => r,
+        Err(err) => {
+            eprintln!("Error: {err}");
+            return 1;
+        }
+    };
 
     if args.verbose {
         println!(
