@@ -18,6 +18,7 @@ use strum::IntoEnumIterator;
 use crate::colors::ColoredText;
 use crate::config::Config;
 use crate::config::TreeCategory;
+use crate::error::InvalidWorkspaceTreeSpace;
 use crate::error::UnexpectedTreeSpaceError;
 use crate::error::UnknownRemoteHostError;
 use crate::repo_id::RepoId;
@@ -89,6 +90,7 @@ impl<'config> TreeOrganization<'config> {
 }
 
 /// The different kind of tree-space.
+#[derive(Debug)]
 pub enum TreeSpaceKind {
     /// Tree-space containing main repositories.
     Main,
@@ -263,6 +265,70 @@ impl<'tree_space, 'config> Display for TreeSpaceDisplay<'tree_space, 'config> {
     }
 }
 
+/// Enum for CLI arguments where you can specify a workspace tree-space.
+#[derive(Debug, Clone, ValueEnum, EnumIter)]
+pub enum WorkspaceTreeSpace {
+    /// Tree containing repositories workspaces where agents, which brings
+    /// modification to your repositories, evolves.
+    Agent,
+}
+
+impl WorkspaceTreeSpace {
+    /// CLI completion candidates for a workspace tree space argument.
+    #[expect(dead_code)]
+    pub fn completer() -> ArgValueCompleter {
+        ArgValueCompleter::new(|current: &OsStr| {
+            Config::load().map_or(Vec::new(), |config| {
+                WorkspaceTreeSpace::iter()
+                    .filter_map(|wts| {
+                        let tree_space: TreeSpace = wts.into();
+                        if matches!(tree_space.kind(), TreeSpaceKind::Workspace)
+                        {
+                            tree_space
+                                .into_completion_candidate(&config, current)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<CompletionCandidate>>()
+            })
+        })
+    }
+}
+
+impl Display for WorkspaceTreeSpace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Agent => "agent",
+            }
+        )
+    }
+}
+
+impl From<WorkspaceTreeSpace> for TreeSpace {
+    fn from(value: WorkspaceTreeSpace) -> Self {
+        match value {
+            WorkspaceTreeSpace::Agent => Self::Agent,
+        }
+    }
+}
+
+impl TryFrom<TreeSpace> for WorkspaceTreeSpace {
+    type Error = InvalidWorkspaceTreeSpace;
+
+    fn try_from(value: TreeSpace) -> Result<Self, Self::Error> {
+        match value {
+            TreeSpace::Agent => Ok(Self::Agent),
+            TreeSpace::Dev | TreeSpace::Local | TreeSpace::Archive => {
+                Err(InvalidWorkspaceTreeSpace(value))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -322,5 +388,35 @@ mod tests {
         let repo_path = PathBuf::from("/home/not-user/work/dev/test/foo/bar");
         let tree_space = TreeSpace::from_path(&config, &repo_path);
         assert_eq!(tree_space, None)
+    }
+
+    #[test]
+    fn check_tree_space_into_workspace_tree_space() {
+        for tree_space in TreeSpace::iter().filter(|t| t.kind().is_workspace())
+        {
+            match <TreeSpace as TryInto<WorkspaceTreeSpace>>::try_into(
+                tree_space,
+            ) {
+                Ok(_) => (),
+                Err(err) => {
+                    panic!("{err}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn check_workspace_tree_space_into_tree_space() {
+        for workspace_tree_space in WorkspaceTreeSpace::iter() {
+            let tree_space = <WorkspaceTreeSpace as Into<TreeSpace>>::into(
+                workspace_tree_space.clone(),
+            );
+            assert!(
+                tree_space.kind().is_workspace(),
+                "{workspace_tree_space:?} convert into {tree_space:?} which \
+                 is not of kind 'workspace' but {:?}",
+                tree_space.kind()
+            )
+        }
     }
 }

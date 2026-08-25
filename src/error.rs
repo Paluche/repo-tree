@@ -6,6 +6,7 @@ use std::process::Output;
 
 use thiserror::Error;
 
+use crate::tree_space::TreeSpace;
 use crate::version_control_system::VersionControlSystem;
 
 #[derive(Debug, Error)]
@@ -90,3 +91,8 @@ pub struct UnimplementedForgeApi(pub String);
 #[error("No {0} repository in: {0}")]
 /// Error during the parsing of the configuration.
 pub struct NotARepositoryError(pub VersionControlSystem, pub String);
+
+#[derive(Debug, Error)]
+#[error("TreeSpace::{0:?} is not a workspace tree-space")]
+/// Error during the parsing of the configuration.
+pub struct InvalidWorkspaceTreeSpace(pub TreeSpace);
