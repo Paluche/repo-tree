@@ -11,11 +11,13 @@ by the `root` configuration or the `REPO_TREE_DIR` environment variable.
 The path where the repositories are stored is computed based on the remote URL
 of the repository. The repositories are then organized by host.
 
-We have 3 "tree-spaces":
+We have 4 "tree-spaces":
 
 - `dev/` Contains active repositories.
 - `archive/` Contains repositories marked as archived by the forge they a
   stored on.
+- `agents/` Contains repositories workspaces where agents runs. This contains jj
+  workspaces of the repository which should exists on the `dev` tree space.
 - `local/` Repositories which has no remote associated and exists only locally.
 
 Raw example of output of `rt tree`
@@ -28,7 +30,7 @@ Raw example of output of `rt tree`
 │   │   │       git@github.com:Paluche/repo-tree.git 󰊢
 │   │   └── jj-vcs/jj
 │   │           git@github.com:jj-vcs/jj.git 
-│   ├── gitlab/hpaluche/configort
+│   ├── gitlab/hpaluche/configort @default
 │   │   │   git@gitlab.com:hpaluche/configort.git 󰊢
 │   │   ├── home/dot_config/awesome/external_awesome-wm-widgets
 │   │   │       c257e22ccbc1536de46e8ae83935d173926fd9ec
@@ -56,6 +58,10 @@ Raw example of output of `rt tree`
 │   │   │         git@github.com:Paluche/Lawsty.git 󰊢
 │   │   └── ...
 │   └── ...
+├── agents
+│   ├── github
+│   │   └── Paluche/repo-tree @agents
+│   └── gitlab/hpaluche/configort @agents
 └── local
     └── ... # Repositories which has no remote configured.
 ```

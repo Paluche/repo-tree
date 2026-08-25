@@ -13,6 +13,9 @@ use std::path::PathBuf;
 use std::slice::Iter;
 
 use clap::ValueEnum;
+use clap::builder::StyledStr;
+use clap_complete::engine::CompletionCandidate;
+use enum_docs_derive::EnumDocs;
 use globset::Glob;
 use serde::Deserialize;
 use serde::Serialize;
@@ -100,6 +103,9 @@ pub enum TreeSpaceKind {
     Main,
     /// Tree-space containing "read-only" repositories.
     ReadOnly,
+    /// Tree-space containing workspace repositories associated with a main
+    /// repository from the Main tree space type.
+    Workspace,
 }
 
 /// The different repository trees categories.
@@ -112,14 +118,18 @@ pub enum TreeSpaceKind {
     Ord,
     Serialize,
     Deserialize,
-    ValueEnum,
     EnumIter,
+    EnumDocs,
+    ValueEnum,
 )]
 pub enum TreeSpace {
     /// Main tree, where active, user-modified repository are
     Dev,
     /// Where archived / read-only repositories are stored.
     Archive,
+    /// Where repositories workspaces where agents which brings modification to
+    /// your repositories evolves.
+    Agent,
     /// Tree for repositories which exists only locally.
     Local,
 }
@@ -142,10 +152,12 @@ impl TreeSpace {
         )
     }
 
+    /// What kind is the tree space.
     pub fn kind(&self) -> TreeSpaceKind {
         match self {
             Self::Dev | Self::Local => TreeSpaceKind::Main,
             Self::Archive => TreeSpaceKind::ReadOnly,
+            Self::Agent => TreeSpaceKind::Workspace,
         }
     }
 
@@ -157,6 +169,7 @@ impl TreeSpace {
         match self {
             Self::Dev => &config.tree.dev.category,
             Self::Local => &config.tree.local.category,
+            Self::Agent => &config.tree.agent.category,
             Self::Archive => &config.tree.archive.category,
         }
     }
@@ -170,6 +183,7 @@ impl TreeSpace {
         match self {
             Self::Dev => TreeOrganization::RemoteBased(config, category),
             Self::Local => TreeOrganization::Local(config, category),
+            Self::Agent => TreeOrganization::RemoteBased(config, category),
             Self::Archive => TreeOrganization::RemoteBased(config, category),
         }
     }
@@ -201,6 +215,46 @@ impl TreeSpace {
             config,
         }
     }
+
+    fn into_completion_candidate(
+        &self,
+        config: &Config,
+        current: &OsStr,
+    ) -> Option<CompletionCandidate> {
+        let name = self.category(&config).name.clone();
+        name.starts_with(current.to_str().unwrap_or("")).then_some(
+            CompletionCandidate::new(name)
+                .help(Some(StyledStr::from(self.doc()))),
+        )
+    }
+}
+
+/// CLI completion candidates for a tree space argument.
+pub fn tree_space_completer(current: &OsStr) -> Vec<CompletionCandidate> {
+    Config::load().map_or(Vec::new(), |config| {
+        TreeSpace::iter()
+            .filter_map(|tree_space| {
+                tree_space.into_completion_candidate(&config, current)
+            })
+            .collect()
+    })
+}
+
+/// CLI completion candidates for a workspace tree space argument.
+pub fn workspace_tree_space_completer(
+    current: &OsStr,
+) -> Vec<CompletionCandidate> {
+    Config::load()
+        .map_or(Vec::new(), |config| {
+            TreeSpace::iter().filter_map(|tree_space| {
+                if matches!(tree_space.kind(), TreeSpaceKind::Workspace) {
+                    tree_space.into_completion_candidate(&config, current)
+                } else {
+                    None
+                }
+            })
+            .collect()
+        })
 }
 
 /// Struct which knows how to display a TreeSpace.
