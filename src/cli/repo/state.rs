@@ -70,7 +70,10 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
         );
     }
 
-    let repo_state = match repository.get_vcs_repo().get_repo_state() {
+    let repo_state = match repository
+        .get_vcs_repo(repository.get_main_workspace())
+        .get_repo_state()
+    {
         Ok(v) => v,
         Err(err) => {
             eprintln!("{err}");

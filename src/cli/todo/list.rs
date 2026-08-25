@@ -22,13 +22,19 @@ pub struct ListArgs {
         )
     ]
     hosts: Vec<Glob>,
-    /// Filter the repositories to by their name. You can specify glob
-    /// patterns. For example to filter only GitHub repositories from a
-    /// certain organization (e.g. 'owner'), you could use the 'owner/*' as
-    /// value for this argument, and "github" as value of the --host
-    /// argument. Can be specified multiple times as an union filter.
+    /// Filter the repositories to list by their name. You can specify glob
+    /// patterns. For example to filter only GitHub repositories from a certain
+    /// organization (e.g. 'owner'), you could use the 'owner/*' as value for
+    /// this argument, and "github" as value of the --host argument. Can be
+    /// specified multiple times as an union filter.
     #[arg(short = 'N', long = "name", action=ArgAction::Append)]
     names: Vec<Glob>,
+    /// Filter the repositories to list by the tree-space they belong to. You
+    /// can specify glob patterns. For example to filter only archived
+    /// repositories you could use the "archive" value for this argument. Can
+    /// be specified multiple times as an union filter.
+    #[arg(short = 'T', long = "tree", action=ArgAction::Append)]
+    trees: Vec<Glob>,
     /// Show a state for all repositories.
     #[arg(short, long, action=ArgAction::SetTrue)]
     verbose: bool,
@@ -44,8 +50,8 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
     let mut n_a: usize = 0;
     let mut skipped: usize = 0;
 
-    for repository in RepoTree::load(config, args.refresh_cache)
-        .filtered(config, &args.hosts, &args.names)
+    for (repository, workspace) in RepoTree::load(config, args.refresh_cache)
+        .filtered(config, &args.hosts, &args.names, &args.trees)
         .iter()
     {
         let remote_host_repr =
@@ -84,7 +90,7 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
         eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
 
         if let Some(repo_state) =
-            match &repository.get_vcs_repo().get_repo_state() {
+            match &repository.get_vcs_repo(workspace).get_repo_state() {
                 Ok(v) => Some(v),
                 Err(err) => {
                     if err.downcast_ref::<NotImplementedError>().is_some() {

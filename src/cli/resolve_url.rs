@@ -11,6 +11,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
+use crate::tree_space::TreeSpace;
 
 /// Resolve the URL of a repository into its path.
 #[derive(Args)]
@@ -19,6 +20,9 @@ pub struct ResolveUrlArgs {
     /// repo_tree.
     #[arg(add=ArgValueCompleter::new(resolve_completer))]
     repo_id: String,
+    /// Precise the tree-space from which you want the repository.
+    #[arg(short, long, add=TreeSpace::completer())]
+    tree: Option<TreeSpace>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
@@ -26,20 +30,31 @@ pub struct ResolveUrlArgs {
 
 /// Get the map associating remote URL to the repository present in the repo
 /// tree.
-fn get_candidates(repo_tree: &RepoTree) -> BTreeMap<&String, &PathBuf> {
-    BTreeMap::from_iter(repo_tree.iter().filter_map(|repository| {
-        repository
-            .id
-            .remote
-            .as_ref()
-            .map(|r| (&r.url, &repository.root))
-    }))
+fn get_candidates<'repo_tree>(
+    repo_tree: &'repo_tree RepoTree,
+    maybe_tree_space: Option<&TreeSpace>,
+) -> BTreeMap<&'repo_tree String, &'repo_tree PathBuf> {
+    BTreeMap::from_iter(repo_tree.workspace_iter().filter_map(
+        |(repository, workspace)| {
+            if let Some(tree_space) = maybe_tree_space
+                && repository.get_tree_workspace(tree_space).is_none()
+            {
+                None
+            } else {
+                repository
+                    .id
+                    .remote
+                    .as_ref()
+                    .map(|r| (&r.url, workspace.path()))
+            }
+        },
+    ))
 }
 
 /// Execute the `rt resolve-url` command.
 pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
     let repo_tree = RepoTree::load(config, args.refresh_cache);
-    let candidates = get_candidates(&repo_tree);
+    let candidates = get_candidates(&repo_tree, args.tree.as_ref());
     if let Some(repo) = candidates.get(&args.repo_id) {
         println!("{}", repo.display());
         return 0;
@@ -92,7 +107,7 @@ fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
     };
 
     let repo_tree = RepoTree::load_silent(&config, false);
-    let candidates = get_candidates(&repo_tree);
+    let candidates = get_candidates(&repo_tree, None);
     let matcher = SkimMatcherV2::default();
 
     candidates
