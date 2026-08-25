@@ -10,7 +10,6 @@ use serde::Serialize;
 
 use crate::colors::ColoredText;
 use crate::config::Config;
-use crate::config::HostInfo;
 use crate::config::TreeCategory;
 use crate::error::ParseUrlError;
 use crate::error::UnknownRemoteHostError;
@@ -168,19 +167,6 @@ impl RepoId {
         self.host_category(config).map_or("unknown", |c| &c.name)
     }
 
-    /// Get the host information associated with the repository.
-    pub fn host_info<'config>(
-        &self,
-        config: &'config Config,
-    ) -> &'config HostInfo {
-        match &self.remote {
-            Some(remote) => config
-                .get_remote_host(&remote.host_url)
-                .map_or(&config.default_host_info, |h| &h.info),
-            None => &config.default_host_info,
-        }
-    }
-
     /// Find out if a repository exists only locally (no remote configured).
     pub fn is_local(&self) -> bool {
         self.remote.is_none()
@@ -192,7 +178,16 @@ impl RepoId {
         &self,
         config: &Config,
     ) -> Result<bool, Box<dyn Error>> {
-        self.host_info(config).forge.api().is_archived(self).await
+        if let Some(remote) = &self.remote {
+            if let Some(remote_host) = config.get_remote_host(&remote.host_url)
+            {
+                remote_host.info.forge.api().is_archived(self).await
+            } else {
+                Err(Box::new(UnknownRemoteHostError(remote.host_url.clone())))
+            }
+        } else {
+            Ok(false)
+        }
     }
 
     /// Obtain a struct implementing the display for the RepoId.
