@@ -8,7 +8,6 @@ use crossterm::terminal::ClearType;
 use globset::Glob;
 
 use crate::config::Config;
-use crate::config::list_host_completer;
 use crate::error::NotImplementedError;
 use crate::tree::RepoTree;
 
@@ -20,7 +19,7 @@ pub struct ListArgs {
     /// as an union filter.
     #[arg(
         short='H', long="host", action=ArgAction::Append,
-        add=ArgValueCompleter::new(list_host_completer)
+        add=ArgValueCompleter::new(Config::host_completer)
         )
     ]
     hosts: Vec<Glob>,

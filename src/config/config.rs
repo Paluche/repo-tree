@@ -102,18 +102,20 @@ impl Config {
         })
     }
 
-    /// Obtain completion candidates for a CLI host argument.
-    pub fn host_completer(&self, current: &OsStr) -> Vec<CompletionCandidate> {
-        self.remote_hosts
-            .iter()
-            .filter(|(host, _)| {
-                host.starts_with(current.to_str().unwrap_or(""))
-            })
-            .map(|(host, data)| {
-                CompletionCandidate::new(data.category.name.clone())
-                    .help(Some(StyledStr::from(host)))
-            })
-            .collect()
+    /// Obtain the auto-completion candidates for a host argument.
+    pub fn host_completer(current: &OsStr) -> Vec<CompletionCandidate> {
+        Config::load().map_or(Vec::new(), |c| {
+            c.remote_hosts
+                .iter()
+                .filter(|(host, _)| {
+                    host.starts_with(current.to_str().unwrap_or(""))
+                })
+                .map(|(host, data)| {
+                    CompletionCandidate::new(data.category.name.clone())
+                        .help(Some(StyledStr::from(host)))
+                })
+                .collect()
+        })
     }
 
     /// Get the specified RemoteHost struct for a given host.
