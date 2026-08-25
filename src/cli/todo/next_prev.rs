@@ -9,7 +9,6 @@ use globset::Glob;
 
 use crate::cli::cwd_default_path;
 use crate::config::Config;
-use crate::config::list_host_completer;
 use crate::error::NoRepositoryError;
 use crate::error::NotImplementedError;
 use crate::repo_id::ExpectedTreeStrategy;
@@ -26,7 +25,7 @@ pub struct NextPrevArgs {
     /// as an union filter.
     #[arg(
         short='H', long="host", action=ArgAction::Append,
-        add=ArgValueCompleter::new(list_host_completer)
+        add=ArgValueCompleter::new(Config::host_completer)
         )
     ]
     hosts: Vec<Glob>,
