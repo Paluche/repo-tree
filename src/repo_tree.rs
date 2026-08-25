@@ -1,6 +1,5 @@
-//! Definition of a repository tree.
-//! A repository tree is an remote-based organized storage of your repositories.
-//! Each tree,
+//! Definition of a repository tree. A repository tree is an remote-based
+//! organized storage of your repositories. Each tree,
 use std::error::Error;
 use std::fs::File;
 use std::fs::create_dir_all;
@@ -12,18 +11,21 @@ use std::path::PathBuf;
 use globset::Glob;
 use serde::Deserialize;
 use serde::Serialize;
+use strum::IntoEnumIterator;
 
 use crate::config::Config;
 use crate::error::NoCacheError;
 use crate::repository::Repository;
 use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
+use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
 
 /// Search recursively repositories in a directory.
 fn _search(
     config: &Config,
     ui: &Ui<'_>,
+    tree_space_kind: &TreeSpaceKind,
     repositories: &mut Vec<Repository>,
     empty_dirs: &mut Vec<PathBuf>,
     dir: &Path,
@@ -40,9 +42,31 @@ fn _search(
         let repo = Repository::try_new(config, ui, &root);
 
         if let Ok(repo) = repo {
-            repositories.push(repo);
+            if tree_space_kind.is_workspace() {
+                if let Some(main_repo) =
+                    repositories.iter_mut().find(|r| r.id == repo.id)
+                {
+                    main_repo.add_workspace(repo);
+                } else {
+                    eprintln!(
+                        "Unexpected workspace repository without a known \
+                         default associated in {}",
+                        root.display()
+                    );
+                    continue;
+                }
+            } else {
+                repositories.push(repo);
+            }
         } else {
-            _search(config, ui, repositories, empty_dirs, &root);
+            _search(
+                config,
+                ui,
+                tree_space_kind,
+                repositories,
+                empty_dirs,
+                &root,
+            );
         }
     }
 
@@ -63,14 +87,40 @@ fn search(config: &Config, ui: &Ui<'_>) -> (Vec<Repository>, Vec<PathBuf>) {
         .flatten()
     {
         let dir_path = entry.path();
-        if TreeSpace::from_dir_name(config, &entry.file_name()).is_some() {
-            _search(config, ui, &mut repositories, &mut empty_dirs, &dir_path);
+        if let Some(tree_space) =
+            TreeSpace::from_dir_name(config, &entry.file_name())
+        {
+            if tree_space.kind().is_workspace() {
+                continue;
+            }
+            _search(
+                config,
+                ui,
+                &tree_space.kind(),
+                &mut repositories,
+                &mut empty_dirs,
+                &dir_path,
+            );
         } else {
             ui.warning(format!(
                 "Unexpected tree-space directory: {}",
                 dir_path.display(),
             ));
         }
+    }
+
+    for tree_space in
+        TreeSpace::iter().filter(|tree_space| tree_space.kind().is_workspace())
+    {
+        let dir_path = config.root.join(tree_space.category(config).dir_name());
+        _search(
+            config,
+            ui,
+            &tree_space.kind(),
+            &mut repositories,
+            &mut empty_dirs,
+            &dir_path,
+        );
     }
 
     (repositories, empty_dirs)
