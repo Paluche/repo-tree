@@ -17,11 +17,9 @@ mod tree_category;
 mod tree_space;
 
 use std::error::Error;
-use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 
-use clap_complete::engine::CompletionCandidate;
 pub use command::GitStatusCommandConfig;
 pub use config::Config;
 pub use host::RemoteHost;
@@ -30,11 +28,6 @@ pub use prompt::GitSummarizeSubmoduleStatusConfig;
 pub use prompt::JujutsuBookmarkConfig;
 pub use prompt::JujutsuTagConfig;
 pub use tree_category::TreeCategory;
-
-/// Obtain the auto-completion candidates for a host argument.
-pub fn list_host_completer(current: &OsStr) -> Vec<CompletionCandidate> {
-    Config::load().map_or(Vec::new(), |c| c.host_completer(current))
-}
 
 /// Path to the repo-tree configuration directory.
 pub fn config_dir() -> Result<PathBuf, Box<dyn Error>> {
