@@ -112,7 +112,7 @@ impl Repository {
                 repository.id.name,
                 repository.root.display(),
                 expected_root.display(),
-                if repository.root.starts_with(&config.repo_tree_dir) {
+                if repository.root.starts_with(&config.root) {
                     "rt clean".to_string()
                 } else {
                     format!("rt insert \"{}\"", repository.root.display())
@@ -218,7 +218,7 @@ fn _search(config: &Config, dir: &Path) -> (Vec<Repository>, Vec<PathBuf>) {
 
 /// Search repositories in the repo tree.
 fn search(config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
-    _search(config, &config.repo_tree_dir)
+    _search(config, &config.root)
 }
 
 /// Path to the repositories cache file.
@@ -294,7 +294,7 @@ impl Repositories {
         if let Some(empty_dirs) = empty_dirs {
             for empty_dir in empty_dirs {
                 eprintln!(
-                    "Empty directory in REPO_TREE_DIR: {}",
+                    "Empty directory in repo tree: {}",
                     empty_dir.display()
                 );
             }

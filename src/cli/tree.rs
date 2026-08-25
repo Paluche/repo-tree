@@ -64,12 +64,12 @@ impl<'repos> Directory<'repos> {
         config: &Config,
         repository: &Repository,
     ) -> Vec<String> {
-        assert!(repository.root.starts_with(&config.repo_tree_dir));
+        assert!(repository.root.starts_with(&config.root));
 
         repository
             .root
             .iter()
-            .skip(config.repo_tree_dir.iter().count())
+            .skip(config.root.iter().count())
             .map(|os_str| os_str.to_str().unwrap().to_owned())
             .collect()
     }
@@ -272,7 +272,7 @@ impl<'config, 'repos> Display for RootDirectory<'config, 'repos> {
             f,
             self.config,
             "".to_string(),
-            self.config.repo_tree_dir.display(),
+            self.config.root.display(),
             DirState::Root,
         )
     }
