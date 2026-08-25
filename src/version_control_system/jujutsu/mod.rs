@@ -4,6 +4,7 @@ mod git;
 mod prompt;
 mod repo_state;
 mod revset;
+mod workspace;
 
 use std::error::Error;
 use std::fs::read_to_string;
@@ -80,5 +81,26 @@ impl VcsRepository for JujutsuVcs {
 
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
         repo_state::get_repo_state(&self.repo_path)
+    }
+
+    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
+        let workspaces = workspace::list_workspaces(&self.repo_path)?;
+
+        if workspaces.len() <= 1 {
+            return Ok(None);
+        }
+
+        Ok(workspaces
+            .into_iter()
+            .find(|w| w.path == self.repo_path)
+            .map(|w| w.name))
+    }
+
+    fn create_workspace(
+        &self,
+        name: &str,
+        destination: &Path,
+    ) -> Result<(), Box<dyn Error>> {
+        workspace::add_workspace(&self.repo_path, name, destination)
     }
 }
