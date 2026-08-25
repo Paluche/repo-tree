@@ -171,8 +171,7 @@ impl<'repo_tree> Directory<'repo_tree> {
         if let Some((r, w)) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
             let submodules = r.submodules(w).unwrap();
-            let workspace =
-                r.get_vcs_repo(w).get_workspace_name().unwrap_or(None);
+            let workspace = r.get_vcs_repo(w).get_workspace().unwrap_or(None);
             if let Some(remote) = &r.id.remote {
                 writeln!(
                     f,
@@ -186,7 +185,7 @@ impl<'repo_tree> Directory<'repo_tree> {
                     remote.url.green(),
                     r.vcs.short_display(config),
                     if let Some(workspace) = workspace {
-                        format!(" {workspace}@").bright_green().to_string()
+                        format!(" {}", workspace.display_name(config))
                     } else {
                         "".to_string()
                     },
