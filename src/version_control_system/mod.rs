@@ -176,5 +176,6 @@ pub trait VcsRepository {
     /// Build the prompt line for a repository.
     async fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32;
 
+    /// Get the repository state.
     async fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
 }
