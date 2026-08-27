@@ -39,13 +39,11 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
             }
         };
 
-    let host = repository.id.host(config);
-
     if args.verbose {
         println!(
             "{} {} {}{}",
-            host.name().unwrap_or(&"unknown".to_string()),
-            host.repr(),
+            repository.id.host_name(config),
+            repository.id.host_repr(config),
             repository.id.name,
             repository
                 .id

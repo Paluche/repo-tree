@@ -7,7 +7,6 @@ mod colors;
 mod config;
 mod error;
 mod forge;
-mod host;
 mod prompt;
 mod repo_id;
 mod repo_state;

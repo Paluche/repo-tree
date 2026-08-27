@@ -9,9 +9,10 @@ use serde::Serialize;
 use crate::repo_id::RepoId;
 
 /// The different supported forges.
-#[derive(Serialize, Deserialize, Clone, PartialEq, Hash, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash, Debug, Default)]
 pub enum Forge {
     /// Unknown / unsupported forge.
+    #[default]
     Unknown,
 }
 

@@ -63,7 +63,7 @@ impl<'prompt, 'repo, 'config> std::fmt::Display
             self.config.prompt.prefix,
             self.prompt.repository.vcs.short_display(self.config),
             self.config.prompt.separator,
-            self.prompt.repository.id.host(self.config).repr(),
+            self.prompt.repository.id.host_repr(self.config),
             self.config.prompt.separator,
             self.prompt.repository.id.name.green()
         )?;

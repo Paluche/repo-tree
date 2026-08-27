@@ -319,8 +319,10 @@ impl Repositories {
             .filter(|r| {
                 (filter_hosts.is_empty()
                     || filter_hosts.iter().any(|host| {
-                        match r.id.host(config).name() {
-                            Ok(name) => host.compile_matcher().is_match(name),
+                        match r.id.host_category(config) {
+                            Ok(host_category) => host
+                                .compile_matcher()
+                                .is_match(&host_category.name),
                             Err(err) => {
                                 eprintln!("{err}");
                                 false
