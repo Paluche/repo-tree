@@ -53,10 +53,9 @@ fn reduce_repo_names<'repos>(
         let name = repository.id.name.clone();
         if let Ok(full_name) = repository
             .id
-            .host(config)
-            .name()
+            .host_category(config)
             .inspect_err(|err| eprintln!("{err}"))
-            .map(|host_name| format!("{host_name}/{name}"))
+            .map(|host_category| format!("{}/{name}", host_category.name))
         {
             if let Some(conflict) = ret.remove(&full_name) {
                 eprintln!(
@@ -236,10 +235,9 @@ pub fn resolve_completer(
                     .tag(
                         repository
                             .id
-                            .host(&config)
-                            .dir_name()
+                            .host_category(&config)
                             .ok()
-                            .map(StyledStr::from),
+                            .map(|c| StyledStr::from(c.dir_name().to_string())),
                     )
                     .help(
                         repository

@@ -52,7 +52,7 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
     {
         let id = format!(
             "{} {:20}",
-            repository.id.host(config).repr(),
+            repository.id.host_repr(config),
             repository.id.name
         );
 

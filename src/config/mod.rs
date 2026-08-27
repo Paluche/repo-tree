@@ -11,6 +11,7 @@ mod config;
 mod host;
 mod prompt;
 mod repository_location;
+mod tree_category;
 
 use std::error::Error;
 use std::ffi::OsStr;
@@ -20,11 +21,9 @@ use std::path::PathBuf;
 use clap_complete::engine::CompletionCandidate;
 pub use config::Config;
 pub use host::HostInfo;
-pub use host::LocalHost;
-pub use host::RemoteHost;
-pub use host::UnknownHost;
 pub use prompt::JujutsuBookmarkConfig;
 pub use prompt::JujutsuPromptConfig;
+pub use tree_category::TreeCategory;
 
 /// Obtain the auto-completion candidates for a host argument.
 pub fn list_host_completer(current: &OsStr) -> Vec<CompletionCandidate> {

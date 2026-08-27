@@ -14,6 +14,7 @@ use serde::Serialize;
 
 use super::command::CommandConfig;
 use super::config_dir;
+use super::host::HostInfo;
 use super::host::LocalHost;
 use super::host::RemoteHost;
 use super::host::RemoteHosts;
@@ -66,6 +67,11 @@ pub struct Config {
     /// Configuration for the different rt sub-commands.
     #[serde(default)]
     pub command: CommandConfig,
+    /// Internal data, do not modify. This is to have a pointer to a default
+    /// instance of HostInfo with the lifetime of the configuration struct.
+    /// Could be a const as 'static will be always a bigger lifetime.
+    #[serde(skip, default)]
+    pub default_host_info: HostInfo,
 }
 
 impl Config {
@@ -111,13 +117,13 @@ impl Config {
                 host.starts_with(current.to_str().unwrap_or(""))
             })
             .map(|(host, data)| {
-                CompletionCandidate::new(data.name.clone())
+                CompletionCandidate::new(data.category.name.clone())
                     .help(Some(StyledStr::from(host)))
             })
             .collect();
 
         ret.push(
-            CompletionCandidate::new(self.local.name.clone())
+            CompletionCandidate::new(self.local.category.name.clone())
                 .help(Some(StyledStr::from("Local repositories"))),
         );
 
@@ -139,22 +145,19 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use std::fmt::Display;
 
-    use colored::Colorize;
     use globset::Glob;
     use indoc::indoc;
 
     use super::*;
     use crate::colors::ColoredList;
     use crate::colors::ColoredText;
-    use crate::config::host::HostInfo;
-    use crate::config::host::HostInfoRaw;
     use crate::config::prompt::GitPromptConfig;
     use crate::config::prompt::GitUpstreamConfig;
     use crate::config::prompt::JujutsuBookmarkConfig;
     use crate::config::prompt::JujutsuPromptConfig;
     use crate::config::prompt::VcsPromptConfig;
+    use crate::config::tree_category::TreeCategory;
     use crate::forge::Forge;
     use crate::version_control_system::VersionControlSystem;
 
@@ -175,67 +178,99 @@ mod tests {
         }
     }
 
-    struct HostRef {
+    struct TreeCategoryRef {
         name: &'static str,
         raw_dir_name: Option<&'static str>,
         dir_name: &'static str,
-        raw_repr: ColoredText,
-        repr: String,
-        forge: Forge,
+        repr: ColoredText,
     }
 
-    /// Check a struct implementing HostInfo and HostInfoRaw traits.
-    fn check_host<H>(id: &str, host: &H, expected: HostRef)
-    where
-        H: HostInfo + HostInfoRaw + Display,
-    {
-        if let Some(name) = host.raw_name() {
+    /// Check the content of a TreeCategory
+    fn check_tree_category(
+        id: &str,
+        value: &TreeCategory,
+        expected: &TreeCategoryRef,
+    ) {
+        {
+            // name
+            let name = &value.name;
+            let expected_name = &expected.name;
             assert_eq!(
-                name, expected.name,
-                "{id} name: {name} != {}",
-                expected.name
+                name, expected_name,
+                "{id}.name: {name:?} != {expected_name:?}",
             );
         }
-        let raw_dir_name = host.raw_dir_name();
-        let expected_raw_dir_name =
-            expected.raw_dir_name.map(|v| v.to_string());
-        assert_eq!(
-            raw_dir_name, &expected_raw_dir_name,
-            "{id} dir_name: {raw_dir_name:?} != {expected_raw_dir_name:?}",
-        );
-        let dir_name = host.dir_name();
-        assert_eq!(
-            dir_name, expected.dir_name,
-            "{id} dir_name(): {dir_name} != {}",
-            expected.dir_name
-        );
-        let raw_repr = host.raw_repr();
-        assert_eq!(
-            raw_repr, &expected.raw_repr,
-            "{id} repr: {raw_repr:?} != {:?}",
-            expected.raw_repr,
-        );
-        let repr = format!("{}", host);
-        assert_eq!(
-            repr, expected.repr,
-            "{id} repr(): {repr} != {}",
-            expected.repr
-        );
-        let forge = host.forge();
-        let expected_forge = expected.forge;
-        assert_eq!(
-            forge, expected_forge,
-            "{id} forge(): {forge:?} != {expected_forge:?}",
-        );
+
+        {
+            // dir_name
+            let raw_dir_name = value.raw_dir_name();
+            let expected_raw_dir_name = expected.raw_dir_name;
+            assert_eq!(
+                raw_dir_name, expected_raw_dir_name,
+                "{id}.dir_name: {raw_dir_name:?} != {expected_raw_dir_name:?}",
+            );
+        }
+
+        {
+            // dir_name()
+            let dir_name = value.dir_name();
+            let expected_dir_name = expected.dir_name;
+            assert_eq!(
+                dir_name, expected_dir_name,
+                "{id}.dir_name(): {dir_name:?} != {expected_dir_name:?}",
+            );
+        }
+
+        {
+            // repr
+            let repr = &value.repr;
+            let expected_repr = &expected.repr;
+            assert_eq!(
+                repr, expected_repr,
+                "{id}.repr: {repr:?} != {expected_repr:?}",
+            );
+        }
     }
 
-    /// Check a remote host from the configuration.
-    fn check_remote_host(config: &Config, key: &str, expected: HostRef) {
+    fn check_host_info(id: &str, info: &HostInfo, expected: &HostInfo) {
+        assert_eq!(info, expected, "{id}: {info:?} != {expected:?}");
+    }
+
+    struct RemoteHostRef {
+        category: TreeCategoryRef,
+        info: HostInfo,
+    }
+
+    fn check_remote_host(config: &Config, key: &str, expected: RemoteHostRef) {
         let remote_host = config.remote_hosts.get(key).unwrap_or_else(|| {
             panic!("Missing expected remote host \"{key}\"")
         });
+        check_tree_category(
+            &format!("config.[{key}].remote_host.category"),
+            &remote_host.category,
+            &expected.category,
+        );
+        check_host_info(
+            &format!("config[{key}].remote_host.info"),
+            &remote_host.info,
+            &expected.info,
+        );
+    }
 
-        check_host(key, remote_host, expected);
+    struct LocalHostRef {
+        category: TreeCategoryRef,
+    }
+
+    fn check_local_host(config: &Config, expected: LocalHostRef) {
+        check_tree_category(
+            "config.local.remote_host.category",
+            &config.local.category,
+            &expected.category,
+        );
+    }
+
+    fn check_unknown_host(config: &Config, expected: UnknownHost) {
+        assert_eq!(config.unknown_host, expected, "config.unknown_host");
     }
 
     #[test]
@@ -259,89 +294,97 @@ mod tests {
         check_remote_host(
             &config,
             "github.com",
-            HostRef {
-                name: "github",
-                raw_dir_name: None,
-                dir_name: "github",
-                raw_repr: ColoredText::new("", colored::Color::White),
-                repr: "".white().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "github",
+                    raw_dir_name: None,
+                    dir_name: "github",
+                    repr: ColoredText::new("", colored::Color::White),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "gitlab.com",
-            HostRef {
-                name: "gitlab",
-                raw_dir_name: None,
-                dir_name: "gitlab",
-                raw_repr: ColoredText::new("󰮠", 166),
-                repr: "󰮠".ansi_color(166).to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "gitlab",
+                    raw_dir_name: None,
+                    dir_name: "gitlab",
+                    repr: ColoredText::new("󰮠", 166),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "git.kernel.org",
-            HostRef {
-                name: "kernel",
-                raw_dir_name: None,
-                dir_name: "kernel",
-                raw_repr: ColoredText::new("", colored::Color::White),
-                repr: "".white().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "kernel",
+                    raw_dir_name: None,
+                    dir_name: "kernel",
+                    repr: ColoredText::new("", colored::Color::White),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "bitbucket.org",
-            HostRef {
-                name: "bitbucket",
-                raw_dir_name: None,
-                dir_name: "bitbucket",
-                raw_repr: ColoredText::new("", colored::Color::Blue),
-                repr: "".blue().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "bitbucket",
+                    raw_dir_name: None,
+                    dir_name: "bitbucket",
+                    repr: ColoredText::new("", colored::Color::Blue),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "codeberg.org",
-            HostRef {
-                name: "codeberg",
-                raw_dir_name: None,
-                dir_name: "codeberg",
-                raw_repr: ColoredText::new("", colored::Color::Blue),
-                repr: "".blue().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "codeberg",
+                    raw_dir_name: None,
+                    dir_name: "codeberg",
+                    repr: ColoredText::new("", colored::Color::Blue),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
 
         // Check local.
-        check_host(
-            "local",
-            &config.local,
-            HostRef {
-                name: "local",
-                raw_dir_name: None,
-                dir_name: "local",
-                raw_repr: ColoredText::new("󰋊", colored::Color::White),
-                repr: "󰋊".white().to_string(),
-                forge: Forge::Unknown,
+        check_local_host(
+            &config,
+            LocalHostRef {
+                category: TreeCategoryRef {
+                    name: "local",
+                    raw_dir_name: None,
+                    dir_name: "local",
+                    repr: ColoredText::new("󰋊", colored::Color::White),
+                },
             },
         );
 
         // Check unknown host.
-        check_host(
-            "unknown_host",
-            &config.unknown_host,
-            HostRef {
-                name: "",
-                raw_dir_name: None,
-                dir_name: "",
-                raw_repr: ColoredText::new("", colored::Color::Red),
-                repr: "".red().to_string(),
-                forge: Forge::Unknown,
+        check_unknown_host(
+            &config,
+            UnknownHost {
+                repr: ColoredText::new("", colored::Color::Red),
             },
         );
 
@@ -684,155 +727,172 @@ mod tests {
         check_remote_host(
             &config,
             "github.com",
-            HostRef {
-                name: "github",
-                raw_dir_name: None,
-                dir_name: "github",
-                raw_repr: ColoredText::new("", colored::Color::White),
-                repr: "".white().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "github",
+                    raw_dir_name: None,
+                    dir_name: "github",
+                    repr: ColoredText::new("", colored::Color::White),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "gitlab.com",
-            HostRef {
-                name: "gitlab",
-                raw_dir_name: None,
-                dir_name: "gitlab",
-                raw_repr: ColoredText::new("󰮠", 166),
-                repr: "󰮠".ansi_color(166).to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "gitlab",
+                    raw_dir_name: None,
+                    dir_name: "gitlab",
+                    repr: ColoredText::new("󰮠", 166),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "my.custom-domain.fr",
-            HostRef {
-                name: "mine",
-                raw_dir_name: None,
-                dir_name: "mine",
-                raw_repr: ColoredText::new("󱘎", colored::Color::Blue),
-                repr: "󱘎".blue().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "mine",
+                    raw_dir_name: None,
+                    dir_name: "mine",
+                    repr: ColoredText::new("󱘎", colored::Color::Blue),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "git.buildroot.net",
-            HostRef {
-                name: "buildroot",
-                raw_dir_name: Some("."),
-                dir_name: ".",
-                raw_repr: ColoredText::new("󰥯", colored::Color::Yellow),
-                repr: "󰥯".yellow().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "buildroot",
+                    raw_dir_name: Some("."),
+                    dir_name: ".",
+                    repr: ColoredText::new("󰥯", colored::Color::Yellow),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "bitbucket.org",
-            HostRef {
-                name: "bitbucket",
-                raw_dir_name: None,
-                dir_name: "bitbucket",
-                raw_repr: ColoredText::new("", colored::Color::Blue),
-                repr: "".blue().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "bitbucket",
+                    raw_dir_name: None,
+                    dir_name: "bitbucket",
+                    repr: ColoredText::new("", colored::Color::Blue),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "busybox.net",
-            HostRef {
-                name: "busybox",
-                raw_dir_name: None,
-                dir_name: "busybox",
-                raw_repr: ColoredText::default(),
-                repr: "busybox".to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "busybox",
+                    raw_dir_name: None,
+                    dir_name: "busybox",
+                    repr: ColoredText::default(),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "blabla.net",
-            HostRef {
-                name: "blabla",
-                raw_dir_name: None,
-                dir_name: "blabla",
-                raw_repr: ColoredText::new("", 124),
-                repr: "".ansi_color(124).to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "blabla",
+                    raw_dir_name: None,
+                    dir_name: "blabla",
+                    repr: ColoredText::new("", 124),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "alice-and-bob.net",
-            HostRef {
-                name: "alice-and-bob",
-                raw_dir_name: None,
-                dir_name: "alice-and-bob",
-                raw_repr: ColoredText::new("", (48, 15, 16)),
-                repr: ""
-                    .color(colored::Color::TrueColor {
-                        r: 48,
-                        g: 15,
-                        b: 16,
-                    })
-                    .to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "alice-and-bob",
+                    raw_dir_name: None,
+                    dir_name: "alice-and-bob",
+                    repr: ColoredText::new("", (48, 15, 16)),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "git.kernel.org",
-            HostRef {
-                name: "kernel",
-                raw_dir_name: None,
-                dir_name: "kernel",
-                raw_repr: ColoredText::new("", colored::Color::White),
-                repr: "".white().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "kernel",
+                    raw_dir_name: None,
+                    dir_name: "kernel",
+                    repr: ColoredText::new("", colored::Color::White),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
         check_remote_host(
             &config,
             "codeberg.org",
-            HostRef {
-                name: "codeberg",
-                raw_dir_name: None,
-                dir_name: "codeberg",
-                raw_repr: ColoredText::new("", colored::Color::Blue),
-                repr: "".blue().to_string(),
-                forge: Forge::Unknown,
+            RemoteHostRef {
+                category: TreeCategoryRef {
+                    name: "codeberg",
+                    raw_dir_name: None,
+                    dir_name: "codeberg",
+                    repr: ColoredText::new("", colored::Color::Blue),
+                },
+                info: HostInfo {
+                    forge: Forge::Unknown,
+                },
             },
         );
 
         // Check local.
-        check_host(
-            "local",
-            &config.local,
-            HostRef {
-                name: "local",
-                raw_dir_name: None,
-                dir_name: "local",
-                raw_repr: ColoredText::new("L", colored::Color::Blue),
-                repr: "L".blue().to_string(),
-                forge: Forge::Unknown,
+        check_local_host(
+            &config,
+            LocalHostRef {
+                category: TreeCategoryRef {
+                    name: "local",
+                    raw_dir_name: None,
+                    dir_name: "local",
+                    repr: ColoredText::new("L", colored::Color::Blue),
+                },
             },
         );
 
         // Check unknown host.
-        check_host(
-            "unknown_host",
-            &config.unknown_host,
-            HostRef {
-                name: "",
-                raw_dir_name: None,
-                dir_name: "",
-                raw_repr: ColoredText::new("?", colored::Color::BrightRed),
-                repr: "?".bright_red().to_string(),
-                forge: Forge::Unknown,
+        check_unknown_host(
+            &config,
+            UnknownHost {
+                repr: ColoredText::new("?", colored::Color::BrightRed),
             },
         );
 

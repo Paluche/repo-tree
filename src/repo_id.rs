@@ -8,11 +8,12 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::colors::ColoredText;
 use crate::config::Config;
 use crate::config::HostInfo;
+use crate::config::TreeCategory;
 use crate::error::ParseUrlError;
 use crate::error::UnknownRemoteHostError;
-use crate::host::Host;
 
 /// Either the repository is within the local/ directory allowing the user to
 /// organize as see fits this directory.
@@ -21,7 +22,7 @@ fn compute_local_path<P: AsRef<Path>>(
     config: &Config,
     repo_path: &P,
 ) -> String {
-    let local_dir = config.root.join(config.local.dir_name());
+    let local_dir = config.root.join(config.local.category.dir_name());
     let repo_path = repo_path.as_ref();
     assert!(repo_path.is_absolute(), "repo_path is not absolute");
     assert!(local_dir.is_absolute(), "local_dir is not absolute");
@@ -88,27 +89,6 @@ pub struct RepoId {
 }
 
 impl RepoId {
-    /// Resolve the host based on the configuration.
-    pub fn host<'config>(&self, config: &'config Config) -> Host<'config> {
-        match &self.remote {
-            Some(remote) => config.get_remote_host(&remote.host_url).map_or(
-                Host::UnknownRemote(
-                    remote.host_url.to_string(),
-                    &config.unknown_host,
-                ),
-                Host::Remote,
-            ),
-            None => Host::Local(&config.local),
-        }
-    }
-
-    /// Find out if the repository is hosted locally.
-    pub fn is_local(&self) -> bool {
-        self.remote.is_none()
-    }
-}
-
-impl RepoId {
     /// Create a new repository ID for a Git repository with the provided remote
     /// URL.
     pub fn from_remote_url(remote_url: &str) -> Result<RepoId, ParseUrlError> {
@@ -150,9 +130,60 @@ impl RepoId {
         &self,
         config: &Config,
     ) -> Result<PathBuf, UnknownRemoteHostError> {
-        self.host(config)
-            .dir_path(config)
-            .map(|p| p.join(self.name.split('/').collect::<PathBuf>()))
+        Ok(config
+            .root
+            .join(self.host_category(config)?.dir_name())
+            .join(self.name.split('/').collect::<PathBuf>()))
+    }
+
+    /// Get the host tree category associated with the repository.
+    pub fn host_category<'config>(
+        &self,
+        config: &'config Config,
+    ) -> Result<&'config TreeCategory, UnknownRemoteHostError> {
+        match &self.remote {
+            Some(remote) => config
+                .get_remote_host(&remote.host_url)
+                .ok_or(UnknownRemoteHostError(remote.host_url.to_string()))
+                .map(|h| &h.category),
+            None => Ok(&config.local.category),
+        }
+    }
+
+    /// Get the host representation associated with that repository. This method
+    /// is deterministic compared to getting the category using
+    /// host_category().
+    pub fn host_repr<'config>(
+        &self,
+        config: &'config Config,
+    ) -> &'config ColoredText {
+        self.host_category(config)
+            .map_or(&config.unknown_host.repr, |c| &c.repr)
+    }
+
+    /// Get the host name associated with that repository. This method is
+    /// deterministic compared to getting the category using
+    /// host_category().
+    pub fn host_name<'config>(&self, config: &'config Config) -> &'config str {
+        self.host_category(config).map_or("unknown", |c| &c.name)
+    }
+
+    /// Get the host information associated with the repository.
+    pub fn host_info<'config>(
+        &self,
+        config: &'config Config,
+    ) -> &'config HostInfo {
+        match &self.remote {
+            Some(remote) => config
+                .get_remote_host(&remote.host_url)
+                .map_or(&config.default_host_info, |h| &h.info),
+            None => &config.default_host_info,
+        }
+    }
+
+    /// Find out if a repository exists only locally (no remote configured).
+    pub fn is_local(&self) -> bool {
+        self.remote.is_none()
     }
 
     /// Find out if the repository is archived on the forge it is hosted on.
@@ -161,7 +192,7 @@ impl RepoId {
         &self,
         config: &Config,
     ) -> Result<bool, Box<dyn Error>> {
-        self.host(config).forge().api().is_archived(self).await
+        self.host_info(config).forge.api().is_archived(self).await
     }
 
     /// Obtain a struct implementing the display for the RepoId.
@@ -171,7 +202,7 @@ impl RepoId {
     ) -> RepoIdDisplay<'repo_id, 'config> {
         RepoIdDisplay {
             repo_id: self,
-            host: self.host(config),
+            host_category: self.host_category(config).ok(),
         }
     }
 }
@@ -180,13 +211,18 @@ impl RepoId {
 pub struct RepoIdDisplay<'repo_id, 'config> {
     /// RepoId to display.
     repo_id: &'repo_id RepoId,
-    /// Host data of the RepoId.
-    host: Host<'config>,
+    /// Host category data of the RepoId.
+    host_category: Option<&'config TreeCategory>,
 }
 
 impl<'repo_id, 'config> Display for RepoIdDisplay<'repo_id, 'config> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.host, self.repo_id.name)?;
+        write!(
+            f,
+            "{} {}",
+            self.host_category.map_or("?????", |c| c.dir_name()),
+            self.repo_id.name
+        )?;
         if let Some(remote) = &self.repo_id.remote {
             write!(f, " {}", remote.url)?;
         }

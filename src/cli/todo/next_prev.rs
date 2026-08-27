@@ -86,7 +86,7 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
             eprintln!(
                 "\r{}{} {:20} {}",
                 Clear(ClearType::CurrentLine),
-                repository.id.host(config).repr(),
+                repository.id.host_repr(config),
                 repository.id.name,
                 repo_state
             );
