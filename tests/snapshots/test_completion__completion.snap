@@ -121,7 +121,7 @@ function _rcd() {
     local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
     local _CLAP_IFS=$'\n'
 
-    local words=("${words[1]}" "resolve" "${words[@]:2}")
+    local words=("${words[0]}"  "resolve" "${words[@]:1}")
 
     local completions=("${(@f)$( \
         _CLAP_IFS="$_CLAP_IFS" \
@@ -182,7 +182,7 @@ function _repo-clone() {
     local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
     local _CLAP_IFS=$'\n'
 
-    local words=("${words[1]}" "clone" "${words[@]:2}")
+    local words=("${words[0]}"  "clone" "${words[@]:1}")
 
     local completions=("${(@f)$( \
         _CLAP_IFS="$_CLAP_IFS" \
@@ -239,7 +239,7 @@ function _gs() {
     local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
     local _CLAP_IFS=$'\n'
 
-    local words=("${words[1]}" "git" "status" "${words[@]:2}")
+    local words=("${words[0]}"  "git" "status" "${words[@]:1}")
 
     local completions=("${(@f)$( \
         _CLAP_IFS="$_CLAP_IFS" \
@@ -302,7 +302,7 @@ function _todo() {
     local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
     local _CLAP_IFS=$'\n'
 
-    local words=("${words[1]}" "git" "status" "${words[@]:2}")
+    local words=("${words[0]}"  "git" "status" "${words[@]:1}")
 
     local completions=("${(@f)$( \
         _CLAP_IFS="$_CLAP_IFS" \
