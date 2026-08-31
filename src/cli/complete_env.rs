@@ -28,7 +28,7 @@ fn generate_sub_completer(
         local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
         local _CLAP_IFS=$'\n'
 
-        local words=("${words[1]}"__ARGS__ "${words[@]:2}")
+        local words=("${words[0]}" __ARGS__ "${words[@]:1}")
 
         local completions=("${(@f)$( \
             _CLAP_IFS="$_CLAP_IFS" \
