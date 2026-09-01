@@ -4,6 +4,7 @@
 use std::fs::create_dir_all;
 use std::fs::remove_dir;
 use std::fs::rename;
+use std::path::PathBuf;
 
 use clap::Args;
 
@@ -26,13 +27,13 @@ pub fn run(config: &Config, args: CleanArgs) -> i32 {
     // Do not use the cache, assure we have an up-to-date list of repositories
     // before doing any action that will modify the directories.
     let repo_tree = RepoTree::load_silent(config, true);
-    let repos_to_move: Vec<&Repository> = repo_tree
+    let repos_to_move: Vec<(&Repository, PathBuf)> = repo_tree
         .iter()
-        .filter(|r| match r.expected_root(config) {
-            Ok(v) => v.is_some_and(|p| p != r.root),
+        .filter_map(|r| match r.expected_root(config) {
+            Ok(v) => v.and_then(|p| (p != r.root).then_some((r, p))),
             Err(err) => {
                 eprintln!("{err}");
-                false
+                None
             }
         })
         .collect();
@@ -43,9 +44,7 @@ pub fn run(config: &Config, args: CleanArgs) -> i32 {
         println!("All repositories are where they belong");
     } else {
         println!("Repositories to move:");
-        for repository in repos_to_move {
-            let expected_root =
-                repository.expected_root(config).unwrap().unwrap();
+        for (repository, expected_root) in repos_to_move {
             println!(
                 "- {}: {} => {}",
                 repository.id.name,
