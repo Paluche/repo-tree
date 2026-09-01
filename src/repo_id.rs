@@ -162,16 +162,21 @@ impl RepoId {
     pub async fn is_archived(
         &self,
         config: &Config,
-    ) -> Result<bool, Box<dyn Error>> {
+    ) -> Result<Option<bool>, Box<dyn Error>> {
         if let Some(remote) = &self.remote {
             if let Some(remote_host) = config.get_remote_host(&remote.host_url)
             {
-                remote_host.info.forge.api().is_archived(self).await
+                if let Some(forge) = &remote_host.info.forge {
+                    forge.api()?.is_archived(self).await.map(Some)
+                } else {
+                    Ok(None)
+                }
             } else {
                 Err(Box::new(UnknownRemoteHostError(remote.host_url.clone())))
             }
         } else {
-            Ok(false)
+            // Local repositories should be considered non-archived.
+            Ok(Some(false))
         }
     }
 

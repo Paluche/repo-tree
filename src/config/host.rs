@@ -9,11 +9,10 @@ use crate::colors::ColoredText;
 use crate::forge::Forge;
 
 /// Information on a host.
-#[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct HostInfo {
     /// Associated forge.
-    #[serde(default)]
-    pub forge: Forge,
+    pub forge: Option<Forge>,
 }
 
 /// Configuration of a remote host.
@@ -23,7 +22,7 @@ pub struct RemoteHost {
     #[serde(flatten)]
     pub category: TreeCategory,
     /// Host information.
-    #[serde(flatten, default)]
+    #[serde(flatten)]
     pub info: HostInfo,
 }
 
@@ -39,49 +38,29 @@ pub fn default_remote_hosts() -> RemoteHosts {
             "github",
             "",
             colored::Color::White,
-            Forge::Unknown,
+            Some(Forge::GitHub),
         ),
         (
             "gitlab.com",
             "gitlab",
             "󰮠",
             colored::Color::AnsiColor(166),
-            Forge::Unknown,
+            Some(Forge::GitLab),
         ),
-        (
-            "git.kernel.org",
-            "kernel",
-            "",
-            colored::Color::White,
-            Forge::Unknown,
-        ),
-        (
-            "git.kernel.org",
-            "kernel",
-            "",
-            colored::Color::White,
-            Forge::Unknown,
-        ),
+        ("git.kernel.org", "kernel", "", colored::Color::White, None),
         (
             "bitbucket.org",
             "bitbucket",
             "",
             colored::Color::Blue,
-            Forge::Unknown,
+            Some(Forge::Bitbucket),
         ),
         (
             "codeberg.org",
             "codeberg",
             "",
             colored::Color::Blue,
-            Forge::Unknown,
-        ),
-        (
-            "codeberg.org",
-            "codeberg",
-            "",
-            colored::Color::Blue,
-            Forge::Unknown,
+            Some(Forge::Forgejo),
         ),
     ]
     .into_iter()

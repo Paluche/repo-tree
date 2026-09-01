@@ -302,7 +302,7 @@ mod tests {
                     repr: ColoredText::new("", colored::Color::White),
                 },
                 info: HostInfo {
-                    forge: Forge::Unknown,
+                    forge: Some(Forge::GitHub),
                 },
             },
         );
@@ -317,7 +317,7 @@ mod tests {
                     repr: ColoredText::new("󰮠", 166),
                 },
                 info: HostInfo {
-                    forge: Forge::Unknown,
+                    forge: Some(Forge::GitLab),
                 },
             },
         );
@@ -331,9 +331,7 @@ mod tests {
                     dir_name: "kernel",
                     repr: ColoredText::new("", colored::Color::White),
                 },
-                info: HostInfo {
-                    forge: Forge::Unknown,
-                },
+                info: HostInfo { forge: None },
             },
         );
         check_remote_host(
@@ -347,7 +345,7 @@ mod tests {
                     repr: ColoredText::new("", colored::Color::Blue),
                 },
                 info: HostInfo {
-                    forge: Forge::Unknown,
+                    forge: Some(Forge::Bitbucket),
                 },
             },
         );
@@ -362,7 +360,7 @@ mod tests {
                     repr: ColoredText::new("", colored::Color::Blue),
                 },
                 info: HostInfo {
-                    forge: Forge::Unknown,
+                    forge: Some(Forge::Forgejo),
                 },
             },
         );
@@ -483,7 +481,7 @@ mod tests {
 
         [host."bitbucket.org"]
         name = "bitbucket"
-        forge = "Unknown"
+        forge = "Bitbucket"
 
         [host."bitbucket.org".repr]
         text = ""
@@ -491,7 +489,7 @@ mod tests {
 
         [host."codeberg.org"]
         name = "codeberg"
-        forge = "Unknown"
+        forge = "Forgejo"
 
         [host."codeberg.org".repr]
         text = ""
@@ -499,7 +497,6 @@ mod tests {
 
         [host."git.kernel.org"]
         name = "kernel"
-        forge = "Unknown"
 
         [host."git.kernel.org".repr]
         text = ""
@@ -507,7 +504,7 @@ mod tests {
 
         [host."github.com"]
         name = "github"
-        forge = "Unknown"
+        forge = "GitHub"
 
         [host."github.com".repr]
         text = ""
@@ -515,7 +512,7 @@ mod tests {
 
         [host."gitlab.com"]
         name = "gitlab"
-        forge = "Unknown"
+        forge = "GitLab"
 
         [host."gitlab.com".repr]
         text = "󰮠"
@@ -754,7 +751,7 @@ mod tests {
                     repr: ColoredText::new("", colored::Color::White),
                 },
                 info: HostInfo {
-                    forge: Forge::Unknown,
+                    forge: Some(Forge::GitHub),
                 },
             },
         );
@@ -769,7 +766,7 @@ mod tests {
                     repr: ColoredText::new("󰮠", 166),
                 },
                 info: HostInfo {
-                    forge: Forge::Unknown,
+                    forge: Some(Forge::GitLab),
                 },
             },
         );
@@ -783,9 +780,7 @@ mod tests {
                     dir_name: "mine",
                     repr: ColoredText::new("󱘎", colored::Color::Blue),
                 },
-                info: HostInfo {
-                    forge: Forge::Unknown,
-                },
+                info: HostInfo { forge: None },
             },
         );
         check_remote_host(
@@ -798,9 +793,7 @@ mod tests {
                     dir_name: ".",
                     repr: ColoredText::new("󰥯", colored::Color::Yellow),
                 },
-                info: HostInfo {
-                    forge: Forge::Unknown,
-                },
+                info: HostInfo { forge: None },
             },
         );
         check_remote_host(
@@ -814,7 +807,7 @@ mod tests {
                     repr: ColoredText::new("", colored::Color::Blue),
                 },
                 info: HostInfo {
-                    forge: Forge::Unknown,
+                    forge: Some(Forge::Bitbucket),
                 },
             },
         );
@@ -828,9 +821,7 @@ mod tests {
                     dir_name: "busybox",
                     repr: ColoredText::default(),
                 },
-                info: HostInfo {
-                    forge: Forge::Unknown,
-                },
+                info: HostInfo { forge: None },
             },
         );
         check_remote_host(
@@ -843,9 +834,7 @@ mod tests {
                     dir_name: "blabla",
                     repr: ColoredText::new("", 124),
                 },
-                info: HostInfo {
-                    forge: Forge::Unknown,
-                },
+                info: HostInfo { forge: None },
             },
         );
         check_remote_host(
@@ -858,9 +847,7 @@ mod tests {
                     dir_name: "alice-and-bob",
                     repr: ColoredText::new("", (48, 15, 16)),
                 },
-                info: HostInfo {
-                    forge: Forge::Unknown,
-                },
+                info: HostInfo { forge: None },
             },
         );
         check_remote_host(
@@ -873,9 +860,7 @@ mod tests {
                     dir_name: "kernel",
                     repr: ColoredText::new("", colored::Color::White),
                 },
-                info: HostInfo {
-                    forge: Forge::Unknown,
-                },
+                info: HostInfo { forge: None },
             },
         );
         check_remote_host(
@@ -889,7 +874,7 @@ mod tests {
                     repr: ColoredText::new("", colored::Color::Blue),
                 },
                 info: HostInfo {
-                    forge: Forge::Unknown,
+                    forge: Some(Forge::Forgejo),
                 },
             },
         );
@@ -1029,7 +1014,6 @@ mod tests {
 
         [host."alice-and-bob.net"]
         name = "alice-and-bob"
-        forge = "Unknown"
 
         [host."alice-and-bob.net".repr]
         text = ""
@@ -1037,7 +1021,7 @@ mod tests {
 
         [host."bitbucket.org"]
         name = "bitbucket"
-        forge = "Unknown"
+        forge = "Bitbucket"
 
         [host."bitbucket.org".repr]
         text = ""
@@ -1045,7 +1029,6 @@ mod tests {
 
         [host."blabla.net"]
         name = "blabla"
-        forge = "Unknown"
 
         [host."blabla.net".repr]
         text = ""
@@ -1053,14 +1036,13 @@ mod tests {
 
         [host."busybox.net"]
         name = "busybox"
-        forge = "Unknown"
 
         [host."busybox.net".repr]
         text = ""
 
         [host."codeberg.org"]
         name = "codeberg"
-        forge = "Unknown"
+        forge = "Forgejo"
 
         [host."codeberg.org".repr]
         text = ""
@@ -1069,7 +1051,6 @@ mod tests {
         [host."git.buildroot.net"]
         name = "buildroot"
         dir_name = "."
-        forge = "Unknown"
 
         [host."git.buildroot.net".repr]
         text = "󰥯"
@@ -1077,7 +1058,6 @@ mod tests {
 
         [host."git.kernel.org"]
         name = "kernel"
-        forge = "Unknown"
 
         [host."git.kernel.org".repr]
         text = ""
@@ -1085,7 +1065,7 @@ mod tests {
 
         [host."github.com"]
         name = "github"
-        forge = "Unknown"
+        forge = "GitHub"
 
         [host."github.com".repr]
         text = ""
@@ -1093,7 +1073,7 @@ mod tests {
 
         [host."gitlab.com"]
         name = "gitlab"
-        forge = "Unknown"
+        forge = "GitLab"
 
         [host."gitlab.com".repr]
         text = "󰮠"
@@ -1101,7 +1081,6 @@ mod tests {
 
         [host."my.custom-domain.fr"]
         name = "mine"
-        forge = "Unknown"
 
         [host."my.custom-domain.fr".repr]
         text = "󱘎"
