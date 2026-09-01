@@ -29,6 +29,7 @@ insta = "1.48.0"
 itertools = "0.15.0"
 jj-lib = "0.43.0"  # FIXME
 pathdiff = "0.2.3"
+pollster = "1.0.1"
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }
 strum = { version = "0.28.0", features = ["derive"] }
