@@ -8,17 +8,18 @@ use std::time::SystemTime;
 use chrono::DateTime;
 use chrono::Utc;
 
+use crate::error::GetLastModifiedError;
+
 /// Get the last time a file has been modified.
 pub fn get_last_modified(path: &Path) -> Result<DateTime<Utc>, Box<dyn Error>> {
-    Ok(DateTime::from_timestamp_millis(
+    DateTime::from_timestamp_millis(
         metadata(path)?
             .modified()?
             .duration_since(SystemTime::UNIX_EPOCH)?
             .as_millis()
-            .try_into()
-            .unwrap(),
+            .try_into()?,
     )
-    .unwrap())
+    .ok_or(Box::new(GetLastModifiedError(path.display().to_string())))
 }
 
 /// Iterate starting from the specified starting point.
