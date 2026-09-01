@@ -33,3 +33,10 @@ pub struct NoCacheError();
 #[error("Bad configuration: {0}")]
 /// Error during the parsing of the configuration.
 pub struct ConfigError(pub String);
+
+#[derive(Debug, Error)]
+#[error(
+    "Unable to convert timestamp to obtain the last time {0} has been modified"
+)]
+/// Error during the retrieving of the last time a file has been modified.
+pub struct GetLastModifiedError(pub String);
