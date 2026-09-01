@@ -1,19 +1,24 @@
 //! Interaction with the different forges.
-pub mod unknown;
 use std::error::Error;
 
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::error::UnimplementedForgeApi;
 use crate::repo_id::RepoId;
 
 /// The different supported forges.
-#[derive(Serialize, Deserialize, Clone, PartialEq, Hash, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Hash, Debug)]
 pub enum Forge {
-    /// Unknown / unsupported forge.
-    #[default]
-    Unknown,
+    /// GitHub forge,
+    GitHub,
+    /// GitLab forge,
+    GitLab,
+    /// Forgejo forge,
+    Forgejo,
+    /// Bitbucket forge.
+    Bitbucket,
 }
 
 /// All possible interactions we want to have with a forge API.
@@ -36,9 +41,11 @@ pub trait ForgeApi {
 impl Forge {
     /// Get the struct implementing the ForgeApi for the respective forge.
     #[allow(dead_code)]
-    pub fn api(&self) -> Box<dyn ForgeApi> {
+    pub fn api(&self) -> Result<Box<dyn ForgeApi>, Box<dyn Error>> {
         match self {
-            Self::Unknown => Box::new(unknown::UnknownForgeApi),
+            Self::GitHub | Self::GitLab | Self::Forgejo | Self::Bitbucket => {
+                Err(Box::new(UnimplementedForgeApi(self.clone())))
+            }
         }
     }
 }

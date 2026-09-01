@@ -3,6 +3,8 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
+use crate::forge::Forge;
+
 #[derive(Debug, Error)]
 #[error("{0} not implemented yet")]
 /// A functionality is not implemented yet.
@@ -45,3 +47,8 @@ pub struct ConfigError(pub String);
 )]
 /// Error during the retrieving of the last time a file has been modified.
 pub struct GetLastModifiedError(pub String);
+
+#[derive(Debug, Error)]
+#[error("The API interaction with the forge {0:?} is not yet implemented.")]
+/// Error during the retrieving of the last time a file has been modified.
+pub struct UnimplementedForgeApi(pub Forge);
