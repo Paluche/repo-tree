@@ -20,7 +20,8 @@ pub struct NoRepositoryError(pub PathBuf);
 
 #[derive(Debug, Error)]
 #[error("Missing host configuration for {0}")]
-/// Error during the parsing of the remote URL.
+/// Error when trying to obtain configuration information about a host, which
+/// has no configuration associated.
 pub struct UnknownRemoteHostError(pub String);
 
 #[derive(Debug, Error)]
