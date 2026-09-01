@@ -2,10 +2,9 @@ use std::process::Command;
 
 #[test]
 fn test_completion() {
-    // TODO
     // The executable path, is present in the generated completion scripts.
-    // To fix issues based on the paths to rt differ from on platform to
-    // another, especially with CI. Obtain the directory containing rt, from
+    // To fix issues based on the paths to rt, being different from one computer
+    // to another, especially with CI, obtain the directory containing rt, from
     // from_path. Append environment variable PATH so we can call the rt by
     // simply `rt` and not the full path.
     let rt_path = assert_cmd::cargo::cargo_bin!("rt").parent().unwrap();
