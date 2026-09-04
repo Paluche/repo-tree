@@ -55,7 +55,7 @@ pub async fn load(
 ) -> Result<(Arc<ReadonlyRepo>, WorkspaceNameBuf), Box<dyn Error>> {
     let config = StackedConfig::with_defaults();
     let user_settings = UserSettings::from_config(config)?;
-    let store_factories = StoreFactories::default();
+    let store_factories = StoreFactories::empty();
     let jj_dir = get_jj_dir(repo_path);
 
     let loader = RepoLoader::init_from_file_system(
