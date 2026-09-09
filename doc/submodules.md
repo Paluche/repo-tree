@@ -24,7 +24,7 @@ List Repositories.
 Add Submodules as Element of the Repositories. !!!THIS IS A GREEDY STEP. HOW
 TO MAKE IT FASTER!?
 
-Add a HashMap registring the repositories in the repo_tree globally:
+Add a HashMap registering the repositories in the repo_tree globally:
 
 One instance per-repository tracking all the different clone of the same
 repository (`main_repo: Option<PathBuf>, submodules: Vec<>`)

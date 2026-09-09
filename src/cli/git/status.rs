@@ -9,7 +9,7 @@ use colored::Colorize;
 
 // XXX Potentially split between the git specific command which is
 // basically stand-alone from the rest of the tool, against what enters the
-// upcomming new VCS trait.
+// upcoming new VCS trait.
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
