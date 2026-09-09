@@ -14,3 +14,15 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: "gh-actions:"
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "npm:"
+    cooldown:
+      default-days: 14
+      semver-major-days: 21
+      semver-minor-days: 14
+      semver-patch-days: 7
