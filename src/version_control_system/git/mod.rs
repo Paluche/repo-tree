@@ -8,7 +8,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
-use async_trait::async_trait;
 pub use status::GitStatus;
 pub use status::SubmoduleStatus;
 pub use status::status;
@@ -61,7 +60,6 @@ impl GitVcs {
     }
 }
 
-#[async_trait(?Send)]
 impl VcsRepository for GitVcs {
     fn get_remote_url(
         &self,
@@ -119,11 +117,11 @@ impl VcsRepository for GitVcs {
             .unwrap()
     }
 
-    async fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32 {
+    fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32 {
         prompt::prompt(config, prompt, &self.repo_path, false)
     }
 
-    async fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
+    fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Repository state for Git Version Control System".to_string(),
         )))

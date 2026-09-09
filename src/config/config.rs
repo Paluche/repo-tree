@@ -469,6 +469,11 @@ mod tests {
                             Color::BrightBlue
                         ),
                         none: ColoredText::new("󰫌", Color::BrightBlack),
+                        deleted: ColoredList::new(
+                            "󰠙",
+                            "🞍",
+                            colored::Color::AnsiColor(166)
+                        ),
                     },
                     tags: ColoredList::new("", "🞍", Color::Yellow),
                     wc_conflict: ColoredText::new("󰝧", Color::BrightRed),
@@ -635,6 +640,11 @@ mod tests {
         text = "󰫌"
         color = "bright black"
 
+        [prompt.jj.bookmark.deleted]
+        prefix = "󰠙"
+        separator = "🞍"
+        color = 166
+
         [prompt.jj.tags]
         prefix = ""
         separator = "🞍"
@@ -747,6 +757,7 @@ mod tests {
         current = { prefix = 'C', separator = ', ', color = 'blue' }
         descendants = { prefix = 'D', separator = ', ', color = 'magenta' }
         none = { text = 'N', color = 'white' }
+        deleted = { prefix = 'D', separator = ', ', color = 'bright yellow' }
 
         [prompt.jj]
         tags = { prefix = 'T', separator = ', ', color = 'bright yellow'}
@@ -991,6 +1002,11 @@ mod tests {
                             Color::Magenta,
                         ),
                         none: ColoredText::new("N", Color::White),
+                        deleted: ColoredList::new(
+                            "D",
+                            ", ",
+                            Color::BrightYellow
+                        ),
                     },
                     tags: ColoredList::new("T", ", ", Color::BrightYellow),
                     wc_conflict: ColoredText::new("!", Color::BrightBlue),
@@ -1196,6 +1212,11 @@ mod tests {
         [prompt.jj.bookmark.none]
         text = "N"
         color = "white"
+
+        [prompt.jj.bookmark.deleted]
+        prefix = "D"
+        separator = ", "
+        color = "bright yellow"
 
         [prompt.jj.tags]
         prefix = "T"

@@ -2,19 +2,14 @@
 use std::error::Error;
 use std::path::Path;
 
-use colored::Colorize;
-use futures::StreamExt;
-use futures::stream;
-use jj_lib::backend::BackendResult;
-use jj_lib::backend::CommitId;
-use jj_lib::op_store::LocalRemoteRefTarget;
-use jj_lib::ref_name::RefName;
-use jj_lib::repo::Repo;
-use jj_lib::revset::RevsetExpression;
-
-use super::load;
+use super::bookmark::Bookmark;
+use super::bookmark::Bookmarks;
+use super::bookmark::get_bookmarks;
 use super::repo_state::has_conflicts;
 use super::repo_state::wc_has_conflicts;
+use super::revset;
+use super::revset::RevSetOrder;
+use super::tag::get_tag_repr;
 use crate::colors::ColoredList;
 use crate::colors::IsEmpty;
 use crate::config::Config;
@@ -23,96 +18,12 @@ use crate::config::JujutsuPromptConfig;
 use crate::prompt::Prompt;
 use crate::prompt::PromptListField;
 
-/// Status of a reference.
-struct Ref {
-    /// Name of the reference.
-    name: String,
-    /// If the reference has been modified compared to its known remote state.
-    modified: bool,
-    /// If the reference exists only locally.
-    local_only: bool,
-    /// If the reference exists only remotely, you will find in the Option the
-    /// name of the remote.
-    remote_only: Option<String>,
-}
-
-impl Ref {
-    /// Try to instantiate a new Ref.
-    fn try_new(
-        name: &RefName,
-        lrrt: &LocalRemoteRefTarget,
-        current_commit: &CommitId,
-    ) -> Option<Self> {
-        let local_target = lrrt.local_target.as_normal();
-        let local_only = lrrt.remote_refs.is_empty();
-        let remote_only = if let Some(local_target) = local_target {
-            (local_target == current_commit).then_some(None)?
-        } else {
-            Some(lrrt.remote_refs.iter().find_map(
-                |&(remote_name, remote_ref)| {
-                    remote_ref.target.as_normal().map(|c| {
-                        (c == current_commit)
-                            .then_some(remote_name.as_str().to_string())
-                    })
-                },
-            )??)
-        };
-
-        let modified = local_target.is_some_and(|l| {
-            lrrt.remote_refs.iter().any(|&(_, remote_ref)| {
-                remote_ref.target.as_normal().is_some_and(|c| c != l)
-            })
-        });
-
-        Some(Self {
-            name: name.as_str().to_string(),
-            modified,
-            local_only,
-            remote_only,
-        })
-    }
-
-    /// Get the reference short representation as bookmark.
-    fn get_bookmark_repr(&self) -> String {
-        if let Some(remote) = &self.remote_only {
-            format!("{}@{}", self.name.as_str(), remote).purple()
-        } else if self.local_only {
-            self.name.as_str().bright_green()
-        } else {
-            format!(
-                "{}{}",
-                self.name.as_str(),
-                if self.modified { "*" } else { "" }
-            )
-            .bright_purple()
-        }
-        .to_string()
-    }
-
-    /// Get the reference short representation as tag.
-    fn get_tag_repr(&self) -> String {
-        if let Some(remote) = &self.remote_only {
-            format!("{}@{}", self.name.as_str(), remote)
-        } else if self.local_only {
-            self.name.as_str().to_string()
-        } else {
-            format!(
-                "{}{}",
-                self.name.as_str(),
-                if self.modified { "*" } else { "" }
-            )
-        }
-        .yellow()
-        .to_string()
-    }
-}
-
 /// The different categories of bookmarks we are listing.
 enum BookmarkCategory {
     /// The bookmark is set at the current commit.
     Current,
     /// The bookmark is set to the direct parent of the current commit.
-    Parents,
+    Parent,
     /// The bookmark is set to a commit which is a descendant of the current
     /// commit.
     Descendants,
@@ -120,27 +31,21 @@ enum BookmarkCategory {
 
 impl BookmarkCategory {
     /// Get the bookmarks associated with the current category.
-    fn get_bookmarks(
+    fn get_bookmarks<'bookmarks>(
         &self,
-        repo: &dyn Repo,
-        current_commit: &CommitId,
-    ) -> BackendResult<impl StreamExt<Item = Ref>> {
-        let revset = RevsetExpression::commits(vec![current_commit.to_owned()]);
+        repo_path: &Path,
+        bookmarks: &'bookmarks Bookmarks,
+    ) -> Result<Vec<&'bookmarks Bookmark>, Box<dyn Error>> {
+        let (revset, order) = match self {
+            Self::Current => ("@", RevSetOrder::default()),
+            Self::Parent => ("@-", RevSetOrder::ParentFirst),
+            Self::Descendants => ("@::", RevSetOrder::ChildrenFirst),
+        };
 
-        Ok(match self {
-            Self::Current => revset,
-            Self::Parents => revset.parents(),
-            Self::Descendants => revset.descendants_at(1).descendants(),
-        }
-        .evaluate(repo)
-        .map_err(|e| e.into_backend_error())?
-        .stream()
-        .flat_map(|r| {
-            let commit = r.unwrap();
-            stream::iter(repo.view().bookmarks().filter_map(
-                move |(name, lrrt)| Ref::try_new(name, &lrrt, &commit),
-            ))
-        }))
+        Ok(revset::list_bookmarks(repo_path, revset, order)?
+            .iter()
+            .map(|name| bookmarks.get(name).unwrap())
+            .collect())
     }
 
     /// Get short representation logo to represent this category of bookmarks.
@@ -150,59 +55,63 @@ impl BookmarkCategory {
     ) -> &'config ColoredList {
         match self {
             Self::Current => &config.current,
-            Self::Parents => &config.parent,
+            Self::Parent => &config.parent,
             Self::Descendants => &config.descendants,
         }
     }
 }
 
 /// Build the list of bookmarks of the specified category for the prompt line.
-async fn list_bookmarks(
+fn list_bookmarks(
     config: &JujutsuBookmarkConfig,
     field: &mut PromptListField,
     category: BookmarkCategory,
-    repo: &dyn Repo,
-    current_commit: &CommitId,
-) -> BackendResult<()> {
+    repo_path: &Path,
+    bookmarks: &Bookmarks,
+) -> Result<(), Box<dyn Error>> {
     field.push(
         category.get_repr(config).display(
             &category
-                .get_bookmarks(repo, current_commit)?
-                .map(|b| b.get_bookmark_repr())
-                .collect::<Vec<String>>()
-                .await,
+                .get_bookmarks(repo_path, bookmarks)?
+                .iter()
+                .flat_map(|b| b.get_repr())
+                .collect::<Vec<String>>(),
+        ),
+    );
+    Ok(())
+}
+
+/// Build the list of deleted Bookmarks pending some action.
+fn list_deleted_bookmarks(
+    config: &JujutsuBookmarkConfig,
+    prompt: &mut Prompt<'_>,
+    bookmarks: &Bookmarks,
+) -> Result<(), Box<dyn Error>> {
+    prompt.push(
+        config.deleted.display(
+            &bookmarks
+                .iter()
+                .filter_map(|(name, bookmark)| {
+                    bookmark.deleted.then_some(name.clone())
+                })
+                .collect::<Vec<String>>(),
         ),
     );
     Ok(())
 }
 
 /// Build the list of tags for the prompt line.
-async fn list_tags(
+fn list_tags(
     config: &JujutsuPromptConfig,
     field: &mut PromptListField,
-    repo: &dyn Repo,
-    current_commit: &CommitId,
-) -> BackendResult<()> {
+    repo_path: &Path,
+) -> Result<(), Box<dyn Error>> {
     field.push(
         config.tags.display(
-            &RevsetExpression::commits(vec![current_commit.to_owned()])
-                .parents()
-                .evaluate(repo)
-                .map_err(|e| e.into_backend_error())?
-                .stream()
-                .flat_map(|r| {
-                    let commit = r.unwrap();
-                    stream::iter(
-                        repo.view()
-                            .tags()
-                            .filter_map(move |(name, lrrt)| {
-                                Ref::try_new(name, &lrrt, &commit)
-                            })
-                            .map(|r| r.get_tag_repr()),
-                    )
-                })
-                .collect::<Vec<String>>()
-                .await,
+            &revset::list_tags(repo_path, "@-", RevSetOrder::default())?
+                .iter()
+                .map(|name| get_tag_repr(name))
+                .collect::<Vec<String>>(),
         ),
     );
 
@@ -210,48 +119,46 @@ async fn list_tags(
 }
 
 /// Internal method to build the prompt line for a Jujutsu repository.
-async fn prompt_internal(
+fn prompt_internal(
     config: &Config,
     prompt: &mut Prompt<'_>,
     repo_path: &Path,
-    repo: &dyn Repo,
-    current_commit: &CommitId,
 ) -> Result<(), Box<dyn Error>> {
     let config = &config.prompt.jj;
     {
         let mut field = PromptListField::new(" ");
+        let bookmarks = get_bookmarks(repo_path)?;
 
         list_bookmarks(
             &config.bookmark,
             &mut field,
-            BookmarkCategory::Parents,
-            repo,
-            current_commit,
-        )
-        .await?;
+            BookmarkCategory::Parent,
+            repo_path,
+            &bookmarks,
+        )?;
         list_bookmarks(
             &config.bookmark,
             &mut field,
             BookmarkCategory::Current,
-            repo,
-            current_commit,
-        )
-        .await?;
+            repo_path,
+            &bookmarks,
+        )?;
         list_bookmarks(
             &config.bookmark,
             &mut field,
             BookmarkCategory::Descendants,
-            repo,
-            current_commit,
-        )
-        .await?;
-        list_tags(config, &mut field, repo, current_commit).await?;
+            repo_path,
+            &bookmarks,
+        )?;
+        list_tags(config, &mut field, repo_path)?;
 
         if field.is_empty() {
             prompt.push(&config.bookmark.none)
         } else {
             prompt.push(field)
         }
+
+        list_deleted_bookmarks(&config.bookmark, prompt, &bookmarks)?;
     }
 
     if wc_has_conflicts(repo_path)? {
@@ -264,26 +171,12 @@ async fn prompt_internal(
 }
 
 /// Build the prompt line for a Jujutsu repository.
-pub async fn prompt(
+pub fn prompt(
     config: &Config,
     prompt: &mut Prompt<'_>,
     repo_path: &Path,
 ) -> i32 {
-    let (repo, workspace_name) = load(repo_path).await.unwrap();
-    let Some(current_commit) = repo.view().get_wc_commit_id(&workspace_name)
-    else {
-        return 1;
-    };
-
-    if let Err(err) = prompt_internal(
-        config,
-        prompt,
-        repo_path,
-        repo.as_ref(),
-        current_commit,
-    )
-    .await
-    {
+    if let Err(err) = prompt_internal(config, prompt, repo_path) {
         eprintln!("{err}");
         1
     } else {

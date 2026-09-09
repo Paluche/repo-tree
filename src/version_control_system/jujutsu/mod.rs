@@ -1,25 +1,18 @@
 //! Module for retrieving JuJutsu information.
+mod bookmark;
 mod git;
 mod prompt;
 mod repo_state;
-use async_trait::async_trait;
-mod revsets;
+mod revset;
+mod tag;
+
 use std::error::Error;
 use std::fs::read_to_string;
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 pub use git::init_colocate;
-use jj_lib::config::StackedConfig;
-use jj_lib::local_working_copy::LocalWorkingCopy;
-use jj_lib::ref_name::WorkspaceNameBuf;
-use jj_lib::repo::ReadonlyRepo;
-use jj_lib::repo::RepoLoader;
-use jj_lib::repo::StoreFactories;
-use jj_lib::settings::UserSettings;
-use jj_lib::working_copy::WorkingCopy;
 
 use super::VcsRepository;
 use crate::config::Config;
@@ -44,39 +37,6 @@ pub fn get_repo_dir(jj_dir: &Path) -> io::Result<PathBuf> {
     })
 }
 
-/// Get the path to the working copy directory defining its state.
-pub fn get_state_path(jj_dir: &Path) -> PathBuf {
-    jj_dir.join("working_copy")
-}
-
-/// Load an existing jj repository.
-pub async fn load(
-    repo_path: &Path,
-) -> Result<(Arc<ReadonlyRepo>, WorkspaceNameBuf), Box<dyn Error>> {
-    let config = StackedConfig::with_defaults();
-    let user_settings = UserSettings::from_config(config)?;
-    let store_factories = StoreFactories::default();
-    let jj_dir = get_jj_dir(repo_path);
-
-    let loader = RepoLoader::init_from_file_system(
-        &user_settings,
-        &get_repo_dir(&jj_dir)?,
-        &store_factories,
-    )?;
-
-    let local_working_copy = LocalWorkingCopy::load(
-        loader.store().clone(),
-        repo_path.to_path_buf(),
-        get_state_path(&jj_dir),
-        &user_settings,
-    )?;
-
-    Ok((
-        loader.load_at_head().await?,
-        local_working_copy.workspace_name().to_owned(),
-    ))
-}
-
 /// Interact with a JuJutsu repository.
 pub struct JujutsuVcs {
     /// Path to the root of the JuJutsu repository.
@@ -95,7 +55,6 @@ impl JujutsuVcs {
     }
 }
 
-#[async_trait(?Send)]
 impl VcsRepository for JujutsuVcs {
     fn get_remote_url(
         &self,
@@ -111,16 +70,16 @@ impl VcsRepository for JujutsuVcs {
         git::fetch(&self.repo_path, quiet)
     }
 
-    async fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32 {
+    fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32 {
         let ret =
             super::git::prompt::prompt(config, prompt, &self.repo_path, true);
         if ret != 0 {
             return ret;
         }
-        prompt::prompt(config, prompt, &self.repo_path).await
+        prompt::prompt(config, prompt, &self.repo_path)
     }
 
-    async fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
-        repo_state::get_repo_state(&self.repo_path).await
+    fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
+        repo_state::get_repo_state(&self.repo_path)
     }
 }

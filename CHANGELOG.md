@@ -39,7 +39,10 @@ None
 
 ### New features
 
-None
+- We are no more depending on the `jj-lib` crate. All `jj` interaction are done
+  by calling the CLI.
+- jj prompt: Display the list of locally deleted bookmarks pending to be either
+  pushed and deleted from the remote too or be forgotten locally about.
 
 ### Fixed bugs
 

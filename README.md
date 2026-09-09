@@ -287,14 +287,19 @@ The prompt has the following fields:
 - If the repository is a Jujutsu repository:
   - List of bookmarks, from the following categories. Each bookmark will be
     suffixed a `*` if there are some changes to that bookmark that must be
-    pushed to the remote.
-    - Bookmarks set the parent of the current commit you are editing (`@-` in
+    pushed to the remote. If there is no Bookmarks to display the character
+    `none` from the configuration below will be displayed.
+    - Bookmarks set the `parent` of the current commit you are editing (`@-` in
       revset language).
-    - Bookmarks set on the current commit you are editing (`@` in revset
+    - Bookmarks set on the `current` commit you are editing (`@` in revset
       language).
     - Bookmarks on which you have an impact on by editing the current commit,
-      said otherwise, the bookmarks set on any of the descendants commits of
+      said otherwise, the bookmarks set on any of the `descendants` commits of
       the current one (`@::` in revset language).
+  - List of `deleted` bookmarks. Those are bookmarks which you just deleted the
+    local one and then they are pending on an action, either you push and then
+    delete the branch on the remote to, or you forget about this deleted
+    bookmark.
   - List the tags which are set to the parent commit you are editing.
   - Show if there is any commits with conflicts to resolve.
 
@@ -341,6 +346,7 @@ parent = { prefix = "󰫍", separator = "🞍", color = "yellow" }
 current = { prefix = "󰫍", separator = "🞍", color = "bright blue" }
 descendants = { prefix = "󰫎", separator = "🞍", color = "bright blue" }
 none = { text = "󰫌", color = "bright black" }
+deleted = { prefix = "󰠙", separator = "🞍", color = 166 }
 
 [prompt.jj]
 conflict = { text = "󰝧", color = "bright red" }
