@@ -30,7 +30,7 @@ use crate::repo_id::Remote;
 /// - scp-style handling is implemented heuristically by converting the scp url
 ///   into an ssh:// URL for path joining.
 /// - This helper focuses on the common cases; for complete fidelity to `git`
-///   behaviour, call git itself or replicate git's source logic.
+///   behavior, call git itself or replicate git's source logic.
 fn resolve_url<P: AsRef<Path>>(
     main_repo_root: P,
     main_repo_remote: &Option<Remote>,
@@ -106,7 +106,7 @@ fn resolve_url<P: AsRef<Path>>(
             Some(joined.to_string())
         } else {
             // Fallback: if base_remote_url is just a local path or otherwise
-            // unparseable, resolve path-like by treating base_remote_url as a
+            // unparsable, resolve path-like by treating base_remote_url as a
             // directory.
             resolve_url_as_relpath(&main_remote.url, submodule_url)
         }

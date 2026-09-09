@@ -91,7 +91,7 @@ list`).
 >
 > - zsh as shell
 > - Nerdfont modified fonts
-> - jujutsu as main vcs. My respositories are usually jj colocated with git.
+> - jujutsu as main vcs. My repositories are usually jj colocated with Git.
 >   But I'll favored interaction through jj by default.
 
 ## Configuration
@@ -279,7 +279,7 @@ The prompt has the following fields:
     - Upstream information. If you are at a branch which has an upstream, what
       is your state relative to that upstream. Do need to push / pull? Did you
       diverged? Has the upstream branch been deleted? Otherwise show a
-      representaion telling you that you are detached from any branch, or that
+      representation telling you that you are detached from any branch, or that
       there is no upstream set yet.
     - stage / unstaged status.
   - Status of the repository's submodules.
@@ -352,7 +352,7 @@ You can allow some repositories to leave outside the repo tree in specific
 location. You cannot ignore repositories within the repo tree.
 
 To configure how to ignore repositories, specify a list of glob matching
-patterns which would match repository location to ingore.
+patterns which would match repository location to ignore.
 
 By default the list is the following:
 

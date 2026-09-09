@@ -52,8 +52,8 @@ impl DirState {
 /// Directory representation.
 #[derive(Default)]
 struct Directory<'repos> {
-    /// Childs directories within this directory.
-    childs: BTreeMap<String, Self>,
+    /// Children directories within this directory.
+    children: BTreeMap<String, Self>,
     /// Repository present in this directory.
     repository: Option<&'repos Repository>,
 }
@@ -74,22 +74,22 @@ impl<'repos> Directory<'repos> {
             .collect()
     }
 
-    /// Create a new Directory and all its childs recursively leading to the
+    /// Create a new Directory and all its children recursively leading to the
     /// repository.
     fn new<T>(mut components: T, repository: &'repos Repository) -> Self
     where
         T: Iterator<Item = String>,
     {
         if let Some(child_name) = components.next() {
-            let mut childs = BTreeMap::new();
-            childs.insert(child_name, Directory::new(components, repository));
+            let mut children = BTreeMap::new();
+            children.insert(child_name, Directory::new(components, repository));
             Self {
-                childs,
+                children,
                 repository: None,
             }
         } else {
             Self {
-                childs: BTreeMap::new(),
+                children: BTreeMap::new(),
                 repository: Some(repository),
             }
         }
@@ -105,10 +105,10 @@ impl<'repos> Directory<'repos> {
         T: Iterator<Item = String>,
     {
         if let Some(child_name) = components.next() {
-            if let Some(sub_dir) = self.childs.get_mut(&child_name) {
+            if let Some(sub_dir) = self.children.get_mut(&child_name) {
                 sub_dir.insert_internal(components, repository);
             } else {
-                self.childs
+                self.children
                     .insert(child_name, Directory::new(components, repository));
             }
         }
@@ -133,9 +133,9 @@ impl<'repos> Directory<'repos> {
     ) -> std::fmt::Result {
         let mut current = self;
         let mut current_dir = name.to_string();
-        while current.childs.len() == 1 {
+        while current.children.len() == 1 {
             current_dir.push('/');
-            let (child_name, next) = current.childs.iter().next().unwrap();
+            let (child_name, next) = current.children.iter().next().unwrap();
             current_dir.push_str(child_name);
             current = next;
         }
@@ -219,12 +219,12 @@ impl<'repos> Directory<'repos> {
             }
         }
 
-        if current.childs.is_empty() {
+        if current.children.is_empty() {
             return Ok(());
         }
 
-        let final_i = current.childs.len() - 1;
-        for (i, (name, directory)) in current.childs.iter().enumerate() {
+        let final_i = current.children.len() - 1;
+        for (i, (name, directory)) in current.children.iter().enumerate() {
             directory.display(
                 f,
                 config,

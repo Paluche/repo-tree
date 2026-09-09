@@ -81,9 +81,9 @@ fn generate_sub_completer(
     writeln!(buf, "{script}\n")
 }
 
-/// Generate rcd function for ZSH syntax. The rcd (reposity change directory) is
-/// a wrapper around `rt resolve` command to jump to the root of the specified
-/// repository.
+/// Generate rcd function for ZSH syntax. The rcd (repository change directory)
+/// is a wrapper around `rt resolve` command to jump to the root of the
+/// specified repository.
 fn generate_rcd_zsh(
     var: &str,
     completer: &str,
