@@ -9,13 +9,13 @@
 use std::error::Error;
 use std::path::Path;
 
-use super::revsets;
+use super::revset;
 use crate::repo_state::RepoState;
 
 /// Compute if the repository has unpushed commits. Do not take into account
 /// empty commits with empty description.
 fn has_unpushed_commits(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
-    revsets::revset_has_match(
+    revset::revset_has_match(
         repo_path,
         r#"::visible_heads() ~ ::(remote_bookmarks() | tags()) ~ (empty() & description(""))"#,
     )
@@ -25,7 +25,7 @@ fn has_unpushed_commits(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
 fn needs_restack(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     // Each branch must be rebased on top of a immutable reference (bookmark or
     // tag).
-    revsets::revset_has_match(
+    revset::revset_has_match(
         repo_path,
         r#"~(::immutable_heads() | immutable_heads()::) ~ (empty() & description(""))"#,
     )
@@ -33,18 +33,16 @@ fn needs_restack(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
 
 /// Find out if the repository has commits with conflicts.
 pub fn has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
-    revsets::revset_has_match(repo_path, "conflicts()")
+    revset::revset_has_match(repo_path, "conflicts()")
 }
 
 /// Find out if the working copy (current commit) has conflicts.
 pub fn wc_has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
-    revsets::revset_has_match(repo_path, "@ & conflicts()")
+    revset::revset_has_match(repo_path, "@ & conflicts()")
 }
 
 /// Get the repository state as RepoState struct.
-pub async fn get_repo_state(
-    repo_path: &Path,
-) -> Result<RepoState, Box<dyn Error>> {
+pub fn get_repo_state(repo_path: &Path) -> Result<RepoState, Box<dyn Error>> {
     Ok(RepoState::new(
         has_unpushed_commits(repo_path)?,
         needs_restack(repo_path)?,

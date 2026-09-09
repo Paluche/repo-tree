@@ -1,5 +1,4 @@
 //! Enumeration listing the different type of Version Control System we support.
-use async_trait::async_trait;
 pub mod git;
 pub mod jujutsu;
 use std::error::Error;
@@ -158,7 +157,6 @@ impl<'vcs, 'config> Display for ShortDisplay<'vcs, 'config> {
 }
 
 /// Functions to interact with a supported Version Control System.
-#[async_trait(?Send)]
 pub trait VcsRepository {
     /// Get the remote URL of the repository to use to organize the repository
     /// within the repo tree. This would be either the origin remote or the
@@ -174,8 +172,8 @@ pub trait VcsRepository {
     fn fetch(&self, quiet: bool) -> i32;
 
     /// Build the prompt line for a repository.
-    async fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32;
+    fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32;
 
     /// Get the repository state.
-    async fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
+    fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
 }

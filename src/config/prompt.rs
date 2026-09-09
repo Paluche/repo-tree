@@ -250,6 +250,10 @@ pub struct JujutsuBookmarkConfig {
     /// current or descendants commits).
     #[serde(default = "JujutsuBookmarkConfig::default_none")]
     pub none: ColoredText,
+    /// How to display deleted pending bookmarks to be either pushed to be
+    /// fully deleted or locally forget.
+    #[serde(default = "JujutsuBookmarkConfig::default_deleted")]
+    pub deleted: ColoredList,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
@@ -269,6 +273,10 @@ impl JujutsuBookmarkConfig {
     fn default_none() -> ColoredText {
         ColoredText::new("󰫌", colored::Color::BrightBlack)
     }
+
+    fn default_deleted() -> ColoredList {
+        ColoredList::new("󰠙", "🞍", colored::Color::AnsiColor(166))
+    }
 }
 
 impl Default for JujutsuBookmarkConfig {
@@ -278,6 +286,7 @@ impl Default for JujutsuBookmarkConfig {
             current: Self::default_current(),
             descendants: Self::default_descendants(),
             none: Self::default_none(),
+            deleted: Self::default_deleted(),
         }
     }
 }

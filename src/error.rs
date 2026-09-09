@@ -1,7 +1,33 @@
 //! Definition of errors struct used in the crate.
 use std::path::PathBuf;
+use std::process::Command;
+use std::process::Output;
 
 use thiserror::Error;
+
+#[derive(Debug, Error)]
+#[error("Command {0} failed with error {1}:\n{2}")]
+/// A functionality is not implemented yet.
+pub struct CommandError(pub String, pub i32, pub String);
+
+impl CommandError {
+    /// Create a new CommandError struct based on the command and output of the
+    /// failed command.
+    pub fn new(command: Command, output: Output) -> Self {
+        let mut cmd = command.get_program().to_os_string();
+        cmd.push(" ");
+        for arg in command.get_args() {
+            cmd.push("'");
+            cmd.push(arg);
+            cmd.push("' ");
+        }
+        CommandError(
+            cmd.display().to_string(),
+            output.status.code().unwrap_or(1),
+            String::from_utf8(output.stderr).unwrap_or("".to_string()),
+        )
+    }
+}
 
 #[derive(Debug, Error)]
 #[error("{0} not implemented yet")]
