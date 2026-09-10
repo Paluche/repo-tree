@@ -2,11 +2,8 @@
 
 use std::error::Error;
 use std::path::Path;
-use std::process::Command;
 
-use which::which;
-
-use crate::error::CommandError;
+use super::command::JujutsuCommand;
 
 /// Option to specify in which order to obtain the list of commit.
 #[derive(Default)]
@@ -26,11 +23,8 @@ fn run_revset(
     template: &str,
     order: RevSetOrder,
 ) -> Result<Vec<String>, Box<dyn Error>> {
-    let mut command = Command::new(which("jj").expect("Jujutsu not installed"));
+    let mut command = JujutsuCommand::repo(repo_path)?;
     command
-        .arg("--ignore-working-copy")
-        .arg("--repository")
-        .arg(repo_path)
         .arg("log")
         .arg("--revision")
         .arg(revset)
@@ -42,16 +36,7 @@ fn run_revset(
         command.arg("--reversed");
     }
 
-    let output = command.output()?;
-    if !output.status.success() {
-        return Err(Box::new(CommandError::new(command, output)));
-    }
-
-    Ok(String::from_utf8(output.stdout)?
-        .split("\n")
-        .filter(|l| !l.is_empty())
-        .map(|l| l.to_string())
-        .collect())
+    command.output_lines()
 }
 
 /// List commits ID matching the provided revset.
