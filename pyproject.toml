@@ -15,10 +15,7 @@ package = false
 # to take effect.
 check-filenames = true
 check-hidden = true
-# Codespell does not respect .gitignore. It may be necessary to add to
-# this list by running e.g. `uv run codespell --skip=./rendered-docs`
-# if you have less common ignored files or globally ignored files present.
-# Alternatively, try `uv run codespell $(jj file list)`.
+# Codespell does not respect .gitignore. Do it for him here.
 skip = "./target,./.jj,*.lock,./.git,./.venv,./.direnv,**/*.svg,**/package-lock.json,node_modules,.astro"
 ignore-words-list = "crate,ser"
 builtin = "clear,rare,en-GB_to_en-US"
