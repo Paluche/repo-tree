@@ -18,10 +18,12 @@ use crate::error::NoCacheError;
 use crate::repository::Repository;
 use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
+use crate::ui::Ui;
 
 /// Search recursively repositories in a directory.
 fn _search(
     config: &Config,
+    ui: &Ui<'_>,
     repositories: &mut Vec<Repository>,
     empty_dirs: &mut Vec<PathBuf>,
     dir: &Path,
@@ -35,12 +37,12 @@ fn _search(
     for entry in dir.read_dir().expect("read dir call failed").flatten() {
         empty_dir = false;
         let root = entry.path();
-        let repo = Repository::try_new(config, &root);
+        let repo = Repository::try_new(config, ui, &root);
 
         if let Ok(repo) = repo {
             repositories.push(repo);
         } else {
-            _search(config, repositories, empty_dirs, &root);
+            _search(config, ui, repositories, empty_dirs, &root);
         }
     }
 
@@ -50,7 +52,7 @@ fn _search(
 }
 
 /// Search repositories in the repo tree.
-fn search(config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
+fn search(config: &Config, ui: &Ui<'_>) -> (Vec<Repository>, Vec<PathBuf>) {
     let mut repositories = Vec::new();
     let mut empty_dirs = Vec::new();
 
@@ -62,12 +64,12 @@ fn search(config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
     {
         let dir_path = entry.path();
         if TreeSpace::from_dir_name(config, &entry.file_name()).is_some() {
-            _search(config, &mut repositories, &mut empty_dirs, &dir_path);
+            _search(config, ui, &mut repositories, &mut empty_dirs, &dir_path);
         } else {
-            eprintln!(
+            ui.warning(format!(
                 "Unexpected tree-space directory: {}",
-                dir_path.display()
-            );
+                dir_path.display(),
+            ));
         }
     }
 
@@ -93,8 +95,12 @@ impl RepoTree {
     }
 
     /// Load all the repositories present in the repo tree.
-    pub fn load_silent(config: &Config, refresh_cache: bool) -> Self {
-        Self::load_silent_with_empty_dirs(config, refresh_cache).0
+    pub fn load_silent(
+        config: &Config,
+        ui: &Ui<'_>,
+        refresh_cache: bool,
+    ) -> Self {
+        Self::load_silent_with_empty_dirs(config, ui, refresh_cache).0
     }
 
     /// Load all the repositories present in the repo tree with a list of
@@ -104,6 +110,7 @@ impl RepoTree {
     /// anyway for getting the empty directories.
     pub fn load_silent_with_empty_dirs(
         config: &Config,
+        ui: &Ui<'_>,
         refresh_cache: bool,
     ) -> (Self, Option<Vec<PathBuf>>) {
         if !refresh_cache {
@@ -116,18 +123,18 @@ impl RepoTree {
                     }
                 }
                 Err(err) => {
-                    eprintln!(
+                    ui.error(format!(
                         "Failure to load cache {} {}",
                         cache_file().display(),
                         err
-                    );
+                    ));
                 }
             }
         }
 
-        eprintln!("Refreshing repositories cache...");
+        ui.hint("Refreshing repositories cache...");
 
-        let (repositories, empty_dirs) = search(config);
+        let (repositories, empty_dirs) = search(config, ui);
 
         (Self { repositories }, Some(empty_dirs))
     }
@@ -135,16 +142,16 @@ impl RepoTree {
     /// Load the repo tree.
     /// Print a warning message if empty directories outside any repository are
     /// found in the repo tree.
-    pub fn load(config: &Config, refresh_cache: bool) -> Self {
+    pub fn load(config: &Config, ui: &Ui<'_>, refresh_cache: bool) -> Self {
         let (repositories, empty_dirs) =
-            Self::load_silent_with_empty_dirs(config, refresh_cache);
+            Self::load_silent_with_empty_dirs(config, ui, refresh_cache);
 
         if let Some(empty_dirs) = empty_dirs {
             for empty_dir in empty_dirs {
-                eprintln!(
+                ui.warning(format!(
                     "Empty directory in repo tree: {}",
                     empty_dir.display()
-                );
+                ));
             }
         }
 
@@ -155,6 +162,7 @@ impl RepoTree {
     pub fn filtered<'repo_tree>(
         &'repo_tree self,
         config: &Config,
+        ui: &Ui<'_>,
         filter_hosts: &[Glob],
         filter_names: &[Glob],
         filter_trees: &[Glob],
@@ -169,7 +177,7 @@ impl RepoTree {
                                 .is_match(&remote_host.category.name),
                             Ok(None) => false,
                             Err(err) => {
-                                eprintln!("{err}");
+                                ui.error(err);
                                 false
                             }
                         }

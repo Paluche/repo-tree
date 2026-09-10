@@ -14,6 +14,7 @@ use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_id::RepoId;
 use crate::tree_space::TreeSpace;
 use crate::tree_space::TreeSpaceKind;
+use crate::ui::Ui;
 use crate::utils::get_last_modified;
 use crate::version_control_system::VcsRepository;
 use crate::version_control_system::VersionControlSystem;
@@ -120,12 +121,13 @@ impl Repository {
     /// about the repository location.
     pub fn discover_silent(
         config: &Config,
+        ui: &Ui<'_>,
         path: &Path,
     ) -> Result<Self, Box<dyn Error>> {
         let mut current_path = Some(path);
 
         while let Some(root) = current_path {
-            match Self::try_new(config, root) {
+            match Self::try_new(config, ui, root) {
                 Ok(repo) => {
                     return Ok(repo);
                 }
@@ -144,20 +146,21 @@ impl Repository {
     /// Search for a repository at the given path.
     pub async fn discover(
         config: &Config,
+        ui: &mut Ui<'_>,
         path: &Path,
         strategy: ExpectedTreeStrategy,
     ) -> Result<Self, Box<dyn Error>> {
-        let repository = Self::discover_silent(config, path)?;
+        let repository = Self::discover_silent(config, ui, path)?;
         let workspace = repository.get_latest_workspace();
 
         if let Some(expected_root) = repository
-            .expected_root(workspace, config, strategy)
+            .expected_root(config, ui, workspace, strategy)
             .await?
         {
             let root = workspace.path();
 
             if root != &expected_root && !config.should_be_ignored(root) {
-                eprintln!(
+                ui.warning(format!(
                     "⚠️Unexpected location for the repository {}. Currently \
                      in \"{}\" should be in \"{}\". Run `{}` to fix it.",
                     repository.id.name,
@@ -168,7 +171,7 @@ impl Repository {
                     } else {
                         format!("rt insert \"{}\"", root.display())
                     }
-                );
+                ));
             }
         }
         Ok(repository)
@@ -177,11 +180,12 @@ impl Repository {
     /// Try loading a repository which root is the one provided.
     pub fn try_new(
         config: &Config,
+        ui: &Ui<'_>,
         root: &Path,
     ) -> Result<Repository, Box<dyn Error>> {
         if let Some((vcs, is_submodule)) = VersionControlSystem::try_new(root) {
             let (remote_config, remote_url) =
-                vcs.get_repo(root).get_remote_url()?;
+                vcs.get_repo(root).get_remote_url(ui)?;
             let id = RepoId::from_repo(&root, remote_url.as_ref())?;
 
             let workspace =
@@ -209,6 +213,7 @@ impl Repository {
     /// Try to get the workspace located in the specified tree-space.
     pub fn get_tree_workspace(
         &self,
+        ui: &Ui,
         tree_space: &TreeSpace,
     ) -> Option<&Workspace> {
         let res: Vec<&Workspace> = self
@@ -221,9 +226,9 @@ impl Repository {
             None
         } else {
             if res.len() != 1 {
-                eprintln!(
+                ui.warning(
                     "Found several copies of a same repository for a same \
-                     tree-space"
+                     tree-space",
                 );
             }
             Some(res[0])
@@ -231,7 +236,7 @@ impl Repository {
     }
 
     /// Get the workspace which corresponds to the main repository.
-    pub fn get_main_workspace(&self) -> &Workspace {
+    pub fn get_main_workspace(&self, ui: &Ui) -> &Workspace {
         if self.workspaces.len() == 1 {
             return &self.workspaces[0];
         }
@@ -245,7 +250,7 @@ impl Repository {
             panic!();
         } else {
             if res.len() != 1 {
-                eprintln!("Found several copies of a same main repository.");
+                ui.warning("Found several copies of a same main repository.");
             }
             res[0]
         }
@@ -267,8 +272,9 @@ impl Repository {
     // we should not have to do uselessly multiple times.
     pub async fn expected_root(
         &self,
-        workspace: &Workspace,
         config: &Config,
+        ui: &mut Ui<'_>,
+        workspace: &Workspace,
         strategy: ExpectedTreeStrategy,
     ) -> Result<Option<PathBuf>, Box<dyn Error>> {
         assert!(self.has_workspace(workspace));
@@ -277,7 +283,7 @@ impl Repository {
         } else {
             Some(
                 self.id
-                    .expected_tree(config, Some(workspace.path()), strategy)
+                    .expected_tree(config, ui, Some(workspace.path()), strategy)
                     .await?
                     .repo_location(config, &self.id)?,
             )

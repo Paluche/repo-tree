@@ -8,6 +8,7 @@ use clap::Args;
 use clap::Subcommand;
 
 use crate::config::Config;
+use crate::ui::Ui;
 
 /// Actions for any type of repository.
 #[allow(clippy::missing_docs_in_private_items)]
@@ -30,11 +31,11 @@ enum RepoAction {
 }
 
 /// Execute the `rt repo` sub-commands.
-pub async fn run(config: &Config, args: RepoArgs) -> i32 {
+pub async fn run(config: &Config, ui: &mut Ui<'_>, args: RepoArgs) -> i32 {
     match args.action {
-        RepoAction::Root(args) => root::run(config, args),
-        RepoAction::Remote(args) => remote::run(config, args).await,
-        RepoAction::State(args) => state::run(config, args).await,
-        RepoAction::Prompt(args) => prompt::run(config, args).await,
+        RepoAction::Root(args) => root::run(config, ui, args),
+        RepoAction::Remote(args) => remote::run(config, ui, args).await,
+        RepoAction::State(args) => state::run(config, ui, args).await,
+        RepoAction::Prompt(args) => prompt::run(config, ui, args).await,
     }
 }

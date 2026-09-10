@@ -4,6 +4,7 @@ use clap::Args;
 use crate::cli::get_cwd;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
+use crate::ui::Ui;
 use crate::version_control_system::VersionControlSystem;
 
 /// Get the root and type of the repository the working directory or its
@@ -25,12 +26,12 @@ pub struct RootArgs {
 }
 
 /// Execute the `rt repo root` command.
-pub fn run(config: &Config, args: RootArgs) -> i32 {
+pub fn run(config: &Config, ui: &Ui<'_>, args: RootArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, true);
+        RepoTree::load(config, ui, true);
     }
 
-    let mut cwd = get_cwd();
+    let mut cwd = get_cwd(ui);
 
     if args.parent
         && let Some(parent) = cwd.parent()

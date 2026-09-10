@@ -9,6 +9,7 @@ use std::process::Output;
 use which::which;
 
 use crate::error::CommandError;
+use crate::ui::Ui;
 
 /// Manage the execution of a Jujutsu command.
 pub struct JujutsuCommand {
@@ -85,7 +86,11 @@ impl JujutsuCommand {
     }
 
     /// Get the output lines of the command.
-    fn output(&mut self, first_try: bool) -> Result<Output, Box<dyn Error>> {
+    fn output(
+        &mut self,
+        ui: &Ui<'_>,
+        first_try: bool,
+    ) -> Result<Output, Box<dyn Error>> {
         let output = self.command.output()?;
         let status = output.status;
         if !status.success() {
@@ -94,10 +99,10 @@ impl JujutsuCommand {
                     .contains("Run `jj workspace update-stale` to update it.")
             {
                 if let Some(repository) = &self.repository {
-                    eprintln!("Updating stalled workspace...");
+                    ui.hint("Updating stalled workspace...");
                     Self::workspace_update_stale(repository)?;
                 }
-                self.output(false)
+                self.output(ui, false)
             } else {
                 Err(Box::new(CommandError::new(
                     &self.command,
@@ -112,8 +117,11 @@ impl JujutsuCommand {
 
     /// Get the output lines of the command. Managing the case where the
     /// workspace is now stalled and needs to be updated.
-    pub fn output_lines(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
-        let output = self.output(true)?;
+    pub fn output_lines(
+        &mut self,
+        ui: &Ui<'_>,
+    ) -> Result<Vec<String>, Box<dyn Error>> {
+        let output = self.output(ui, true)?;
         Ok(String::from_utf8(output.stdout)?
             .split("\n")
             .filter(|l| !l.is_empty())
@@ -121,9 +129,9 @@ impl JujutsuCommand {
             .collect())
     }
 
-    /// Execute the command and checks it succeeds. Managing the case where the
-    /// workspace is now stalled and needs to be updated.
-    pub fn status(&mut self) -> Result<(), Box<dyn Error>> {
-        self.output(true).map(|_| ())
+    /// Execute the command and checks it succeeds. Managing the case where
+    /// the workspace is now stalled and needs to be updated.
+    pub fn status(&mut self, ui: &Ui<'_>) -> Result<(), Box<dyn Error>> {
+        self.output(ui, true).map(|_| ())
     }
 }

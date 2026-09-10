@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::path::absolute;
 
 use super::command::JujutsuCommand;
+use crate::ui::Ui;
 
 /// Representation of a Jujutsu workspace.
 pub struct JujutsuWorkspace {
@@ -19,6 +20,7 @@ pub struct JujutsuWorkspace {
 
 /// List all workspaces associated with the specified repository.
 pub fn list_workspaces(
+    ui: &Ui<'_>,
     repo_path: &Path,
 ) -> Result<Vec<JujutsuWorkspace>, Box<dyn Error>> {
     Ok(JujutsuCommand::repo(repo_path)?
@@ -26,7 +28,7 @@ pub fn list_workspaces(
         .arg("list")
         .arg("--template")
         .arg(r#"name ++ "\t" ++ "\n""#)
-        .output_lines()?
+        .output_lines(ui)?
         .iter()
         .map(|l| {
             let mut parts = l.split("\t");
@@ -42,6 +44,7 @@ pub fn list_workspaces(
 
 /// Add a new workspace.
 pub fn add_workspace(
+    ui: &Ui<'_>,
     repo_path: &Path,
     name: &str,
     destination: &Path,
@@ -67,5 +70,5 @@ pub fn add_workspace(
         .arg("--name")
         .arg(name)
         .arg(destination)
-        .status()
+        .status(ui)
 }

@@ -14,6 +14,7 @@ mod repo_tree;
 mod repository;
 mod resolve;
 mod tree_space;
+mod ui;
 mod utils;
 mod version_control_system;
 

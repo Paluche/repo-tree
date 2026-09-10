@@ -13,6 +13,7 @@ use super::force_tree_into_strategy;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::ui::Ui;
 
 /// Clone a repository within the repo tree.
 #[derive(Args)]
@@ -30,29 +31,33 @@ pub struct InsertArgs {
 }
 
 /// Refresh the repo tree cache based on the refresh_cache boolean value.
-fn refresh_cache(config: &Config, refresh_cache: bool) {
+fn refresh_cache(config: &Config, ui: &Ui<'_>, refresh_cache: bool) {
     if refresh_cache {
-        RepoTree::load(config, true);
+        RepoTree::load(config, ui, true);
     }
 }
 
 /// Execute the `rt insert` command.
-pub async fn run(config: &Config, args: InsertArgs) -> i32 {
-    let repository =
-        match Repository::discover_silent(config, &PathBuf::from(args.path)) {
-            Ok(r) => r,
-            Err(err) => {
-                eprintln!("{err}");
-                return 1;
-            }
-        };
+pub async fn run(config: &Config, ui: &mut Ui<'_>, args: InsertArgs) -> i32 {
+    let repository = match Repository::discover_silent(
+        config,
+        ui,
+        &PathBuf::from(args.path),
+    ) {
+        Ok(r) => r,
+        Err(err) => {
+            eprintln!("{err}");
+            return 1;
+        }
+    };
 
     let workspace = repository.get_latest_workspace();
 
     let expected_root = match repository
         .expected_root(
-            repository.get_latest_workspace(),
             config,
+            ui,
+            repository.get_latest_workspace(),
             force_tree_into_strategy(args.force_tree),
         )
         .await
@@ -76,7 +81,7 @@ pub async fn run(config: &Config, args: InsertArgs) -> i32 {
     let root = workspace.path();
     if root == &expected_root {
         eprintln!("Repository already at the correct location");
-        refresh_cache(config, args.refresh_cache);
+        refresh_cache(config, ui, args.refresh_cache);
         return 0;
     }
 
@@ -85,14 +90,14 @@ pub async fn run(config: &Config, args: InsertArgs) -> i32 {
     if !parent.exists()
         && let Err(err) = create_dir_all(parent)
     {
-        eprintln!("{err}");
-        refresh_cache(config, args.refresh_cache);
+        ui.error(err);
+        refresh_cache(config, ui, args.refresh_cache);
         return 1;
     }
 
     if let Err(err) = rename(root, &expected_root) {
-        eprintln!("{err}");
-        refresh_cache(config, args.refresh_cache);
+        ui.error(err);
+        refresh_cache(config, ui, args.refresh_cache);
         return 1;
     }
     println!("{} moved to {}", root.display(), expected_root.display());
@@ -123,7 +128,7 @@ pub async fn run(config: &Config, args: InsertArgs) -> i32 {
     }
 
     // Repo tree changed, refresh the cache.
-    refresh_cache(config, true);
+    refresh_cache(config, ui, true);
 
     0
 }

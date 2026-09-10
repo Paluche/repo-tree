@@ -7,6 +7,7 @@ use clap::Args;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::ui::Ui;
 
 /// Fetch all the repositories within the repo_tree.
 #[derive(Args)]
@@ -22,6 +23,7 @@ pub struct FetchArgs {
 /// Fetch one repository.
 pub fn fetch_repo(
     config: &Config,
+    ui: &Ui<'_>,
     quiet: bool,
     repository: &Repository,
     is_submodule: bool,
@@ -39,12 +41,12 @@ pub fn fetch_repo(
     if !quiet {
         println!("Fetching repository {}", repository.id.display(config));
     }
-    let workspace = repository.get_main_workspace();
+    let workspace = repository.get_main_workspace(ui);
     for submodule in repository.submodules(workspace)? {
         let root = submodule.abs_path();
-        let repository = Repository::try_new(config, &root)?;
+        let repository = Repository::try_new(config, ui, &root)?;
 
-        let (_ok, _total) = fetch_repo(config, quiet, &repository, true)?;
+        let (_ok, _total) = fetch_repo(config, ui, quiet, &repository, true)?;
         ok += _ok;
         total += _total;
     }
@@ -58,7 +60,7 @@ pub fn fetch_repo(
         );
     }
 
-    ok += if repository.get_vcs_repo(workspace).fetch(quiet).is_ok() {
+    ok += if repository.get_vcs_repo(workspace).fetch(ui, quiet).is_ok() {
         1
     } else {
         0
@@ -69,13 +71,13 @@ pub fn fetch_repo(
 }
 
 /// Execute `rt fetch` command.
-pub fn run(config: &Config, args: FetchArgs) -> i32 {
-    let repo_tree = RepoTree::load(config, args.refresh_cache);
+pub fn run(config: &Config, ui: &Ui<'_>, args: FetchArgs) -> i32 {
+    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
 
     let (ok, total) = repo_tree
         .repo_iter()
         .map(|repo| {
-            fetch_repo(config, args.quiet, repo, false).unwrap_or((0, 1))
+            fetch_repo(config, ui, args.quiet, repo, false).unwrap_or((0, 1))
         })
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
         .unwrap_or((0, 0));

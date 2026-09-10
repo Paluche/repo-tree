@@ -16,6 +16,18 @@ fn default_config() -> Result<(), Box<dyn Error>> {
     insta::assert_snapshot!(toml::to_string(&config)?, @r#"
     root = "/home/user/work"
 
+    [ui.hint]
+    text = "Hint"
+    color = "cyan"
+
+    [ui.warning]
+    text = "Warning"
+    color = 166
+
+    [ui.error]
+    text = "Error"
+    color = "red"
+
     [host."bitbucket.org"]
     name = "bitbucket"
     forge = "Bitbucket"

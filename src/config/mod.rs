@@ -15,6 +15,7 @@ mod repository_location;
 mod test;
 mod tree_category;
 mod tree_space;
+mod ui;
 
 use std::error::Error;
 use std::path::Path;
