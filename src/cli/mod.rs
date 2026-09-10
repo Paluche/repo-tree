@@ -25,6 +25,7 @@ mod tree;
 
 use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
+use crate::ui::Ui;
 
 /// Control of the colored output.
 #[derive(Default, Clone, ValueEnum)]
@@ -73,10 +74,10 @@ enum Action {
 }
 
 /// Get the path to the current working directory.
-fn get_cwd() -> PathBuf {
+fn get_cwd(ui: &Ui<'_>) -> PathBuf {
     env::current_dir()
         .inspect_err(|_| {
-            eprintln!("Current directory does not exist");
+            ui.error("Current directory does not exist");
             exit(1);
         })
         .unwrap()
@@ -84,11 +85,11 @@ fn get_cwd() -> PathBuf {
 
 /// Process path arguments, which should default to the current working
 /// directory if not specified.
-fn cwd_default_path(path: Option<String>) -> PathBuf {
-    let ret = path.map_or_else(get_cwd, PathBuf::from);
+fn cwd_default_path(ui: &Ui, path: Option<String>) -> PathBuf {
+    let ret = path.map_or_else(|| get_cwd(ui), PathBuf::from);
 
     if !ret.exists() {
-        eprintln!("No such directory {}", ret.display());
+        ui.error(format!("No such directory {}", ret.display()));
         exit(1);
     }
 
@@ -133,6 +134,7 @@ pub async fn run() -> i32 {
             return 1;
         }
     };
+    let mut ui = Ui::new(&config);
 
     match args.color {
         ColorBehavior::Auto => (),
@@ -141,18 +143,18 @@ pub async fn run() -> i32 {
     }
 
     match args.action {
-        Action::Resolve(args) => resolve::run(&config, args),
-        Action::ResolveUrl(args) => resolve_url::run(&config, args),
-        Action::List(args) => list::run(&config, args),
-        Action::Tree(args) => tree::run(&config, args),
-        Action::Clean(args) => clean::run(&config, args).await,
-        Action::Fetch(args) => fetch::run(&config, args),
-        Action::Todo(args) => todo::run(&config, args).await,
-        Action::Repo(args) => repo::run(&config, args).await,
-        Action::Git(args) => git::run(&config, args).await,
-        Action::Clone(args) => clone::run(&config, args).await,
-        Action::Rm(args) => rm::run(&config, args).await,
-        Action::RefreshCache(args) => refresh_cache::run(&config, args),
-        Action::Insert(args) => insert::run(&config, args).await,
+        Action::Resolve(args) => resolve::run(&config, &ui, args),
+        Action::ResolveUrl(args) => resolve_url::run(&config, &ui, args),
+        Action::List(args) => list::run(&config, &ui, args),
+        Action::Tree(args) => tree::run(&config, &ui, args),
+        Action::Clean(args) => clean::run(&config, &mut ui, args).await,
+        Action::Fetch(args) => fetch::run(&config, &ui, args),
+        Action::Todo(args) => todo::run(&config, &mut ui, args).await,
+        Action::Repo(args) => repo::run(&config, &mut ui, args).await,
+        Action::Git(args) => git::run(&config, &mut ui, args).await,
+        Action::Clone(args) => clone::run(&config, &mut ui, args).await,
+        Action::Rm(args) => rm::run(&config, &ui, args).await,
+        Action::RefreshCache(args) => refresh_cache::run(&config, &ui, args),
+        Action::Insert(args) => insert::run(&config, &mut ui, args).await,
     }
 }

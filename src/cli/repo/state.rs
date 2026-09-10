@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::ui::Ui;
 
 /// Find out if there is something to do by the user in order to keep this
 /// repository updated.
@@ -26,14 +27,15 @@ pub struct StateArgs {
 }
 
 /// Execute the `rt repo state` command.
-pub async fn run(config: &Config, args: StateArgs) -> i32 {
+pub async fn run(config: &Config, ui: &mut Ui<'_>, args: StateArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, true);
+        RepoTree::load(config, ui, true);
     }
 
     let repository = match Repository::discover(
         config,
-        &cwd_default_path(args.repository),
+        ui,
+        &cwd_default_path(ui, args.repository),
         ExpectedTreeStrategy::Lazy,
     )
     .await
@@ -71,8 +73,8 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
     }
 
     let repo_state = match repository
-        .get_vcs_repo(repository.get_main_workspace())
-        .get_repo_state()
+        .get_vcs_repo(repository.get_main_workspace(ui))
+        .get_repo_state(ui)
     {
         Ok(v) => v,
         Err(err) => {

@@ -6,6 +6,7 @@ mod list;
 mod next_prev;
 
 use crate::config::Config;
+use crate::ui::Ui;
 
 /// Commands related to the repository state. Find out if there is something to
 /// do in any of the repositories of your repo tree, and help tackles then down.
@@ -32,10 +33,10 @@ enum TodoAction {
 }
 
 /// Execute the todo subcommand.
-pub async fn run(config: &Config, args: TodoArgs) -> i32 {
+pub async fn run(config: &Config, ui: &mut Ui<'_>, args: TodoArgs) -> i32 {
     match args.action {
-        TodoAction::List(args) => list::run(config, args).await,
-        TodoAction::Next(args) => next_prev::run(config, args, false).await,
-        TodoAction::Prev(args) => next_prev::run(config, args, true).await,
+        TodoAction::List(args) => list::run(config, ui, args).await,
+        TodoAction::Next(args) => next_prev::run(config, ui, args, false).await,
+        TodoAction::Prev(args) => next_prev::run(config, ui, args, true).await,
     }
 }

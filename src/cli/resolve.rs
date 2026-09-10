@@ -7,6 +7,7 @@ use crate::repo_tree::RepoTree;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 use crate::tree_space::TreeSpace;
+use crate::ui::Ui;
 
 /// Resolve the name of a repository into its path.
 #[derive(Args)]
@@ -24,10 +25,11 @@ pub struct ResolveArgs {
 }
 
 /// Execute the `rt resolve` command.
-pub fn run(config: &Config, args: ResolveArgs) -> i32 {
-    let repo_tree = RepoTree::load(config, args.refresh_cache);
+pub fn run(config: &Config, ui: &Ui<'_>, args: ResolveArgs) -> i32 {
+    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
     if let Some((_, workspace)) =
-        match resolve(config, &repo_tree, args.repo_id, args.tree.as_ref()) {
+        match resolve(config, ui, &repo_tree, args.repo_id, args.tree.as_ref())
+        {
             Ok(r) => r,
             Err(err) => {
                 eprintln!("{err}");

@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::ui::Ui;
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.
@@ -22,14 +23,15 @@ pub struct RemoteArgs {
 }
 
 /// Execute the `rt repo remote` command.
-pub async fn run(config: &Config, args: RemoteArgs) -> i32 {
+pub async fn run(config: &Config, ui: &mut Ui<'_>, args: RemoteArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, true);
+        RepoTree::load(config, ui, true);
     }
 
     let repository = match Repository::discover(
         config,
-        &cwd_default_path(args.repository),
+        ui,
+        &cwd_default_path(ui, args.repository),
         ExpectedTreeStrategy::Lazy,
     )
     .await

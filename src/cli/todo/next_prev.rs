@@ -2,8 +2,6 @@
 //! to be done by the user.
 use clap::ArgAction;
 use clap::Args;
-use crossterm::terminal::Clear;
-use crossterm::terminal::ClearType;
 use globset::Glob;
 
 use crate::cli::cwd_default_path;
@@ -13,6 +11,7 @@ use crate::error::NotImplementedError;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::ui::Ui;
 use crate::utils::into_iter_from;
 
 /// Go to the next or previous repository where you have to do something to keep
@@ -43,10 +42,16 @@ pub struct NextPrevArgs {
 }
 
 /// Execute the `rt todo next` or `rt todo prev` command.
-pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
-    let repo_path = cwd_default_path(None);
+pub async fn run(
+    config: &Config,
+    ui: &mut Ui<'_>,
+    args: NextPrevArgs,
+    reverse: bool,
+) -> i32 {
+    let repo_path = cwd_default_path(ui, None);
     let current_repository = match Repository::discover(
         config,
+        ui,
         &repo_path,
         ExpectedTreeStrategy::Lazy,
     )
@@ -55,19 +60,19 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
         Ok(r) => Some(r),
         Err(err) => {
             if err.downcast_ref::<NoRepositoryError>().is_none() {
-                eprintln!("Error: {err}");
+                ui.error(err);
                 return 1;
             }
             None
         }
     };
 
-    let repo_tree = RepoTree::load(config, args.refresh_cache);
+    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
 
     // Skip the current repository.
     for repository in into_iter_from(
         repo_tree
-            .filtered(config, &args.hosts, &args.names, &args.trees)
+            .filtered(config, ui, &args.hosts, &args.names, &args.trees)
             .into_iter()
             .map(|(r, _)| r)
             .collect::<Vec<&Repository>>(),
@@ -77,17 +82,16 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
         if repository.id.is_local() {
             continue;
         }
-        eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
-        let workspace = repository.get_main_workspace();
+        ui.clear_and_print_current_line(&repository.id.name);
+        let workspace = repository.get_main_workspace(ui);
         if let Some(repo_state) =
-            match &repository.get_vcs_repo(workspace).get_repo_state() {
+            match &repository.get_vcs_repo(workspace).get_repo_state(ui) {
                 Ok(v) => Some(v),
                 Err(err) => {
                     if err.downcast_ref::<NotImplementedError>().is_some() {
                         None
                     } else {
-                        eprintln!("{err}");
-
+                        ui.error(err);
                         return 1;
                     }
                 }
@@ -102,19 +106,16 @@ pub async fn run(config: &Config, args: NextPrevArgs, reverse: bool) -> i32 {
                 } else {
                     "".to_string()
                 };
-            eprintln!(
-                "\r{}{}{:20} {}",
-                Clear(ClearType::CurrentLine),
-                remote_host_repr,
-                repository.id.name,
-                repo_state
-            );
+            ui.clear_and_print_current_line(format!(
+                "{}{:20} {}",
+                remote_host_repr, repository.id.name, repo_state
+            ));
             println!("{}", workspace.path().display());
             return 0;
         }
     }
 
-    eprint!("\r{}", Clear(ClearType::CurrentLine));
-    eprintln!("Nothing to do.");
+    ui.clear_current_line();
+    ui.info("Nothing to do.");
     0
 }

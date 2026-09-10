@@ -3,7 +3,6 @@ mod command;
 pub mod prompt;
 mod status;
 pub mod submodules;
-
 use std::error::Error;
 use std::path::Path;
 use std::path::PathBuf;
@@ -19,6 +18,7 @@ use crate::config::Config;
 use crate::error::NotImplementedError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
+use crate::ui::Ui;
 
 /// Get the remote URL of the repository to use to organize the repository
 /// within the repo tree. This would be either the origin remote or the first
@@ -58,6 +58,7 @@ impl GitVcs {
 impl VcsRepository for GitVcs {
     fn get_remote_url(
         &self,
+        _ui: &Ui<'_>,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {
         let (remote_config, remote_url) =
             git2::Repository::discover(&self.repo_path)
@@ -66,7 +67,11 @@ impl VcsRepository for GitVcs {
         Ok((remote_config, remote_url))
     }
 
-    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
+    fn clone(
+        &self,
+        _ui: &Ui<'_>,
+        remote_url: &str,
+    ) -> Result<(), Box<dyn Error>> {
         GitCommand::global()?
             .arg("clone")
             .arg(remote_url)
@@ -81,7 +86,7 @@ impl VcsRepository for GitVcs {
             .status()
     }
 
-    fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>> {
+    fn fetch(&self, _ui: &Ui<'_>, quiet: bool) -> Result<(), Box<dyn Error>> {
         let mut command = GitCommand::repo(&self.repo_path)?;
 
         command.arg("fetch").arg("--prune-tags").arg("--force");
@@ -96,19 +101,26 @@ impl VcsRepository for GitVcs {
     fn prompt(
         &self,
         config: &Config,
+        _ui: &Ui<'_>,
         prompt: &mut Prompt<'_>,
     ) -> Result<(), Box<dyn Error>> {
         prompt::prompt(config, prompt, &self.repo_path, false)
     }
 
-    fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
+    fn get_repo_state(
+        &self,
+        _ui: &Ui<'_>,
+    ) -> Result<RepoState, Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Repository state for Git Version Control System".to_string(),
         )))
     }
 
     /// Get the workspace name of the repository instance.
-    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
+    fn get_workspace_name(
+        &self,
+        _ui: &Ui<'_>,
+    ) -> Result<Option<String>, Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Workspace / worktree interaction not for Git Version Control \
              System"
@@ -119,6 +131,7 @@ impl VcsRepository for GitVcs {
     /// Crate a workspace.
     fn create_workspace(
         &self,
+        _ui: &Ui<'_>,
         _name: &str,
         _destination: &Path,
     ) -> Result<(), Box<dyn Error>> {

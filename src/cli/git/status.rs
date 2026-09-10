@@ -16,6 +16,7 @@ use crate::config::GitStatusCommandConfig;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::ui::Ui;
 use crate::version_control_system::git::GitStatus;
 use crate::version_control_system::git::SubmoduleStatus;
 use crate::version_control_system::git::{self};
@@ -134,14 +135,15 @@ fn format_repo_status(
 }
 
 /// Execute the `rt git status` command.
-pub async fn run(config: &Config, args: StatusArgs) -> i32 {
+pub async fn run(config: &Config, ui: &mut Ui<'_>, args: StatusArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, true);
+        RepoTree::load(config, ui, true);
     }
 
-    let repo_path = cwd_default_path(args.repository);
+    let repo_path = cwd_default_path(ui, args.repository);
     let repository = match Repository::discover(
         config,
+        ui,
         &repo_path,
         ExpectedTreeStrategy::Lazy,
     )
@@ -149,14 +151,14 @@ pub async fn run(config: &Config, args: StatusArgs) -> i32 {
     {
         Ok(r) => r,
         Err(err) => {
-            eprintln!("{err}");
+            ui.error(err);
             return 1;
         }
     };
     let root = repository.get_latest_workspace().path();
 
     if !repository.vcs.is_git() {
-        eprintln!("Status not implemented for {}", repository.vcs);
+        ui.error(format!("Status not implemented for {}", repository.vcs));
         return 1;
     }
 

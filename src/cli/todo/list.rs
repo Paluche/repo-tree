@@ -2,13 +2,12 @@
 use clap::ArgAction;
 use clap::Args;
 use colored::Colorize;
-use crossterm::terminal::Clear;
-use crossterm::terminal::ClearType;
 use globset::Glob;
 
 use crate::config::Config;
 use crate::error::NotImplementedError;
 use crate::repo_tree::RepoTree;
+use crate::ui::Ui;
 
 /// Custom git status. Concise, with all the data and without help text.
 #[derive(Args)]
@@ -44,15 +43,16 @@ pub struct ListArgs {
 }
 
 /// Execute the `rt todo list` command.
-pub async fn run(config: &Config, args: ListArgs) -> i32 {
+pub async fn run(config: &Config, ui: &Ui<'_>, args: ListArgs) -> i32 {
     let mut todo: usize = 0;
     let mut ok: usize = 0;
     let mut n_a: usize = 0;
     let mut skipped: usize = 0;
 
-    for (repository, workspace) in RepoTree::load(config, args.refresh_cache)
-        .filtered(config, &args.hosts, &args.names, &args.trees)
-        .iter()
+    for (repository, workspace) in
+        RepoTree::load(config, ui, args.refresh_cache)
+            .filtered(config, ui, &args.hosts, &args.names, &args.trees)
+            .iter()
     {
         let remote_host_repr =
             if let Some(repr) = repository.id.remote_host_repr(config) {
@@ -65,7 +65,7 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
 
         if repository.id.is_local() {
             if args.verbose {
-                eprint!("\r{}", Clear(ClearType::CurrentLine));
+                ui.clear_current_line();
                 println!(
                     "{remote_host_repr} {name} {}",
                     "Ignored (local)".bright_black()
@@ -77,7 +77,7 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
 
         if config.command.todo.ignore.contains(&repository.id.name) {
             if args.verbose {
-                eprint!("\r{}", Clear(ClearType::CurrentLine));
+                ui.clear_current_line();
                 println!(
                     "{remote_host_repr} {name} {}",
                     "Ignored (configuration)".bright_black()
@@ -87,10 +87,10 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
             continue;
         }
 
-        eprint!("\r{}{}", Clear(ClearType::CurrentLine), repository.id.name);
+        ui.clear_and_print_current_line(&repository.id.name);
 
         if let Some(repo_state) =
-            match &repository.get_vcs_repo(workspace).get_repo_state() {
+            match &repository.get_vcs_repo(workspace).get_repo_state(ui) {
                 Ok(v) => Some(v),
                 Err(err) => {
                     if err.downcast_ref::<NotImplementedError>().is_some() {
@@ -106,24 +106,24 @@ pub async fn run(config: &Config, args: ListArgs) -> i32 {
             if repo_state.is_ok() {
                 ok += 1;
                 if args.verbose {
-                    eprint!("\r{}", Clear(ClearType::CurrentLine));
+                    ui.clear_current_line();
                     println!("{remote_host_repr} {name} {repo_state}");
                 }
             } else {
                 todo += 1;
-                eprint!("\r{}", Clear(ClearType::CurrentLine));
+                ui.clear_current_line();
                 println!("{remote_host_repr} {name} {repo_state}");
             }
         } else {
             n_a += 1;
             if args.verbose {
-                eprint!("\r{}", Clear(ClearType::CurrentLine));
+                ui.clear_current_line();
                 println!("{remote_host_repr} {name} {}", "N/A".bright_yellow());
             }
         }
     }
 
-    eprint!("\r{}", Clear(ClearType::CurrentLine));
+    ui.clear_current_line();
     println!("{todo} todo, {ok} OK, {n_a} N/A, {skipped} skipped");
     0
 }

@@ -5,6 +5,7 @@ use globset::Glob;
 
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
+use crate::ui::Ui;
 
 /// List all repositories in the repo_tree.
 #[derive(Args)]
@@ -37,9 +38,9 @@ pub struct ListArgs {
 }
 
 /// Execute the `rt list` command.
-pub fn run(config: &Config, args: ListArgs) -> i32 {
-    for (_, workspace) in RepoTree::load(config, args.refresh_cache)
-        .filtered(config, &args.hosts, &args.names, &args.trees)
+pub fn run(config: &Config, ui: &Ui<'_>, args: ListArgs) -> i32 {
+    for (_, workspace) in RepoTree::load(config, ui, args.refresh_cache)
+        .filtered(config, ui, &args.hosts, &args.names, &args.trees)
         .iter()
     {
         println!("{}", workspace.path().display());

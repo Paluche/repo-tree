@@ -15,6 +15,7 @@ use crate::error::UnimplementedForgeApi;
 use crate::error::UnknownRemoteHostError;
 use crate::forge::ForgeApi;
 use crate::tree_space::TreeSpace;
+use crate::ui::Ui;
 
 /// Parse the remote URL, to capture the different parts.
 fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
@@ -169,6 +170,7 @@ impl RepoId {
     pub async fn expected_tree(
         &self,
         config: &Config,
+        ui: &mut Ui<'_>,
         repo_path: Option<&Path>,
         strategy: ExpectedTreeStrategy,
     ) -> Result<TreeSpace, Box<dyn Error>> {
@@ -216,7 +218,7 @@ impl RepoId {
             Err(err) => {
                 if let Some(err) = err.downcast_ref::<UnimplementedForgeApi>() {
                     if matches!(strategy, ExpectedTreeStrategy::Exact) {
-                        eprintln!("{err}");
+                        ui.hint_once(err);
                     }
                     dev_or_archive(config, strategy, repo_path)
                 } else {
@@ -299,6 +301,7 @@ mod tests {
         expected_tree: TreeSpace,
     ) {
         let config = Config::test_default();
+        let mut ui = Ui::new(&config);
         let id = RepoId::from_remote_url("https://test.com/foo/bar.git")
             .expect("URL is a correct one");
         let repo_path = config
@@ -308,7 +311,7 @@ mod tests {
             .join("foo")
             .join("bar");
         let tree = id
-            .expected_tree(&config, Some(&repo_path), strategy)
+            .expected_tree(&config, &mut ui, Some(&repo_path), strategy)
             .block_on()
             .unwrap();
 
@@ -352,6 +355,7 @@ mod tests {
         expected_tree: TreeSpace,
     ) {
         let config = Config::test_default();
+        let mut ui = Ui::new(&config);
         let id = RepoId::from_remote_url("https://test.com/foo/bar.git")
             .expect("URL is a correct one");
         let repo_path = config
@@ -361,7 +365,7 @@ mod tests {
             .join("foo")
             .join("bar");
         let tree = id
-            .expected_tree(&config, Some(&repo_path), strategy)
+            .expected_tree(&config, &mut ui, Some(&repo_path), strategy)
             .block_on()
             .unwrap();
 
@@ -408,6 +412,7 @@ mod tests {
     /// local tree-space.
     fn check_expected_tree_local(strategy: ExpectedTreeStrategy) {
         let config = Config::default();
+        let mut ui = Ui::new(&config);
         let repo_path = config
             .root
             .join(config.tree.local.category.dir_name())
@@ -415,7 +420,7 @@ mod tests {
         let id = RepoId::from_repo(&repo_path, None)
             .expect("No remote no parse URL error");
         let tree = id
-            .expected_tree(&config, Some(&repo_path), strategy)
+            .expected_tree(&config, &mut ui, Some(&repo_path), strategy)
             .block_on()
             .unwrap();
 

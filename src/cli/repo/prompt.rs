@@ -11,6 +11,7 @@ use crate::prompt::Prompt;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::ui::Ui;
 
 /// Generate the prompt for your shell.
 #[derive(Args)]
@@ -24,16 +25,17 @@ pub struct PromptArgs {
 }
 
 /// Execute `rt repo prompt` command.
-pub async fn run(config: &Config, args: PromptArgs) -> i32 {
+pub async fn run(config: &Config, ui: &mut Ui<'_>, args: PromptArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, true);
+        RepoTree::load(config, ui, true);
     }
 
-    let repo_path = cwd_default_path(args.repository);
+    let repo_path = cwd_default_path(ui, args.repository);
     SHOULD_COLORIZE.set_override(true);
 
     let repository = match Repository::discover(
         config,
+        ui,
         &repo_path,
         ExpectedTreeStrategy::Lazy,
     )
@@ -53,7 +55,7 @@ pub async fn run(config: &Config, args: PromptArgs) -> i32 {
     let mut prompt = Prompt::new(&repository, workspace);
     match repository
         .get_vcs_repo(workspace)
-        .prompt(config, &mut prompt)
+        .prompt(config, ui, &mut prompt)
     {
         Ok(_) => {
             println!("{}", prompt.display(config));

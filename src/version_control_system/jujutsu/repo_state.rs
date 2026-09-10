@@ -11,41 +11,59 @@ use std::path::Path;
 
 use super::revset;
 use crate::repo_state::RepoState;
+use crate::ui::Ui;
 
 /// Compute if the repository has unpushed commits. Do not take into account
 /// empty commits with empty description.
-fn has_unpushed_commits(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
+fn has_unpushed_commits(
+    ui: &Ui<'_>,
+    repo_path: &Path,
+) -> Result<bool, Box<dyn Error>> {
     revset::revset_has_match(
+        ui,
         repo_path,
         r#"::visible_heads() ~ ::(remote_bookmarks() | tags()) ~ (empty() & description(""))"#,
     )
 }
 
 /// Find out if the repository has commits that needs to be restacked / rebased.
-fn needs_restack(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
+fn needs_restack(
+    ui: &Ui<'_>,
+    repo_path: &Path,
+) -> Result<bool, Box<dyn Error>> {
     // Each branch must be rebased on top of a immutable reference (bookmark or
     // tag).
     revset::revset_has_match(
+        ui,
         repo_path,
         r#"~(::immutable_heads() | immutable_heads()::) ~ (empty() & description(""))"#,
     )
 }
 
 /// Find out if the repository has commits with conflicts.
-pub fn has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
-    revset::revset_has_match(repo_path, "conflicts()")
+pub fn has_conflicts(
+    ui: &Ui<'_>,
+    repo_path: &Path,
+) -> Result<bool, Box<dyn Error>> {
+    revset::revset_has_match(ui, repo_path, "conflicts()")
 }
 
 /// Find out if the working copy (current commit) has conflicts.
-pub fn wc_has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
-    revset::revset_has_match(repo_path, "@ & conflicts()")
+pub fn wc_has_conflicts(
+    ui: &Ui<'_>,
+    repo_path: &Path,
+) -> Result<bool, Box<dyn Error>> {
+    revset::revset_has_match(ui, repo_path, "@ & conflicts()")
 }
 
 /// Get the repository state as RepoState struct.
-pub fn get_repo_state(repo_path: &Path) -> Result<RepoState, Box<dyn Error>> {
+pub fn get_repo_state(
+    ui: &Ui<'_>,
+    repo_path: &Path,
+) -> Result<RepoState, Box<dyn Error>> {
     Ok(RepoState::new(
-        has_unpushed_commits(repo_path)?,
-        needs_restack(repo_path)?,
-        has_conflicts(repo_path)?,
+        has_unpushed_commits(ui, repo_path)?,
+        needs_restack(ui, repo_path)?,
+        has_conflicts(ui, repo_path)?,
     ))
 }

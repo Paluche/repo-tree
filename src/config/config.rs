@@ -22,6 +22,7 @@ use super::host::default_remote_hosts;
 use super::prompt::PromptConfig;
 use super::repository_location::RepositoryLocation;
 use super::tree_space::TreeSpaceConfig;
+use super::ui::UiConfig;
 use crate::error::ConfigError;
 
 /// Obtain a default value for the repo tree root.
@@ -46,6 +47,9 @@ pub struct Config {
     /// the environment variable REPO_TREE_DIR.
     #[serde(default = "default_root")]
     pub root: PathBuf,
+    /// Configuration for the user interface.
+    #[serde(default)]
+    pub ui: UiConfig,
     /// Configuration related to the hosts we know how to organize repositories
     /// which host there remote.
     #[serde(default = "default_remote_hosts", rename = "host")]
@@ -158,6 +162,7 @@ mod test {
             );
             Self {
                 root: PathBuf::from("/home/user/work"),
+                ui: UiConfig::default(),
                 remote_hosts,
                 tree: TreeSpaceConfig::default(),
                 unknown_host: UnknownHost::default(),

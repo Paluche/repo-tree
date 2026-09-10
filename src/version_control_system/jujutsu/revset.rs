@@ -4,6 +4,7 @@ use std::error::Error;
 use std::path::Path;
 
 use super::command::JujutsuCommand;
+use crate::ui::Ui;
 
 /// Option to specify in which order to obtain the list of commit.
 #[derive(Default)]
@@ -18,6 +19,7 @@ pub enum RevSetOrder {
 /// Execute a revset and get information on the matching commits following the
 /// provided template.
 fn run_revset(
+    ui: &Ui<'_>,
     repo_path: &Path,
     revset: &str,
     template: &str,
@@ -36,29 +38,35 @@ fn run_revset(
         command.arg("--reversed");
     }
 
-    command.output_lines()
+    command.output_lines(ui)
 }
 
 /// List commits ID matching the provided revset.
 pub fn list_commits_id(
+    ui: &Ui<'_>,
     repo_path: &Path,
     revset: &str,
     order: RevSetOrder,
 ) -> Result<Vec<String>, Box<dyn Error>> {
-    run_revset(repo_path, revset, "commit_id", order)
+    run_revset(ui, repo_path, revset, "commit_id", order)
 }
 
 /// Find out if any commit matches the provided revset.
 pub fn revset_has_match(
+    ui: &Ui<'_>,
     repo_path: &Path,
     revset: &str,
 ) -> Result<bool, Box<dyn Error>> {
-    Ok(!list_commits_id(repo_path, revset, RevSetOrder::default())?.is_empty())
+    Ok(
+        !list_commits_id(ui, repo_path, revset, RevSetOrder::default())?
+            .is_empty(),
+    )
 }
 
 /// List the local bookmarks which commit there are attached to matches the
 /// provided revset.
 pub fn list_bookmarks(
+    ui: &Ui<'_>,
     repo_path: &Path,
     revset: &str,
     order: RevSetOrder,
@@ -66,6 +74,7 @@ pub fn list_bookmarks(
     // Using filter in the template. Keep remote branches only when there is a
     // no local Bookmark tracking it.
     run_revset(
+        ui,
         repo_path,
         revset,
         r#"bookmarks
@@ -78,11 +87,13 @@ pub fn list_bookmarks(
 /// List the name of the tags which commit there are attached to matches the
 /// provided revset.
 pub fn list_tags(
+    ui: &Ui<'_>,
     repo_path: &Path,
     revset: &str,
     order: RevSetOrder,
 ) -> Result<Vec<String>, Box<dyn Error>> {
     run_revset(
+        ui,
         repo_path,
         revset,
         r#"tags.map(|b| b.name()).join("\n")"#,

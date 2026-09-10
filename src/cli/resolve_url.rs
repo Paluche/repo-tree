@@ -12,6 +12,7 @@ use fuzzy_matcher::skim::SkimMatcherV2;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::tree_space::TreeSpace;
+use crate::ui::Ui;
 
 /// Resolve the URL of a repository into its path.
 #[derive(Args)]
@@ -31,13 +32,14 @@ pub struct ResolveUrlArgs {
 /// Get the map associating remote URL to the repository present in the repo
 /// tree.
 fn get_candidates<'repo_tree>(
+    ui: &Ui<'_>,
     repo_tree: &'repo_tree RepoTree,
     maybe_tree_space: Option<&TreeSpace>,
 ) -> BTreeMap<&'repo_tree String, &'repo_tree PathBuf> {
     BTreeMap::from_iter(repo_tree.workspace_iter().filter_map(
         |(repository, workspace)| {
             if let Some(tree_space) = maybe_tree_space
-                && repository.get_tree_workspace(tree_space).is_none()
+                && repository.get_tree_workspace(ui, tree_space).is_none()
             {
                 None
             } else {
@@ -52,9 +54,9 @@ fn get_candidates<'repo_tree>(
 }
 
 /// Execute the `rt resolve-url` command.
-pub fn run(config: &Config, args: ResolveUrlArgs) -> i32 {
-    let repo_tree = RepoTree::load(config, args.refresh_cache);
-    let candidates = get_candidates(&repo_tree, args.tree.as_ref());
+pub fn run(config: &Config, ui: &Ui<'_>, args: ResolveUrlArgs) -> i32 {
+    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
+    let candidates = get_candidates(ui, &repo_tree, args.tree.as_ref());
     if let Some(repo) = candidates.get(&args.repo_id) {
         println!("{}", repo.display());
         return 0;
@@ -105,9 +107,10 @@ fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
     let Ok(config) = Config::load() else {
         return vec![];
     };
+    let ui = Ui::new(&config);
 
-    let repo_tree = RepoTree::load_silent(&config, false);
-    let candidates = get_candidates(&repo_tree, None);
+    let repo_tree = RepoTree::load_silent(&config, &ui, false);
+    let candidates = get_candidates(&ui, &repo_tree, None);
     let matcher = SkimMatcherV2::default();
 
     candidates

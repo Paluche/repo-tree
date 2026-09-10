@@ -14,6 +14,7 @@ use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
 use crate::repository::Workspace;
+use crate::ui::Ui;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
@@ -26,20 +27,20 @@ pub struct CleanArgs {
 }
 
 /// Execute the `rt clean` command.
-pub async fn run(config: &Config, args: CleanArgs) -> i32 {
+pub async fn run(config: &Config, ui: &mut Ui<'_>, args: CleanArgs) -> i32 {
     // Do not use the cache, assure we have an up-to-date list of repositories
     // before doing any action that will modify the directories.
-    let repo_tree = RepoTree::load_silent(config, true);
+    let repo_tree = RepoTree::load_silent(config, ui, true);
     let repos_to_move: Vec<(&Repository, &Workspace, PathBuf)> = repo_tree
         .workspace_iter()
         .filter_map(|(r, w)| {
             match r
-                .expected_root(w, config, ExpectedTreeStrategy::Exact)
+                .expected_root(config, ui, w, ExpectedTreeStrategy::Exact)
                 .block_on()
             {
                 Ok(v) => v.and_then(|p| (&p != w.path()).then_some((r, w, p))),
                 Err(err) => {
-                    eprintln!("{err}");
+                    ui.error(err);
                     None
                 }
             }
@@ -69,12 +70,12 @@ pub async fn run(config: &Config, args: CleanArgs) -> i32 {
             if !parent.exists()
                 && let Err(err) = create_dir_all(parent)
             {
-                eprintln!("{err}");
+                ui.error(err);
                 ret = 1;
             }
 
             if let Err(err) = rename(workspace.path(), expected_root) {
-                eprintln!("{err}");
+                ui.error(err);
                 ret = 1;
             }
         }
@@ -85,7 +86,7 @@ pub async fn run(config: &Config, args: CleanArgs) -> i32 {
         // Force the cache to be refreshed at the same time as loading the empty
         // directories.
         let (_, Some(empty_dirs)) =
-            RepoTree::load_silent_with_empty_dirs(config, true)
+            RepoTree::load_silent_with_empty_dirs(config, ui, true)
         else {
             panic!(
                 "Cache forced to be refreshed so empty_dirs should be \
@@ -106,7 +107,7 @@ pub async fn run(config: &Config, args: CleanArgs) -> i32 {
             if !args.dry_run
                 && let Err(err) = remove_dir(empty_dir)
             {
-                eprintln!("{err}");
+                ui.error(err);
                 ret = 1;
                 break;
             }

@@ -8,6 +8,7 @@ use crate::error::NotImplementedError;
 use crate::repo_tree::RepoTree;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
+use crate::ui::Ui;
 
 /// Remove a repository from the repo tree.
 #[derive(Args)]
@@ -24,38 +25,38 @@ pub struct RmArgs {
 }
 
 /// Execute the `rt rm` command.
-pub async fn run(config: &Config, args: RmArgs) -> i32 {
-    let repo_tree = RepoTree::load(config, args.refresh_cache);
+pub async fn run(config: &Config, ui: &Ui<'_>, args: RmArgs) -> i32 {
+    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
     let (repository, workspace) =
-        match resolve(config, &repo_tree, args.repo_id, None) {
+        match resolve(config, ui, &repo_tree, args.repo_id, None) {
             Ok(v) => match v {
                 Some(repo) => repo,
                 None => {
-                    eprintln!(
-                        "No repository found matching the given identifier"
+                    ui.error(
+                        "No repository found matching the given identifier",
                     );
                     return 2;
                 }
             },
             Err(err) => {
-                eprintln!("{err}");
+                ui.error(err);
                 return 1;
             }
         };
 
-    match &repository.get_vcs_repo(workspace).get_repo_state() {
+    match &repository.get_vcs_repo(workspace).get_repo_state(ui) {
         Ok(repo_state) => {
             if repo_state.has_unpushed_commits() {
-                eprintln!("WARNING: The repository has unpushed commits");
+                ui.warning("The repository has unpushed commits");
             }
         }
         Err(err) => {
             if err.downcast_ref::<NotImplementedError>().is_some() {
-                eprintln!(
-                    "Unable to check if the repository has unpushed commits"
+                ui.hint(
+                    "Unable to check if the repository has unpushed commits",
                 );
             } else {
-                eprintln!("{err}");
+                ui.error(err);
                 return 1;
             }
         }
@@ -93,7 +94,7 @@ pub async fn run(config: &Config, args: RmArgs) -> i32 {
     }
 
     // Refresh the cache.
-    RepoTree::load(config, true);
+    RepoTree::load(config, ui, true);
 
     0
 }
