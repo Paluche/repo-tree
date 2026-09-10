@@ -2,7 +2,9 @@
 
 use std::error::Error;
 use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::process::Command;
+use std::process::Output;
 
 use which::which;
 
@@ -12,6 +14,8 @@ use crate::error::CommandError;
 pub struct JujutsuCommand {
     /// Actual command.
     command: Command,
+    /// Repository into which the command must be run
+    repository: Option<OsString>,
 }
 
 impl JujutsuCommand {
@@ -19,7 +23,10 @@ impl JujutsuCommand {
     pub fn global() -> Result<Self, which::Error> {
         Self::new_command().map(|mut command| {
             command.current_dir(std::env::home_dir().unwrap());
-            Self { command }
+            Self {
+                command,
+                repository: None,
+            }
         })
     }
 
@@ -31,7 +38,10 @@ impl JujutsuCommand {
                 .arg("--repository")
                 .arg(&repository)
                 .arg("--ignore-working-copy");
-            Self { command }
+            Self {
+                command,
+                repository: Some(repository.as_ref().to_os_string()),
+            }
         })
     }
 
@@ -43,7 +53,10 @@ impl JujutsuCommand {
     ) -> Result<Self, which::Error> {
         Self::new_command().map(|mut command| {
             command.arg("--repository").arg(&repository);
-            Self { command }
+            Self {
+                command,
+                repository: Some(repository.as_ref().to_os_string()),
+            }
         })
     }
 
@@ -58,18 +71,49 @@ impl JujutsuCommand {
         self
     }
 
+    /// Update a potential stale workspace.
+    pub fn workspace_update_stale<S: AsRef<OsStr>>(
+        repository: S,
+    ) -> Result<(), Box<dyn Error>> {
+        Self::new_command()?
+            .arg("--repository")
+            .arg(repository)
+            .arg("workspace")
+            .arg("update-stale")
+            .status()?;
+        Ok(())
+    }
+
     /// Get the output lines of the command.
-    pub fn output_lines(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
+    fn output(&mut self, first_try: bool) -> Result<Output, Box<dyn Error>> {
         let output = self.command.output()?;
         let status = output.status;
         if !status.success() {
-            return Err(Box::new(CommandError::new(
-                &self.command,
-                status,
-                Some(output),
-            )));
+            if first_try
+                && String::from_utf8_lossy(output.stderr.as_slice())
+                    .contains("Run `jj workspace update-stale` to update it.")
+            {
+                if let Some(repository) = &self.repository {
+                    eprintln!("Updating stalled workspace...");
+                    Self::workspace_update_stale(repository)?;
+                }
+                self.output(false)
+            } else {
+                Err(Box::new(CommandError::new(
+                    &self.command,
+                    status,
+                    Some(output),
+                )))
+            }
+        } else {
+            Ok(output)
         }
+    }
 
+    /// Get the output lines of the command. Managing the case where the
+    /// workspace is now stalled and needs to be updated.
+    pub fn output_lines(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
+        let output = self.output(true)?;
         Ok(String::from_utf8(output.stdout)?
             .split("\n")
             .filter(|l| !l.is_empty())
@@ -80,16 +124,6 @@ impl JujutsuCommand {
     /// Execute the command and checks it succeeds. Managing the case where the
     /// workspace is now stalled and needs to be updated.
     pub fn status(&mut self) -> Result<(), Box<dyn Error>> {
-        let status = self.command.status()?;
-
-        if !status.success() {
-            return Err(Box::new(CommandError::new(
-                &self.command,
-                status,
-                None,
-            )));
-        }
-
-        Ok(())
+        self.output(true).map(|_| ())
     }
 }
