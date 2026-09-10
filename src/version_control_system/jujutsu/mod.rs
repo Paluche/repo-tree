@@ -1,5 +1,6 @@
 //! Module for retrieving JuJutsu information.
 mod bookmark;
+mod command;
 mod git;
 mod prompt;
 mod repo_state;
@@ -16,6 +17,7 @@ pub use git::init_colocate;
 
 use super::VcsRepository;
 use crate::config::Config;
+use crate::error::NotARepositoryError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
 
@@ -62,19 +64,24 @@ impl VcsRepository for JujutsuVcs {
         git::get_remote_url(&self.repo_path)
     }
 
-    fn clone(&self, remote_url: &str) -> i32 {
+    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
         git::clone(remote_url, &self.repo_path, self.colocated)
     }
 
-    fn fetch(&self, quiet: bool) -> i32 {
+    fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>> {
         git::fetch(&self.repo_path, quiet)
     }
 
-    fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32 {
-        let ret =
-            super::git::prompt::prompt(config, prompt, &self.repo_path, true);
-        if ret != 0 {
-            return ret;
+    fn prompt(
+        &self,
+        config: &Config,
+        prompt: &mut Prompt<'_>,
+    ) -> Result<(), Box<dyn Error>> {
+        if let Err(err) =
+            super::git::prompt::prompt(config, prompt, &self.repo_path, true)
+            && err.downcast_ref::<NotARepositoryError>().is_none()
+        {
+            return Err(err);
         }
         prompt::prompt(config, prompt, &self.repo_path)
     }

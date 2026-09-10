@@ -109,7 +109,7 @@ impl GitUpstreamConfig {
     }
 
     #[cfg(test)]
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new<S, C>(
         gone: S,
         up_to_date: S,

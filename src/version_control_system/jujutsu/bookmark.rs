@@ -3,10 +3,9 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
-use std::process::Command;
 
+use super::command::JujutsuCommand;
 use crate::config::JujutsuBookmarkConfig;
-use crate::error::CommandError;
 
 /// Representation of a bookmark.
 pub struct Bookmark {
@@ -165,25 +164,16 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
         }
     }
 
-    let mut command = Command::new("jj");
-    let output = command
-        .arg("--repository")
-        .arg(repo_path)
+    let lines: Vec<Line> = JujutsuCommand::new()?
+        .repository(repo_path)
         .arg("bookmark")
         .arg("list")
         .arg("--all")
         .arg("--template")
         .arg(template)
-        .output()?;
-
-    if !output.status.success() {
-        return Err(Box::new(CommandError::new(command, output)));
-    }
-
-    let lines: Vec<Line> = String::from_utf8(output.stdout)?
-        .split("\n")
-        .filter(|l| !l.is_empty())
-        .map(Line::from_line)
+        .output_lines()?
+        .iter()
+        .map(|l| Line::from_line(l))
         .collect();
 
     let mut ret = HashMap::new();

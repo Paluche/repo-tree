@@ -15,7 +15,7 @@ use pathdiff::diff_paths;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
 
-use super::new_git_command;
+use super::command::GitCommand;
 use crate::utils::get_last_modified;
 
 #[derive(Hash, PartialEq, Eq, EnumIter)]
@@ -276,7 +276,7 @@ enum ParseOutput {
 }
 
 /// Parse a line from the porcelain v2 output of git status.
-fn parse_line(line: &str) -> ParseOutput {
+fn parse_line(line: String) -> ParseOutput {
     let mut chars = line.chars();
 
     // Common part for all entries.
@@ -482,25 +482,21 @@ fn get_branches_pointing_at<S>(
 where
     S: AsRef<OsStr>,
 {
-    let output = new_git_command()
-        .arg("-C")
-        .arg(repo_path)
+    Ok(GitCommand::new()?
+        .repository(repo_path)
         .arg("branch")
         .arg(format!("--points-at={pointing_at}"))
         .arg("--color=never")
-        .output()?;
-
-    let output = String::from_utf8(output.stdout)?;
-    let mut ret = Vec::new();
-
-    for line in output.lines() {
-        if line[2..].starts_with("(HEAD detached ") {
-            continue;
-        }
-        ret.push(line[2..].to_string())
-    }
-
-    Ok(ret)
+        .output_lines_fallible()?
+        .iter()
+        .filter_map(|line| {
+            if line[2..].starts_with("(HEAD detached ") {
+                None
+            } else {
+                Some(line[2..].to_string())
+            }
+        })
+        .collect())
 }
 
 /// Get the names of all tags which points at a specific commit.
@@ -511,16 +507,11 @@ fn get_tags_pointing_at<S>(
 where
     S: AsRef<OsStr>,
 {
-    let output = new_git_command()
-        .arg("-C")
-        .arg(repo_path)
+    GitCommand::new()?
+        .repository(repo_path)
         .arg("tag")
         .arg(format!("--points-at={pointing_at}"))
-        .output()?;
-
-    let output = String::from_utf8(output.stdout)?;
-
-    Ok(output.lines().map(|s| s.to_string()).collect())
+        .output_lines_fallible()
 }
 
 /// Information related to the HEAD.
@@ -713,36 +704,30 @@ where
     S: AsRef<OsStr> + Sized,
 {
     let git_dir = {
-        let mut ret = String::from_utf8(
-            new_git_command()
-                .arg("-C")
-                .arg(repo_path)
+        PathBuf::from(
+            GitCommand::new()?
+                .repository(repo_path)
                 .arg("rev-parse")
                 .arg("--absolute-git-dir")
-                .output()?
-                .stdout,
-        )?;
-
-        // Pop new line character.
-        ret.pop();
-        PathBuf::from(ret)
+                .output_lines()?
+                .pop()
+                .unwrap(),
+        )
     };
 
-    let output = new_git_command()
-        .arg("-C")
-        .arg(repo_path)
+    let lines = GitCommand::new()?
+        .repository(repo_path)
         .arg("status")
         .arg("--show-stash")
         .arg("--porcelain=v2")
         .arg("--branch")
-        .output()?;
+        .output_lines()?;
 
-    let output = String::from_utf8(output.stdout)?;
     let mut branch_raw = HashMap::<String, String>::new();
     let mut nb_stash = 0;
     let mut status = Vec::new();
 
-    for line in output.lines() {
+    for line in lines {
         match parse_line(line) {
             ParseOutput::BranchInfo(key, value) => {
                 branch_raw.insert(key, value);

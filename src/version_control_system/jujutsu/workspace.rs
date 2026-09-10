@@ -5,11 +5,8 @@ use std::fs::create_dir_all;
 use std::path::Path;
 use std::path::PathBuf;
 use std::path::absolute;
-use std::process::Command;
 
-use which::which;
-
-use crate::error::CommandError;
+use super::command::JujutsuCommand;
 
 /// Representation of a Jujutsu workspace.
 pub struct JujutsuWorkspace {
@@ -24,24 +21,15 @@ pub struct JujutsuWorkspace {
 pub fn list_workspaces(
     repo_path: &Path,
 ) -> Result<Vec<JujutsuWorkspace>, Box<dyn Error>> {
-    let mut command = Command::new(which("jj").expect("Jujutsu not installed"));
-    let output = command
-        .arg("--ignore-working-copy")
-        .arg("--repository")
-        .arg(repo_path)
+    Ok(JujutsuCommand::new()?
+        .ignore_working_copy()
+        .repository(repo_path)
         .arg("workspace")
         .arg("list")
         .arg("--template")
         .arg(r#"name ++ "\t" ++ "\n""#)
-        .output()?;
-
-    if !output.status.success() {
-        return Err(Box::new(CommandError::new(command, output)));
-    }
-
-    Ok(String::from_utf8(output.stdout)?
-        .split("\n")
-        .filter(|l| !l.is_empty())
+        .output_lines()?
+        .iter()
         .map(|l| {
             let mut parts = l.split("\t");
             let name = parts.next().unwrap().to_string();
@@ -75,21 +63,13 @@ pub fn add_workspace(
         }
     }
 
-    let mut command = Command::new(which("jj").expect("Jujutsu not installed"));
-    let output = command
-        .arg("--ignore-working-copy")
-        .arg("--repository")
-        .arg(repo_path)
+    JujutsuCommand::new()?
+        .ignore_working_copy()
+        .repository(repo_path)
         .arg("workspace")
         .arg("add")
         .arg("--name")
         .arg(name)
         .arg(destination)
-        .output()?;
-
-    if !output.status.success() {
-        return Err(Box::new(CommandError::new(command, output)));
-    }
-
-    Ok(())
+        .status()
 }

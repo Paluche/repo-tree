@@ -117,8 +117,8 @@ fn list_tags(
     Ok(())
 }
 
-/// Internal method to build the prompt line for a Jujutsu repository.
-fn prompt_internal(
+/// Build the prompt line for a Jujutsu repository.
+pub fn prompt(
     config: &Config,
     prompt: &mut Prompt<'_>,
     repo_path: &Path,
@@ -167,18 +167,4 @@ fn prompt_internal(
     }
 
     Ok(())
-}
-
-/// Build the prompt line for a Jujutsu repository.
-pub fn prompt(
-    config: &Config,
-    prompt: &mut Prompt<'_>,
-    repo_path: &Path,
-) -> i32 {
-    if let Err(err) = prompt_internal(config, prompt, repo_path) {
-        eprintln!("{err}");
-        1
-    } else {
-        0
-    }
 }

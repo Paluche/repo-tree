@@ -203,13 +203,14 @@ impl Hash for Color {
     }
 }
 
-#[allow(dead_code)]
 #[allow(clippy::missing_docs_in_private_items)]
 impl Color {
+    #[expect(dead_code)]
     pub fn none() -> Self {
         Self { color: None }
     }
 
+    #[expect(dead_code)]
     pub fn black() -> Self {
         colored::Color::Black.into()
     }
@@ -254,6 +255,7 @@ impl Color {
         colored::Color::BrightGreen.into()
     }
 
+    #[expect(dead_code)]
     pub fn bright_yellow() -> Self {
         colored::Color::BrightYellow.into()
     }
@@ -266,10 +268,12 @@ impl Color {
         colored::Color::BrightMagenta.into()
     }
 
+    #[expect(dead_code)]
     pub fn bright_cyan() -> Self {
         colored::Color::BrightCyan.into()
     }
 
+    #[expect(dead_code)]
     pub fn bright_white() -> Self {
         colored::Color::BrightWhite.into()
     }
@@ -278,6 +282,7 @@ impl Color {
         colored::Color::AnsiColor(n).into()
     }
 
+    #[expect(dead_code)]
     pub fn true_color(r: u8, g: u8, b: u8) -> Self {
         colored::Color::TrueColor { r, g, b }.into()
     }

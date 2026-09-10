@@ -51,12 +51,17 @@ pub async fn run(config: &Config, args: PromptArgs) -> i32 {
 
     let workspace = repository.get_latest_workspace();
     let mut prompt = Prompt::new(&repository, workspace);
-    let ret = repository
+    match repository
         .get_vcs_repo(workspace)
-        .prompt(config, &mut prompt);
-    if ret == 0 {
-        println!("{}", prompt.display(config));
+        .prompt(config, &mut prompt)
+    {
+        Ok(_) => {
+            println!("{}", prompt.display(config));
+            0
+        }
+        Err(err) => {
+            eprintln!("{err}");
+            1
+        }
     }
-
-    ret
 }

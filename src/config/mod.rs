@@ -6,7 +6,7 @@
 //! See repository README for more information.
 
 mod command;
-#[allow(clippy::module_inception)]
+#[expect(clippy::module_inception)]
 mod config;
 mod host;
 mod prompt;
