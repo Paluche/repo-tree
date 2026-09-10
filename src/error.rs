@@ -1,9 +1,12 @@
 //! Definition of errors struct used in the crate.
 use std::path::PathBuf;
 use std::process::Command;
+use std::process::ExitStatus;
 use std::process::Output;
 
 use thiserror::Error;
+
+use crate::version_control_system::VersionControlSystem;
 
 #[derive(Debug, Error)]
 #[error("Command {0} failed with error {1}:\n{2}")]
@@ -13,7 +16,11 @@ pub struct CommandError(pub String, pub i32, pub String);
 impl CommandError {
     /// Create a new CommandError struct based on the command and output of the
     /// failed command.
-    pub fn new(command: Command, output: Output) -> Self {
+    pub fn new(
+        command: &Command,
+        status: ExitStatus,
+        output: Option<Output>,
+    ) -> Self {
         let mut cmd = command.get_program().to_os_string();
         cmd.push(" ");
         for arg in command.get_args() {
@@ -23,8 +30,10 @@ impl CommandError {
         }
         CommandError(
             cmd.display().to_string(),
-            output.status.code().unwrap_or(1),
-            String::from_utf8(output.stderr).unwrap_or("".to_string()),
+            status.code().unwrap_or(1),
+            output
+                .and_then(|o| String::from_utf8(o.stderr).ok())
+                .unwrap_or("".to_string()),
         )
     }
 }
@@ -76,3 +85,8 @@ pub struct GetLastModifiedError(pub String);
 #[error("The API interaction with the forge {0} is not yet implemented.")]
 /// Error during the retrieving of the last time a file has been modified.
 pub struct UnimplementedForgeApi(pub String);
+
+#[derive(Debug, Error)]
+#[error("No {0} repository in: {0}")]
+/// Error during the parsing of the configuration.
+pub struct NotARepositoryError(pub VersionControlSystem, pub String);

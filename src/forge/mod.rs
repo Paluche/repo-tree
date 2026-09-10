@@ -31,7 +31,7 @@ pub trait ForgeApi {
     ) -> Result<bool, Box<dyn Error>>;
 
     /// Get the name of the repository as it is on the forge.
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     async fn get_name(
         &self,
         repo_id: &RepoId,

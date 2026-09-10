@@ -1,4 +1,5 @@
 //! Build the shell prompt information for Git repositories.
+use std::error::Error;
 use std::path::Path;
 
 use crate::config::Config;
@@ -12,8 +13,8 @@ pub fn prompt(
     prompt: &mut Prompt,
     root: &Path,
     is_jj_colocated: bool,
-) -> i32 {
-    let git_status = git::status(&root.to_path_buf()).unwrap();
+) -> Result<(), Box<dyn Error>> {
+    let git_status = git::status(&root.to_path_buf())?;
     let config = &config.prompt.git;
 
     prompt.push(
@@ -70,5 +71,5 @@ pub fn prompt(
         prompt.push(&config.stash);
     }
 
-    0
+    Ok(())
 }

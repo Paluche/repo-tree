@@ -58,7 +58,7 @@ pub fn fetch_repo(
         );
     }
 
-    ok += if repository.get_vcs_repo(workspace).fetch(quiet) == 0 {
+    ok += if repository.get_vcs_repo(workspace).fetch(quiet).is_ok() {
         1
     } else {
         0
