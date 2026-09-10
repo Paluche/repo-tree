@@ -216,6 +216,8 @@ impl RepoId {
             Err(err) => {
                 if let Some(err) = err.downcast_ref::<UnimplementedForgeApi>() {
                     if matches!(strategy, ExpectedTreeStrategy::Exact) {
+                        // TODO Add a mechanism to print the error only once per
+                        // forge implementation missing
                         eprintln!("{err}");
                     }
                     dev_or_archive(config, strategy, repo_path)
