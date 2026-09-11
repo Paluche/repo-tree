@@ -39,7 +39,7 @@ impl BookmarkCategory {
         let (revset, order) = match self {
             Self::Current => ("@", RevSetOrder::default()),
             Self::Parent => ("@-", RevSetOrder::ParentFirst),
-            Self::Descendants => ("@::", RevSetOrder::ChildrenFirst),
+            Self::Descendants => ("@+::", RevSetOrder::ChildrenFirst),
         };
 
         Ok(revset::list_bookmarks(repo_path, revset, order)?

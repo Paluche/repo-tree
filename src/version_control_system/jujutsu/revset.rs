@@ -78,10 +78,14 @@ pub fn list_bookmarks(
     revset: &str,
     order: RevSetOrder,
 ) -> Result<Vec<String>, Box<dyn Error>> {
+    // Using filter in the template. Keep remote branches only when there is a
+    // no local Bookmark tracking it.
     run_revset(
         repo_path,
         revset,
-        r#"bookmarks.map(|b| b.name()).join("\n")"#,
+        r#"bookmarks
+        .filter(|b| !b.remote() || !b.tracking_present())
+        .map(|b| b.name()).join("\n")"#,
         order,
     )
 }
