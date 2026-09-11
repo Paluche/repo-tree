@@ -23,7 +23,7 @@ use clap_complete::engine::CompletionCandidate;
 pub use config::Config;
 pub use host::RemoteHost;
 pub use prompt::JujutsuBookmarkConfig;
-pub use prompt::JujutsuPromptConfig;
+pub use prompt::JujutsuTagConfig;
 pub use tree_category::TreeCategory;
 
 /// Obtain the auto-completion candidates for a host argument.
