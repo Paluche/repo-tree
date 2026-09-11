@@ -1,5 +1,4 @@
 //! Builder for prompt string.
-use colored::Colorize;
 use itertools::join;
 
 use crate::colors::IsEmpty;
@@ -84,7 +83,7 @@ impl<'prompt, 'repo, 'config> std::fmt::Display
             f,
             "{}{}",
             self.config.prompt.separator,
-            self.prompt.repository.id.name.green()
+            self.config.prompt.id.colorize(&self.prompt.repository.id.name)
         )?;
 
         for field in &self.prompt.fields {

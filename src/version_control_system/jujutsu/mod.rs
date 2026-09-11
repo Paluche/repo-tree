@@ -4,7 +4,6 @@ mod git;
 mod prompt;
 mod repo_state;
 mod revset;
-mod tag;
 
 use std::error::Error;
 use std::fs::read_to_string;

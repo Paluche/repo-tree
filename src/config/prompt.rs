@@ -229,11 +229,21 @@ impl Default for GitPromptConfig {
             stash: Self::default_stash(),
         }
     }
+
 }
 
 /// Configuration for the Jujutsu bookmarks prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct JujutsuBookmarkConfig {
+    /// How to color local bookmarks
+    #[serde(default = "JujutsuBookmarkConfig::default_local")]
+    pub local: Color,
+    /// How to color non-tracked remote bookmarks
+    #[serde(default = "JujutsuBookmarkConfig::default_remote")]
+    pub remote: Color,
+    /// How to color tracked bookmarks
+    #[serde(default = "JujutsuBookmarkConfig::default_tracked")]
+    pub tracked: Color,
     /// How to display list of bookmarks set on the parent commit of the
     /// current one we are editing.
     #[serde(default = "JujutsuBookmarkConfig::default_parent")]
@@ -258,6 +268,18 @@ pub struct JujutsuBookmarkConfig {
 
 #[allow(clippy::missing_docs_in_private_items)]
 impl JujutsuBookmarkConfig {
+    fn default_local() -> Color {
+        Color::from(colored::Color::BrightGreen)
+    }
+
+    fn default_remote() -> Color {
+        Color::from(colored::Color::Magenta)
+    }
+
+    fn default_tracked() -> Color {
+        Color::from(colored::Color::BrightMagenta)
+    }
+
     fn default_parent() -> ColoredList {
         ColoredList::new("󰫍", "🞍", colored::Color::Yellow)
     }
@@ -282,6 +304,9 @@ impl JujutsuBookmarkConfig {
 impl Default for JujutsuBookmarkConfig {
     fn default() -> Self {
         Self {
+            local: Self::default_local(),
+            remote: Self::default_remote(),
+            tracked: Self::default_tracked(),
             parent: Self::default_parent(),
             current: Self::default_current(),
             descendants: Self::default_descendants(),
@@ -291,15 +316,47 @@ impl Default for JujutsuBookmarkConfig {
     }
 }
 
+/// Configuration for the Jujutsu tags prompt.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct JujutsuTagConfig {
+    /// Representation for the list of tags.
+    #[serde(default = "JujutsuTagConfig::default_repr")]
+    pub repr: ColoredList,
+    /// Color to use to color the tag name
+    #[serde(default = "JujutsuTagConfig::default_name")]
+    pub name: Color,
+}
+
+#[allow(clippy::missing_docs_in_private_items)]
+impl JujutsuTagConfig {
+    fn default_repr() -> ColoredList {
+        ColoredList::new("", "🞍", colored::Color::Yellow)
+    }
+
+    fn default_name() -> Color {
+        Color::from(colored::Color::Yellow)
+    }
+}
+
+impl Default for JujutsuTagConfig {
+    fn default() -> Self {
+        Self {
+            repr: Self::default_repr(),
+            name: Self::default_name(),
+        }
+    }
+}
+
 /// Configuration for the Jujutsu prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct JujutsuPromptConfig {
+    /// Color to use to print local bookmarks
     /// Configuration for the Jujutsu bookmarks prompt.
     #[serde(default)]
     pub bookmark: JujutsuBookmarkConfig,
     /// How to display the list of tags you are at.
-    #[serde(default = "JujutsuPromptConfig::default_tags")]
-    pub tags: ColoredList,
+    #[serde(default)]
+    pub tags: JujutsuTagConfig,
     /// Representation to display when the working copy (current commit) has
     /// conflicts.
     #[serde(default = "JujutsuPromptConfig::default_wc_conflict")]
@@ -319,17 +376,13 @@ impl JujutsuPromptConfig {
     fn default_conflict() -> ColoredText {
         ColoredText::new("󰝧", colored::Color::Red)
     }
-
-    fn default_tags() -> ColoredList {
-        ColoredList::new("", "🞍", colored::Color::Yellow)
-    }
 }
 
 impl Default for JujutsuPromptConfig {
     fn default() -> Self {
         Self {
             bookmark: JujutsuBookmarkConfig::default(),
-            tags: Self::default_tags(),
+            tags: JujutsuTagConfig::default(),
             wc_conflict: Self::default_wc_conflict(),
             conflict: Self::default_conflict(),
         }
@@ -348,6 +401,9 @@ pub struct PromptConfig {
     /// Configuration to representing a version control system.
     #[serde(default)]
     pub vcs: VcsPromptConfig,
+    /// How to colorize the ID of the repository in the prompt.
+    #[serde(default = "PromptConfig::default_id")]
+    pub id: Color,
     /// Configuration relative to the Git prompt.
     #[serde(default)]
     pub git: GitPromptConfig,
@@ -356,15 +412,18 @@ pub struct PromptConfig {
     pub jj: JujutsuPromptConfig,
 }
 
+#[allow(clippy::missing_docs_in_private_items)]
 impl PromptConfig {
-    /// Default value for `prefix` configuration.
     fn default_prefix() -> ColoredText {
         ColoredText::new("┣━┫", colored::Color::Cyan)
     }
 
-    /// Default value for `separator` configuration.
     fn default_separator() -> ColoredText {
         ColoredText::new("|", colored::Color::Cyan)
+    }
+
+    fn default_id() -> Color {
+        Color::from(colored::Color::Green)
     }
 }
 
@@ -374,6 +433,7 @@ impl Default for PromptConfig {
             prefix: Self::default_prefix(),
             separator: Self::default_separator(),
             vcs: VcsPromptConfig::default(),
+            id: Self::default_id(),
             git: GitPromptConfig::default(),
             jj: JujutsuPromptConfig::default(),
         }

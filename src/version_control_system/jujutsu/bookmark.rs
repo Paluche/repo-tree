@@ -5,8 +5,7 @@ use std::error::Error;
 use std::path::Path;
 use std::process::Command;
 
-use colored::Colorize;
-
+use crate::config::JujutsuBookmarkConfig;
 use crate::error::CommandError;
 
 /// Representation of a bookmark.
@@ -39,26 +38,29 @@ impl Bookmark {
     }
 
     /// Get the bookmark short representation.
-    pub fn get_repr(&self) -> Vec<String> {
+    pub fn get_repr(
+        &self,
+        bookmark_config: &JujutsuBookmarkConfig,
+    ) -> Vec<String> {
         if self.is_remote_only() {
             self.remotes
                 .iter()
                 .map(|remote| {
-                    format!("{}@{}", self.name.as_str(), remote)
-                        .purple()
-                        .to_string()
+                    bookmark_config.remote.colorize(format!(
+                        "{}@{}",
+                        self.name.as_str(),
+                        remote
+                    ))
                 })
                 .collect()
         } else if self.is_local_only() {
-            Vec::from([self.name.as_str().bright_green().to_string()])
+            Vec::from([bookmark_config.local.colorize(&self.name)])
         } else {
-            Vec::from([format!(
+            Vec::from([bookmark_config.tracked.colorize(format!(
                 "{}{}",
                 self.name.as_str(),
                 if self.modified { "*" } else { "" }
-            )
-            .bright_purple()
-            .to_string()])
+            ))])
         }
     }
 }
