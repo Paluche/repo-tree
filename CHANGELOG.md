@@ -42,7 +42,9 @@ None
 - We are no more depending on the `jj-lib` crate. All `jj` interaction are done
   by calling the CLI.
 - jj prompt: Display the list of locally deleted bookmarks pending to be either
-  pushed and deleted from the remote too or be forgotten locally about.
+  pushed and deleted from the remote too or to be forgotten locally about.
+- jj prompt: Make the bookmark and tags prompt even more configurable. Might
+  break local configuration.
 
 ### Fixed bugs
 

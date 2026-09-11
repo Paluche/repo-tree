@@ -219,7 +219,6 @@ impl Color {
         colored::Color::Red.into()
     }
 
-    #[cfg(test)]
     pub fn green() -> Self {
         colored::Color::Green.into()
     }
@@ -232,7 +231,6 @@ impl Color {
         colored::Color::Blue.into()
     }
 
-    #[cfg(test)]
     pub fn magenta() -> Self {
         colored::Color::Magenta.into()
     }
@@ -253,7 +251,6 @@ impl Color {
         colored::Color::BrightRed.into()
     }
 
-    #[expect(dead_code)]
     pub fn bright_green() -> Self {
         colored::Color::BrightGreen.into()
     }
@@ -267,7 +264,6 @@ impl Color {
         colored::Color::BrightBlue.into()
     }
 
-    #[expect(dead_code)]
     pub fn bright_magenta() -> Self {
         colored::Color::BrightMagenta.into()
     }
