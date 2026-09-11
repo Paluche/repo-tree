@@ -73,6 +73,7 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
         "remote",
         r#"if(normal_target, normal_target.change_id(), "")"#,
         "synced",
+        "conflict",
     ]
     .join(r#"++ "|" ++ "#)
         + r#"++ "\n""#;
@@ -82,6 +83,7 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
         remote: Option<String>,
         target: Option<String>,
         synced: bool,
+        conflict: bool,
     }
 
     impl Line {
@@ -111,19 +113,21 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
             let remote = option_string_part(parts.next().unwrap());
             let target = option_string_part(parts.next().unwrap());
             let synced = bool_part(parts.next().unwrap());
+            let conflict = bool_part(parts.next().unwrap());
 
             Self {
                 name,
                 remote,
                 target,
                 synced,
+                conflict,
             }
         }
 
         fn into_bookmark(self) -> Bookmark {
             Bookmark {
                 name: self.name,
-                deleted: if self.remote.is_none() {
+                deleted: if self.remote.is_none() && !self.conflict {
                     self.target.is_none()
                 } else {
                     false
