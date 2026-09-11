@@ -136,6 +136,7 @@ mod tests {
     use indoc::indoc;
 
     use super::*;
+    use crate::colors::Color;
     use crate::colors::ColoredList;
     use crate::colors::ColoredText;
     use crate::config::host::HostInfo;
@@ -158,7 +159,7 @@ mod tests {
                     category: TreeCategory::new(
                         "test".to_string(),
                         None,
-                        ColoredText::new("󰙨", colored::Color::Yellow),
+                        ColoredText::new("󰙨", Color::yellow()),
                     ),
                     info: HostInfo { forge: None },
                 },
@@ -336,7 +337,7 @@ mod tests {
                     name: "github",
                     raw_dir_name: None,
                     dir_name: "github",
-                    repr: ColoredText::new("", colored::Color::White),
+                    repr: ColoredText::new("", Color::white()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::GitHub),
@@ -366,7 +367,7 @@ mod tests {
                     name: "kernel",
                     raw_dir_name: None,
                     dir_name: "kernel",
-                    repr: ColoredText::new("", colored::Color::White),
+                    repr: ColoredText::new("", Color::white()),
                 },
                 info: HostInfo { forge: None },
             },
@@ -379,7 +380,7 @@ mod tests {
                     name: "bitbucket",
                     raw_dir_name: None,
                     dir_name: "bitbucket",
-                    repr: ColoredText::new("", colored::Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::Bitbucket),
@@ -394,7 +395,7 @@ mod tests {
                     name: "codeberg",
                     raw_dir_name: None,
                     dir_name: "codeberg",
-                    repr: ColoredText::new("", colored::Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::Forgejo),
@@ -410,7 +411,7 @@ mod tests {
                     name: "dev",
                     raw_dir_name: None,
                     dir_name: "dev",
-                    repr: ColoredText::new("", colored::Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
             },
             LocalTreeSpaceRef {
@@ -418,7 +419,7 @@ mod tests {
                     name: "local",
                     raw_dir_name: None,
                     dir_name: "local",
-                    repr: ColoredText::new("󰋊", colored::Color::White),
+                    repr: ColoredText::new("󰋊", Color::white()),
                 },
             },
             ArchiveTreeSpaceRef {
@@ -426,7 +427,7 @@ mod tests {
                     name: "archive",
                     raw_dir_name: None,
                     dir_name: "archive",
-                    repr: ColoredText::new("󰀼", colored::Color::Yellow),
+                    repr: ColoredText::new("󰀼", Color::yellow()),
                 },
             },
         );
@@ -435,7 +436,7 @@ mod tests {
         check_unknown_host(
             &config,
             UnknownHost {
-                repr: ColoredText::new("", colored::Color::Red),
+                repr: ColoredText::new("", Color::red()),
             },
         );
 
@@ -443,58 +444,48 @@ mod tests {
         assert_eq!(
             &config.prompt,
             &PromptConfig {
-                prefix: ColoredText::new("┣━┫", colored::Color::Cyan),
-                separator: ColoredText::new("|", colored::Color::Cyan),
+                prefix: ColoredText::new("┣━┫", Color::cyan()),
+                separator: ColoredText::new("|", Color::cyan()),
                 vcs: VcsPromptConfig {
                     git: ColoredText::new("󰊢", 166),
-                    jj: ColoredText::new("", colored::Color::Blue),
+                    jj: ColoredText::new("", Color::blue()),
                 },
                 git: GitPromptConfig {
                     ongoing_operations: ColoredList::new(
                         "⛏",
                         "🞍",
-                        colored::Color::Red
+                        Color::red()
                     ),
-                    branches: ColoredList::new("󰫍", "🞍", colored::Color::Blue),
-                    tags: ColoredList::new("", "🞍", colored::Color::Yellow),
+                    branches: ColoredList::new("󰫍", "🞍", Color::blue()),
+                    tags: ColoredList::new("", "🞍", Color::yellow()),
                     upstream: GitUpstreamConfig::new(
                         "", "", "", "", "", "", "", 208,
                     ),
-                    stash: ColoredText::new("", colored::Color::White),
+                    stash: ColoredText::new("", Color::white()),
                 },
                 jj: JujutsuPromptConfig {
                     bookmark: JujutsuBookmarkConfig {
-                        parent: ColoredList::new(
-                            "󰫍",
-                            "🞍",
-                            colored::Color::Yellow
-                        ),
+                        parent: ColoredList::new("󰫍", "🞍", Color::yellow()),
                         current: ColoredList::new(
                             "󰫍",
                             "🞍",
-                            colored::Color::BrightBlue
+                            Color::bright_blue()
                         ),
                         descendants: ColoredList::new(
                             "󰫎",
                             "🞍",
-                            colored::Color::BrightBlue
+                            Color::bright_blue()
                         ),
-                        none: ColoredText::new(
-                            "󰫌",
-                            colored::Color::BrightBlack
-                        ),
+                        none: ColoredText::new("󰫌", Color::bright_black()),
                         deleted: ColoredList::new(
                             "󰠙",
                             "🞍",
-                            colored::Color::AnsiColor(166)
+                            Color::ansi_color(166)
                         ),
                     },
-                    tags: ColoredList::new("", "🞍", colored::Color::Yellow),
-                    wc_conflict: ColoredText::new(
-                        "󰝧",
-                        colored::Color::BrightRed
-                    ),
-                    conflict: ColoredText::new("󰝧", colored::Color::Red),
+                    tags: ColoredList::new("", "🞍", Color::yellow()),
+                    wc_conflict: ColoredText::new("󰝧", Color::bright_red()),
+                    conflict: ColoredText::new("󰝧", Color::red()),
                 }
             },
         );
@@ -816,7 +807,7 @@ mod tests {
                     name: "github",
                     raw_dir_name: None,
                     dir_name: "github",
-                    repr: ColoredText::new("", colored::Color::White),
+                    repr: ColoredText::new("", Color::white()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::GitHub),
@@ -846,7 +837,7 @@ mod tests {
                     name: "mine",
                     raw_dir_name: None,
                     dir_name: "mine",
-                    repr: ColoredText::new("󱘎", colored::Color::Blue),
+                    repr: ColoredText::new("󱘎", Color::blue()),
                 },
                 info: HostInfo { forge: None },
             },
@@ -859,7 +850,7 @@ mod tests {
                     name: "buildroot",
                     raw_dir_name: Some("."),
                     dir_name: ".",
-                    repr: ColoredText::new("󰥯", colored::Color::Yellow),
+                    repr: ColoredText::new("󰥯", Color::yellow()),
                 },
                 info: HostInfo { forge: None },
             },
@@ -872,7 +863,7 @@ mod tests {
                     name: "bitbucket",
                     raw_dir_name: None,
                     dir_name: "bitbucket",
-                    repr: ColoredText::new("", colored::Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::Bitbucket),
@@ -926,7 +917,7 @@ mod tests {
                     name: "kernel",
                     raw_dir_name: None,
                     dir_name: "kernel",
-                    repr: ColoredText::new("", colored::Color::White),
+                    repr: ColoredText::new("", Color::white()),
                 },
                 info: HostInfo { forge: None },
             },
@@ -939,7 +930,7 @@ mod tests {
                     name: "codeberg",
                     raw_dir_name: None,
                     dir_name: "codeberg",
-                    repr: ColoredText::new("", colored::Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::Forgejo),
@@ -951,7 +942,7 @@ mod tests {
         check_unknown_host(
             &config,
             UnknownHost {
-                repr: ColoredText::new("?", colored::Color::BrightRed),
+                repr: ColoredText::new("?", Color::bright_red()),
             },
         );
 
@@ -962,7 +953,7 @@ mod tests {
                     name: "dev",
                     raw_dir_name: None,
                     dir_name: "dev",
-                    repr: ColoredText::new("D", colored::Color::Red),
+                    repr: ColoredText::new("D", Color::red()),
                 },
             },
             LocalTreeSpaceRef {
@@ -970,7 +961,7 @@ mod tests {
                     name: "local",
                     raw_dir_name: None,
                     dir_name: "local",
-                    repr: ColoredText::new("L", colored::Color::Blue),
+                    repr: ColoredText::new("L", Color::blue()),
                 },
             },
             ArchiveTreeSpaceRef {
@@ -978,7 +969,7 @@ mod tests {
                     name: "archive",
                     raw_dir_name: Some("archives"),
                     dir_name: "archives",
-                    repr: ColoredText::new("A", colored::Color::Red),
+                    repr: ColoredText::new("A", Color::red()),
                 },
             },
         );
@@ -987,28 +978,20 @@ mod tests {
         assert_eq!(
             &config.prompt,
             &PromptConfig {
-                prefix: ColoredText::new("|", colored::Color::Blue),
-                separator: ColoredText::new("/", colored::Color::Blue),
+                prefix: ColoredText::new("|", Color::blue()),
+                separator: ColoredText::new("/", Color::blue()),
                 vcs: VcsPromptConfig {
-                    git: ColoredText::new("G", colored::Color::AnsiColor(167)),
-                    jj: ColoredText::new("J", colored::Color::Cyan),
+                    git: ColoredText::new("G", Color::ansi_color(167)),
+                    jj: ColoredText::new("J", Color::cyan()),
                 },
                 git: GitPromptConfig {
                     ongoing_operations: ColoredList::new(
                         "",
                         ", ",
-                        colored::Color::Blue
+                        Color::blue()
                     ),
-                    branches: ColoredList::new(
-                        "B",
-                        ", ",
-                        colored::Color::Yellow
-                    ),
-                    tags: ColoredList::new(
-                        "T",
-                        ", ",
-                        colored::Color::BrightYellow
-                    ),
+                    branches: ColoredList::new("B", ", ", Color::yellow()),
+                    tags: ColoredList::new("T", ", ", Color::bright_yellow()),
                     upstream: GitUpstreamConfig::new(
                         "G",
                         "V",
@@ -1017,44 +1000,29 @@ mod tests {
                         "D",
                         "L",
                         "_",
-                        colored::Color::Green,
+                        Color::green(),
                     ),
-                    stash: ColoredText::new("stash", colored::Color::Red),
+                    stash: ColoredText::new("stash", Color::red()),
                 },
                 jj: JujutsuPromptConfig {
                     bookmark: JujutsuBookmarkConfig {
-                        parent: ColoredList::new(
-                            "P",
-                            ", ",
-                            colored::Color::Green,
-                        ),
-                        current: ColoredList::new(
-                            "C",
-                            ", ",
-                            colored::Color::Blue,
-                        ),
+                        parent: ColoredList::new("P", ", ", Color::green(),),
+                        current: ColoredList::new("C", ", ", Color::blue(),),
                         descendants: ColoredList::new(
                             "D",
                             ", ",
-                            colored::Color::Magenta,
+                            Color::magenta(),
                         ),
-                        none: ColoredText::new("N", colored::Color::White),
+                        none: ColoredText::new("N", Color::white()),
                         deleted: ColoredList::new(
                             "D",
                             ", ",
-                            colored::Color::BrightYellow
+                            Color::bright_yellow()
                         ),
                     },
-                    tags: ColoredList::new(
-                        "T",
-                        ", ",
-                        colored::Color::BrightYellow
-                    ),
-                    wc_conflict: ColoredText::new(
-                        "!",
-                        colored::Color::BrightBlue
-                    ),
-                    conflict: ColoredText::new("!", colored::Color::Blue),
+                    tags: ColoredList::new("T", ", ", Color::bright_yellow()),
+                    wc_conflict: ColoredText::new("!", Color::bright_blue()),
+                    conflict: ColoredText::new("!", Color::blue()),
                 }
             },
         );

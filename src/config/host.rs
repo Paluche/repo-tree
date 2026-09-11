@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use super::tree_category::TreeCategory;
+use crate::colors::Color;
 use crate::colors::ColoredText;
 use crate::forge::Forge;
 
@@ -37,29 +38,29 @@ pub fn default_remote_hosts() -> RemoteHosts {
             "github.com",
             "github",
             "",
-            colored::Color::White,
+            Color::white(),
             Some(Forge::GitHub),
         ),
         (
             "gitlab.com",
             "gitlab",
             "󰮠",
-            colored::Color::AnsiColor(166),
+            Color::ansi_color(166),
             Some(Forge::GitLab),
         ),
-        ("git.kernel.org", "kernel", "", colored::Color::White, None),
+        ("git.kernel.org", "kernel", "", Color::white(), None),
         (
             "bitbucket.org",
             "bitbucket",
             "",
-            colored::Color::Blue,
+            Color::blue(),
             Some(Forge::Bitbucket),
         ),
         (
             "codeberg.org",
             "codeberg",
             "",
-            colored::Color::Blue,
+            Color::blue(),
             Some(Forge::Forgejo),
         ),
     ]
@@ -92,7 +93,7 @@ pub struct UnknownHost {
 impl UnknownHost {
     /// Default value for UnknownHost.repr.
     fn default_repr() -> ColoredText {
-        ColoredText::new("", colored::Color::Red)
+        ColoredText::new("", Color::red())
     }
 }
 
