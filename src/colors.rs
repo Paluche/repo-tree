@@ -203,6 +203,86 @@ impl Hash for Color {
     }
 }
 
+#[allow(dead_code)]
+#[allow(clippy::missing_docs_in_private_items)]
+impl Color {
+    pub fn none() -> Self {
+        Self { color: None }
+    }
+
+    pub fn black() -> Self {
+        colored::Color::Black.into()
+    }
+
+    pub fn red() -> Self {
+        colored::Color::Red.into()
+    }
+
+    pub fn green() -> Self {
+        colored::Color::Green.into()
+    }
+
+    pub fn yellow() -> Self {
+        colored::Color::Yellow.into()
+    }
+
+    pub fn blue() -> Self {
+        colored::Color::Blue.into()
+    }
+
+    pub fn magenta() -> Self {
+        colored::Color::Magenta.into()
+    }
+
+    pub fn cyan() -> Self {
+        colored::Color::Cyan.into()
+    }
+
+    pub fn white() -> Self {
+        colored::Color::White.into()
+    }
+
+    pub fn bright_black() -> Self {
+        colored::Color::BrightBlack.into()
+    }
+
+    pub fn bright_red() -> Self {
+        colored::Color::BrightRed.into()
+    }
+
+    pub fn bright_green() -> Self {
+        colored::Color::BrightGreen.into()
+    }
+
+    pub fn bright_yellow() -> Self {
+        colored::Color::BrightYellow.into()
+    }
+
+    pub fn bright_blue() -> Self {
+        colored::Color::BrightBlue.into()
+    }
+
+    pub fn bright_magenta() -> Self {
+        colored::Color::BrightMagenta.into()
+    }
+
+    pub fn bright_cyan() -> Self {
+        colored::Color::BrightCyan.into()
+    }
+
+    pub fn bright_white() -> Self {
+        colored::Color::BrightWhite.into()
+    }
+
+    pub fn ansi_color(n: u8) -> Self {
+        colored::Color::AnsiColor(n).into()
+    }
+
+    pub fn true_color(r: u8, g: u8, b: u8) -> Self {
+        colored::Color::TrueColor { r, g, b }.into()
+    }
+}
+
 impl Color {
     /// Colorize the provided text.
     pub fn colorize<T>(&self, text: T) -> String

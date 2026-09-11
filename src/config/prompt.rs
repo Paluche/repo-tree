@@ -25,7 +25,7 @@ impl VcsPromptConfig {
     }
 
     fn default_jj() -> ColoredText {
-        ColoredText::new("", colored::Color::Blue)
+        ColoredText::new("", Color::blue())
     }
 }
 
@@ -105,7 +105,7 @@ impl GitUpstreamConfig {
     }
 
     fn default_color() -> Color {
-        Color::from(208)
+        Color::ansi_color(208)
     }
 
     #[cfg(test)]
@@ -203,19 +203,19 @@ pub struct GitPromptConfig {
 #[allow(clippy::missing_docs_in_private_items)]
 impl GitPromptConfig {
     fn default_ongoing_operations() -> ColoredList {
-        ColoredList::new("⛏", "🞍", colored::Color::Red)
+        ColoredList::new("⛏", "🞍", Color::red())
     }
 
     fn default_branches() -> ColoredList {
-        ColoredList::new("󰫍", "🞍", colored::Color::Blue)
+        ColoredList::new("󰫍", "🞍", Color::blue())
     }
 
     fn default_tags() -> ColoredList {
-        ColoredList::new("", "🞍", colored::Color::Yellow)
+        ColoredList::new("", "🞍", Color::yellow())
     }
 
     fn default_stash() -> ColoredText {
-        ColoredText::new("", colored::Color::White)
+        ColoredText::new("", Color::white())
     }
 }
 
@@ -259,23 +259,23 @@ pub struct JujutsuBookmarkConfig {
 #[allow(clippy::missing_docs_in_private_items)]
 impl JujutsuBookmarkConfig {
     fn default_parent() -> ColoredList {
-        ColoredList::new("󰫍", "🞍", colored::Color::Yellow)
+        ColoredList::new("󰫍", "🞍", Color::yellow())
     }
 
     fn default_current() -> ColoredList {
-        ColoredList::new("󰫍", "🞍", colored::Color::BrightBlue)
+        ColoredList::new("󰫍", "🞍", Color::bright_blue())
     }
 
     fn default_descendants() -> ColoredList {
-        ColoredList::new("󰫎", "🞍", colored::Color::BrightBlue)
+        ColoredList::new("󰫎", "🞍", Color::bright_blue())
     }
 
     fn default_none() -> ColoredText {
-        ColoredText::new("󰫌", colored::Color::BrightBlack)
+        ColoredText::new("󰫌", Color::bright_black())
     }
 
     fn default_deleted() -> ColoredList {
-        ColoredList::new("󰠙", "🞍", colored::Color::AnsiColor(166))
+        ColoredList::new("󰠙", "🞍", Color::ansi_color(166))
     }
 }
 
@@ -313,15 +313,15 @@ pub struct JujutsuPromptConfig {
 #[allow(clippy::missing_docs_in_private_items)]
 impl JujutsuPromptConfig {
     fn default_wc_conflict() -> ColoredText {
-        ColoredText::new("󰝧", colored::Color::BrightRed)
+        ColoredText::new("󰝧", Color::bright_red())
     }
 
     fn default_conflict() -> ColoredText {
-        ColoredText::new("󰝧", colored::Color::Red)
+        ColoredText::new("󰝧", Color::red())
     }
 
     fn default_tags() -> ColoredList {
-        ColoredList::new("", "🞍", colored::Color::Yellow)
+        ColoredList::new("", "🞍", Color::yellow())
     }
 }
 
@@ -359,12 +359,12 @@ pub struct PromptConfig {
 impl PromptConfig {
     /// Default value for `prefix` configuration.
     fn default_prefix() -> ColoredText {
-        ColoredText::new("┣━┫", colored::Color::Cyan)
+        ColoredText::new("┣━┫", Color::cyan())
     }
 
     /// Default value for `separator` configuration.
     fn default_separator() -> ColoredText {
-        ColoredText::new("|", colored::Color::Cyan)
+        ColoredText::new("|", Color::cyan())
     }
 }
 
