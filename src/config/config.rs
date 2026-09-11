@@ -144,6 +144,7 @@ mod tests {
     use crate::config::prompt::GitUpstreamConfig;
     use crate::config::prompt::JujutsuBookmarkConfig;
     use crate::config::prompt::JujutsuPromptConfig;
+    use crate::config::prompt::JujutsuTagConfig;
     use crate::config::prompt::VcsPromptConfig;
     use crate::config::tree_category::TreeCategory;
     use crate::forge::Forge;
@@ -450,6 +451,7 @@ mod tests {
                     git: ColoredText::new("󰊢", 166),
                     jj: ColoredText::new("", Color::blue()),
                 },
+                id: Color::green(),
                 git: GitPromptConfig {
                     ongoing_operations: ColoredList::new(
                         "⛏",
@@ -465,6 +467,9 @@ mod tests {
                 },
                 jj: JujutsuPromptConfig {
                     bookmark: JujutsuBookmarkConfig {
+                        local: Color::bright_green(),
+                        remote: Color::magenta(),
+                        tracked: Color::bright_magenta(),
                         parent: ColoredList::new("󰫍", "🞍", Color::yellow()),
                         current: ColoredList::new(
                             "󰫍",
@@ -483,7 +488,10 @@ mod tests {
                             Color::ansi_color(166)
                         ),
                     },
-                    tags: ColoredList::new("", "🞍", Color::yellow()),
+                    tags: JujutsuTagConfig {
+                        repr: ColoredList::new("", "🞍", Color::yellow()),
+                        name: Color::yellow(),
+                    },
                     wc_conflict: ColoredText::new("󰝧", Color::bright_red()),
                     conflict: ColoredText::new("󰝧", Color::red()),
                 }
@@ -584,6 +592,9 @@ mod tests {
         text = ""
         color = "red"
 
+        [prompt]
+        id = "green"
+
         [prompt.prefix]
         text = "┣━┫"
         color = "cyan"
@@ -629,6 +640,11 @@ mod tests {
         text = ""
         color = "white"
 
+        [prompt.jj.bookmark]
+        local = "bright green"
+        remote = "magenta"
+        tracked = "bright magenta"
+
         [prompt.jj.bookmark.parent]
         prefix = "󰫍"
         separator = "🞍"
@@ -654,6 +670,9 @@ mod tests {
         color = 166
 
         [prompt.jj.tags]
+        name = "yellow"
+
+        [prompt.jj.tags.repr]
         prefix = ""
         separator = "🞍"
         color = "yellow"
@@ -761,14 +780,19 @@ mod tests {
         color = 'red'
 
         [prompt.jj.bookmark]
+        local = 'bright blue'
+        remote = 'blue'
         parent = { prefix = 'P', separator = ', ', color = 'green' }
         current = { prefix = 'C', separator = ', ', color = 'blue' }
         descendants = { prefix = 'D', separator = ', ', color = 'magenta' }
         none = { text = 'N', color = 'white' }
         deleted = { prefix = 'D', separator = ', ', color = 'bright yellow' }
 
+        [prompt.jj.tags]
+        repr = { prefix = 'T', separator = ', ', color = 'bright yellow'}
+        name = 'bright yellow'
+
         [prompt.jj]
-        tags = { prefix = 'T', separator = ', ', color = 'bright yellow'}
         wc_conflict = { text = '!', color = 'bright blue'}
         conflict = { text = '!', color = 'blue'}
 
@@ -984,6 +1008,7 @@ mod tests {
                     git: ColoredText::new("G", Color::ansi_color(167)),
                     jj: ColoredText::new("J", Color::cyan()),
                 },
+                id: Color::green(),
                 git: GitPromptConfig {
                     ongoing_operations: ColoredList::new(
                         "",
@@ -1006,6 +1031,9 @@ mod tests {
                 },
                 jj: JujutsuPromptConfig {
                     bookmark: JujutsuBookmarkConfig {
+                        local: Color::bright_blue(),
+                        remote: Color::blue(),
+                        tracked: Color::bright_magenta(),
                         parent: ColoredList::new("P", ", ", Color::green(),),
                         current: ColoredList::new("C", ", ", Color::blue(),),
                         descendants: ColoredList::new(
@@ -1020,7 +1048,14 @@ mod tests {
                             Color::bright_yellow()
                         ),
                     },
-                    tags: ColoredList::new("T", ", ", Color::bright_yellow()),
+                    tags: JujutsuTagConfig {
+                        repr: ColoredList::new(
+                            "T",
+                            ", ",
+                            Color::bright_yellow()
+                        ),
+                        name: Color::bright_yellow(),
+                    },
                     wc_conflict: ColoredText::new("!", Color::bright_blue()),
                     conflict: ColoredText::new("!", Color::blue()),
                 }
@@ -1161,6 +1196,9 @@ mod tests {
         text = "?"
         color = "bright red"
 
+        [prompt]
+        id = "green"
+
         [prompt.prefix]
         text = "|"
         color = "blue"
@@ -1206,6 +1244,11 @@ mod tests {
         text = "stash"
         color = "red"
 
+        [prompt.jj.bookmark]
+        local = "bright blue"
+        remote = "blue"
+        tracked = "bright magenta"
+
         [prompt.jj.bookmark.parent]
         prefix = "P"
         separator = ", "
@@ -1231,6 +1274,9 @@ mod tests {
         color = "bright yellow"
 
         [prompt.jj.tags]
+        name = "bright yellow"
+
+        [prompt.jj.tags.repr]
         prefix = "T"
         separator = ", "
         color = "bright yellow"
