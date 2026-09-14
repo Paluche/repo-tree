@@ -203,8 +203,21 @@ pub fn resolve<'repos>(
     } else {
         eprintln!("Several possible match:");
 
-        for (name, repo) in matches {
+        let mut matches = matches.iter();
+
+        for (name, repo) in matches.by_ref().take(8) {
             eprintln!("- {name} -> {}", repo.root.display());
+        }
+
+        let remains = matches.count();
+
+        if remains != 0 {
+            eprintln!("...");
+            eprintln!(
+                "{} more possibilit{}.",
+                remains,
+                if remains == 1 { "y" } else { "ies" }
+            );
         }
 
         Ok(None)
