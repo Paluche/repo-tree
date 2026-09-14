@@ -77,8 +77,7 @@ pub fn fetch<P: AsRef<OsStr>>(location: P, quiet: bool) -> i32 {
     cmd.arg("--repository")
         .arg(location)
         .arg("git")
-        .arg("fetch")
-        .arg("--all-remotes");
+        .arg("fetch");
 
     if quiet {
         cmd.arg("--quiet");
