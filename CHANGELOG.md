@@ -52,6 +52,8 @@ None
   the configuration values.
 - **rcd**: Fix bug when arguments contain -h anywhere within. The function was
   then printing the help text instead of doing the resolution.
+- **fetch**: Fix the `jj` command line that was fetching the repository to use
+  the default fetch configuration. Using `rt fetch` we did not fetch the tags.
 
 ## [0.2.0] - 2026-06-21
 
