@@ -125,7 +125,7 @@ fn generate_rcd_zsh(
 
         function rcd()
         {
-            if [[ "$@" == *-h* ]] || [[ "$@" == *--help* ]]
+            if ((${@[(Ie)-h]})) || ((${@[(Ie)--help]}))
             then
                 echo "Resolve the name of a repository and cd in its location"
                 echo ""
