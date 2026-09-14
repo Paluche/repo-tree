@@ -150,10 +150,11 @@ impl<'repos> Directory<'repos> {
         if let Some(r) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
             let submodules = r.submodules().unwrap();
+            let workspace = r.get_vcs_repo().get_workspace_name().unwrap_or("".to_string());
             if let Some(remote) = &r.id.remote {
                 writeln!(
                     f,
-                    "{prefix}{}{} {}",
+                    "{prefix}{}{} {}{}",
                     if submodules.is_empty() {
                         DirState::FinalSubDir
                     } else {
@@ -162,6 +163,7 @@ impl<'repos> Directory<'repos> {
                     .get_subdir_prefix(),
                     remote.url.green(),
                     r.vcs.short_display(config),
+                    if workspace.is_empty() { workspace } else { format!(" @{workspace}") },
                 )?;
             }
             if !submodules.is_empty() {
