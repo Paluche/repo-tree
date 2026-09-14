@@ -41,15 +41,17 @@ None
 
 - We are no more depending on the `jj-lib` crate. All `jj` interaction are done
   by calling the CLI.
-- jj prompt: Display the list of locally deleted bookmarks pending to be either
+- **jj prompt**: Display the list of locally deleted bookmarks pending to be either
   pushed and deleted from the remote too or to be forgotten locally about.
-- jj prompt: Make the bookmark and tags prompt even more configurable. Might
+- **jj prompt**: Make the bookmark and tags prompt even more configurable. Might
   break local configuration.
 
 ### Fixed bugs
 
 - Fix computation of the expected path of a local repository, to properly use
   the configuration values.
+- **rcd**: Fix bug when arguments contain -h anywhere within. The function was
+  then printing the help text instead of doing the resolution.
 
 ## [0.2.0] - 2026-06-21
 
