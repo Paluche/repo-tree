@@ -12,6 +12,8 @@ use crate::error::CommandError;
 pub struct Bookmark {
     /// Name of the Bookmark.
     name: String,
+    /// The local tracked bookmark is conflicted.
+    conflicted: bool,
     /// Target of the local bookmark.
     local_target: Option<String>,
     /// The bookmark is deleted locally and pending to be deleted remotely with
@@ -42,7 +44,11 @@ impl Bookmark {
         &self,
         bookmark_config: &JujutsuBookmarkConfig,
     ) -> Vec<String> {
-        if self.is_remote_only() {
+        if self.conflicted {
+            Vec::from([bookmark_config
+                .tracked
+                .colorize(format!("{}??", self.name))])
+        } else if self.is_remote_only() {
             self.remotes
                 .iter()
                 .map(|remote| {
@@ -134,6 +140,7 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
                 } else {
                     false
                 },
+                conflicted: self.conflict,
                 local_target: if self.remote.is_none() {
                     self.target
                 } else {
