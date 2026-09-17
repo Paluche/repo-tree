@@ -3,6 +3,7 @@
 //! Each tree,
 use std::error::Error;
 use std::ffi::OsStr;
+use std::fmt::Display;
 use std::fs::File;
 use std::fs::create_dir_all;
 use std::fs::read_to_string;
@@ -183,6 +184,35 @@ impl TreeSpace {
         config: &'config Config,
     ) -> &'config ColoredText {
         &self.organization(config).category().repr
+    }
+
+    /// Get a struct which knows how to display the tree space.
+    pub fn display<'tree_space, 'config>(
+        &'tree_space self,
+        config: &'config Config,
+    ) -> TreeSpaceDisplay<'tree_space, 'config> {
+        TreeSpaceDisplay {
+            tree_space: self,
+            config,
+        }
+    }
+}
+
+/// Struct which knows how to display a TreeSpace.
+pub struct TreeSpaceDisplay<'tree_space, 'config> {
+    /// TreeSpace instance to display.
+    tree_space: &'tree_space TreeSpace,
+    /// User configuration which dictates how to display the tree space.
+    config: &'config Config,
+}
+
+impl<'tree_space, 'config> Display for TreeSpaceDisplay<'tree_space, 'config> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.tree_space.organization(self.config).category().name
+        )
     }
 }
 
