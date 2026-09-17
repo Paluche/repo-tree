@@ -16,6 +16,7 @@ use which::which;
 use crate::config::Config;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
+use crate::tree::TreeSpace;
 
 /// Find the shortest end-path to identify two path.
 fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
@@ -144,12 +145,23 @@ fn fzf_ask(
 
 /// Get the text that describe the associated repository ID completion
 /// candidate.
-fn repository_candidate_help(repository: &Repository) -> Option<StyledStr> {
-    repository
-        .id
-        .remote
-        .as_ref()
-        .map(|r| StyledStr::from(&r.url))
+fn repository_candidate_help(
+    repository: &Repository,
+    config: &Config,
+) -> Option<StyledStr> {
+    repository.id.remote.as_ref().map(|r| {
+        StyledStr::from(format!(
+            "{}{}",
+            r.url,
+            if let Some(tree) = &repository.tree
+                && !matches!(tree, TreeSpace::Dev)
+            {
+                format!(" <{}>", tree.display(config))
+            } else {
+                "".to_string()
+            }
+        ))
+    })
 }
 
 /// Resolve a repository identifier into a local repository.
@@ -217,7 +229,7 @@ pub fn resolve<'repos>(
 
         for (name, repo) in matches.by_ref().take(8) {
             eprint!("- {name}");
-            if let Some(help) = repository_candidate_help(repo) {
+            if let Some(help) = repository_candidate_help(repo, config) {
                 eprintln!(" -> {}", help);
             }
         }
@@ -260,7 +272,7 @@ pub fn resolve_completer(
                     .tag(repository.id.remote_host(&config).ok().flatten().map(
                         |r| StyledStr::from(r.category.dir_name().to_string()),
                     ))
-                    .help(repository_candidate_help(repository))
+                    .help(repository_candidate_help(repository, &config))
             })
         })
         .collect()
