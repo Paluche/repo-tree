@@ -142,6 +142,16 @@ fn fzf_ask(
     }
 }
 
+/// Get the text that describe the associated repository ID completion
+/// candidate.
+fn repository_candidate_help(repository: &Repository) -> Option<StyledStr> {
+    repository
+        .id
+        .remote
+        .as_ref()
+        .map(|r| StyledStr::from(&r.url))
+}
+
 /// Resolve a repository identifier into a local repository.
 pub fn resolve<'repos>(
     config: &Config,
@@ -206,7 +216,10 @@ pub fn resolve<'repos>(
         let mut matches = matches.iter();
 
         for (name, repo) in matches.by_ref().take(8) {
-            eprintln!("- {name} -> {}", repo.root.display());
+            eprint!("- {name}");
+            if let Some(help) = repository_candidate_help(repo) {
+                eprintln!(" -> {}", help);
+            }
         }
 
         let remains = matches.count();
@@ -247,13 +260,7 @@ pub fn resolve_completer(
                     .tag(repository.id.remote_host(&config).ok().flatten().map(
                         |r| StyledStr::from(r.category.dir_name().to_string()),
                     ))
-                    .help(
-                        repository
-                            .id
-                            .remote
-                            .as_ref()
-                            .map(|r| StyledStr::from(&r.url)),
-                    )
+                    .help(repository_candidate_help(repository))
             })
         })
         .collect()
