@@ -21,7 +21,6 @@ clap = { version = "4.6.6", features = ["derive"] }
 clap_complete = { version = "4.6.9", features = ["unstable-dynamic"] }
 colored = "3.1.1"
 crossterm = "0.29.0"
-futures = "0.3.34"
 fuzzy-matcher = "0.3.7"
 git2 = { version = "0.21.0", default-features=false }
 globset = { version = "0.4.20", features = ["serde1"] }
