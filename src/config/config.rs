@@ -8,6 +8,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use clap::builder::StyledStr;
+use clap_complete::engine::ArgValueCompleter;
 use clap_complete::engine::CompletionCandidate;
 use serde::Deserialize;
 use serde::Serialize;
@@ -103,18 +104,20 @@ impl Config {
     }
 
     /// Obtain the auto-completion candidates for a host argument.
-    pub fn host_completer(current: &OsStr) -> Vec<CompletionCandidate> {
-        Config::load().map_or(Vec::new(), |c| {
-            c.remote_hosts
-                .iter()
-                .filter(|(host, _)| {
-                    host.starts_with(current.to_str().unwrap_or(""))
-                })
-                .map(|(host, data)| {
-                    CompletionCandidate::new(data.category.name.clone())
-                        .help(Some(StyledStr::from(host)))
-                })
-                .collect()
+    pub fn host_completer() -> ArgValueCompleter {
+        ArgValueCompleter::new(|current: &OsStr| {
+            Config::load().map_or(Vec::new(), |c| {
+                c.remote_hosts
+                    .iter()
+                    .filter(|(host, _)| {
+                        host.starts_with(current.to_str().unwrap_or(""))
+                    })
+                    .map(|(host, data)| {
+                        CompletionCandidate::new(data.category.name.clone())
+                            .help(Some(StyledStr::from(host)))
+                    })
+                    .collect::<Vec<CompletionCandidate>>()
+            })
         })
     }
 

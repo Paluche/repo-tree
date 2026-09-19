@@ -2,7 +2,6 @@
 use std::fs::remove_dir_all;
 
 use clap::Args;
-use clap_complete::engine::ArgValueCompleter;
 
 use crate::config::Config;
 use crate::error::NotImplementedError;
@@ -14,7 +13,7 @@ use crate::tree::RepoTree;
 #[derive(Args)]
 pub struct RmArgs {
     /// Repository identifier identifying the repository to remove.
-    #[arg(add=ArgValueCompleter::new(resolve_completer))]
+    #[arg(add=resolve_completer())]
     repo_id: Option<String>,
     /// Force the removal of the repository, even if it is not empty.
     #[arg(short, long)]

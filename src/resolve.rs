@@ -1,12 +1,14 @@
 //! Resolve a repository identifier argument into a Repository.
 use std::collections::BTreeMap;
 use std::error::Error;
+use std::ffi::OsStr;
 use std::io::Write;
 use std::iter::zip;
 use std::process::Command;
 use std::process::Stdio;
 
 use clap::builder::StyledStr;
+use clap_complete::engine::ArgValueCompleter;
 use clap_complete::engine::CompletionCandidate;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -250,30 +252,40 @@ pub fn resolve<'repos>(
 }
 
 /// Get auto-completion candidate for a repository identifier argument.
-pub fn resolve_completer(
-    current: &std::ffi::OsStr,
-) -> Vec<CompletionCandidate> {
-    let Some(current) = current.to_str() else {
-        return vec![];
-    };
-    let Ok(config) = Config::load() else {
-        return vec![];
-    };
-    let repositories = RepoTree::load_silent(&config, false);
-    let candidates = get_candidates(&config, &repositories);
-    let matcher = SkimMatcherV2::default();
-    candidates
-        .keys()
-        .filter_map(|item| {
-            matcher.fuzzy_match(item, current).map(|_| {
-                let repository = candidates.get(item).unwrap();
+pub fn resolve_completer() -> ArgValueCompleter {
+    ArgValueCompleter::new(|current: &OsStr| {
+        let Some(current) = current.to_str() else {
+            return vec![];
+        };
+        let Ok(config) = Config::load() else {
+            return vec![];
+        };
+        let repositories = RepoTree::load_silent(&config, false);
+        let candidates = get_candidates(&config, &repositories);
+        let matcher = SkimMatcherV2::default();
 
-                CompletionCandidate::new(item)
-                    .tag(repository.id.remote_host(&config).ok().flatten().map(
-                        |r| StyledStr::from(r.category.dir_name().to_string()),
-                    ))
-                    .help(repository_candidate_help(repository, &config))
+        candidates
+            .keys()
+            .filter_map(|item| {
+                matcher.fuzzy_match(item, current).map(|_| {
+                    let repository = candidates.get(item).unwrap();
+
+                    CompletionCandidate::new(item)
+                        .tag(
+                            repository
+                                .id
+                                .remote_host(&config)
+                                .ok()
+                                .flatten()
+                                .map(|r| {
+                                    StyledStr::from(
+                                        r.category.dir_name().to_string(),
+                                    )
+                                }),
+                        )
+                        .help(repository_candidate_help(repository, &config))
+                })
             })
-        })
-        .collect()
+            .collect::<Vec<CompletionCandidate>>()
+    })
 }
