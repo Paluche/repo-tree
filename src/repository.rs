@@ -12,7 +12,7 @@ use crate::config::Config;
 use crate::error::NoRepositoryError;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_id::RepoId;
-use crate::tree::TreeSpace;
+use crate::tree_space::TreeSpace;
 use crate::utils::get_last_modified;
 use crate::version_control_system::VcsRepository;
 use crate::version_control_system::VersionControlSystem;

@@ -2,7 +2,7 @@
 use clap::Args;
 
 use crate::config::Config;
-use crate::tree::RepoTree;
+use crate::repo_tree::RepoTree;
 
 /// Refresh the repositories cache.
 #[derive(Args)]

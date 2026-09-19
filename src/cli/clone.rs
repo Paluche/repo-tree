@@ -7,7 +7,7 @@ use super::ForceTreeSpace;
 use super::force_tree_into_strategy;
 use crate::config::Config;
 use crate::repo_id::RepoId;
-use crate::tree::RepoTree;
+use crate::repo_tree::RepoTree;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::jujutsu;
 
