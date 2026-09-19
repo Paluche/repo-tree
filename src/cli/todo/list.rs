@@ -1,7 +1,6 @@
 //! List the operation to be done by the user in each repository.
 use clap::ArgAction;
 use clap::Args;
-use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
 use crossterm::terminal::Clear;
 use crossterm::terminal::ClearType;
@@ -19,7 +18,7 @@ pub struct ListArgs {
     /// as an union filter.
     #[arg(
         short='H', long="host", action=ArgAction::Append,
-        add=ArgValueCompleter::new(Config::host_completer)
+        add=Config::host_completer()
         )
     ]
     hosts: Vec<Glob>,

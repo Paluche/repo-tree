@@ -1,7 +1,6 @@
 //! List your repositories.
 use clap::ArgAction;
 use clap::Args;
-use clap_complete::engine::ArgValueCompleter;
 use globset::Glob;
 
 use crate::config::Config;
@@ -15,7 +14,7 @@ pub struct ListArgs {
     /// as an union filter.
     #[arg(
         short='H', long="host", action=ArgAction::Append,
-        add=ArgValueCompleter::new(Config::host_completer)
+        add=Config::host_completer()
         )
     ]
     hosts: Vec<Glob>,
