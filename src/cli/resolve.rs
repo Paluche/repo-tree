@@ -1,7 +1,6 @@
 //! Action to resolve the path to a repository from its name or alias.
 
 use clap::Args;
-use clap_complete::engine::ArgValueCompleter;
 
 use crate::config::Config;
 use crate::resolve::resolve;
@@ -13,7 +12,7 @@ use crate::tree::RepoTree;
 pub struct ResolveArgs {
     /// Repository identifier to resolve into the actual path within the
     /// repo_tree.
-    #[arg(add=ArgValueCompleter::new(resolve_completer))]
+    #[arg(add=resolve_completer())]
     repo_id: Option<String>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]

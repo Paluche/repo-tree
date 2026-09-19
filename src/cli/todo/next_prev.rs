@@ -2,7 +2,6 @@
 //! to be done by the user.
 use clap::ArgAction;
 use clap::Args;
-use clap_complete::engine::ArgValueCompleter;
 use crossterm::terminal::Clear;
 use crossterm::terminal::ClearType;
 use globset::Glob;
@@ -23,11 +22,7 @@ pub struct NextPrevArgs {
     /// Filter the repositories to list by their host. For example, "github" or
     /// "local". You can specify glob patterns. Can be specified multiple times
     /// as an union filter.
-    #[arg(
-        short='H', long="host", action=ArgAction::Append,
-        add=ArgValueCompleter::new(Config::host_completer)
-        )
-    ]
+    #[arg(short='H', long="host", action=ArgAction::Append, add=Config::host_completer())]
     hosts: Vec<Glob>,
     /// Filter the repositories to by their name. You can specify glob
     /// patterns. For example to filter only GitHub repositories from a
