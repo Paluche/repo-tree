@@ -1,3 +1,4 @@
 /target
+/enum_docs_derive/target
 *.pending-snap
 node_modules/
