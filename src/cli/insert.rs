@@ -11,8 +11,8 @@ use clap_complete::PathCompleter;
 use super::ForceTreeSpace;
 use super::force_tree_into_strategy;
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Clone a repository within the repo tree.
 #[derive(Args)]

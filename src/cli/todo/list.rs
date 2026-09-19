@@ -8,7 +8,7 @@ use globset::Glob;
 
 use crate::config::Config;
 use crate::error::NotImplementedError;
-use crate::tree::RepoTree;
+use crate::repo_tree::RepoTree;
 
 /// Custom git status. Concise, with all the data and without help text.
 #[derive(Args)]

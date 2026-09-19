@@ -4,7 +4,7 @@ use clap::Args;
 use globset::Glob;
 
 use crate::config::Config;
-use crate::tree::RepoTree;
+use crate::repo_tree::RepoTree;
 
 /// List all repositories in the repo_tree.
 #[derive(Args)]

@@ -11,8 +11,8 @@ use pollster::FutureExt;
 
 use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.

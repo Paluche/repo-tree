@@ -3,7 +3,7 @@ use clap::Args;
 
 use crate::cli::get_cwd;
 use crate::config::Config;
-use crate::tree::RepoTree;
+use crate::repo_tree::RepoTree;
 use crate::version_control_system::VersionControlSystem;
 
 /// Get the root and type of the repository the working directory or its

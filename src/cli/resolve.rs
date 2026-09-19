@@ -3,9 +3,9 @@
 use clap::Args;
 
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
-use crate::tree::RepoTree;
 
 /// Resolve the name of a repository into its path.
 #[derive(Args)]

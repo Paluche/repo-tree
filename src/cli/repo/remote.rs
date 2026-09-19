@@ -6,8 +6,8 @@ use clap_complete::engine::ArgValueCompleter;
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Get the root and type of the repository the working directory or its
 /// parent is into.

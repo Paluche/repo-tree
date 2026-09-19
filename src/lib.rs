@@ -10,9 +10,10 @@ mod forge;
 mod prompt;
 mod repo_id;
 mod repo_state;
+mod repo_tree;
 mod repository;
 mod resolve;
-mod tree;
+mod tree_space;
 mod utils;
 mod version_control_system;
 
