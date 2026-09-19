@@ -10,7 +10,7 @@ use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 
 use crate::config::Config;
-use crate::tree::RepoTree;
+use crate::repo_tree::RepoTree;
 
 /// Resolve the URL of a repository into its path.
 #[derive(Args)]

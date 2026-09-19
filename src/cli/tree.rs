@@ -8,9 +8,9 @@ use colored::ColoredString;
 use colored::Colorize;
 
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
-use crate::tree::TreeSpaceKind;
+use crate::tree_space::TreeSpaceKind;
 
 /// Display a tree of your repo_tree.
 #[derive(Args)]

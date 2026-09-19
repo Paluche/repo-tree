@@ -11,8 +11,8 @@ use crate::config::Config;
 use crate::error::NoRepositoryError;
 use crate::error::NotImplementedError;
 use crate::repo_id::ExpectedTreeStrategy;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 use crate::utils::into_iter_from;
 
 /// Go to the next or previous repository where you have to do something to keep

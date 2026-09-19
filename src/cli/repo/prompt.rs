@@ -9,8 +9,8 @@ use crate::config::Config;
 use crate::error::NoRepositoryError;
 use crate::prompt::Prompt;
 use crate::repo_id::ExpectedTreeStrategy;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Generate the prompt for your shell.
 #[derive(Args)]

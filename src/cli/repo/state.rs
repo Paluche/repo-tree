@@ -6,8 +6,8 @@ use clap_complete::engine::ArgValueCompleter;
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Find out if there is something to do by the user in order to keep this
 /// repository updated.

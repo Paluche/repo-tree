@@ -5,8 +5,8 @@ use std::error::Error;
 use clap::Args;
 
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Fetch all the repositories within the repo_tree.
 #[derive(Args)]

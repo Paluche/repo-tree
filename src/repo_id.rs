@@ -14,7 +14,7 @@ use crate::error::ParseUrlError;
 use crate::error::UnimplementedForgeApi;
 use crate::error::UnknownRemoteHostError;
 use crate::forge::ForgeApi;
-use crate::tree::TreeSpace;
+use crate::tree_space::TreeSpace;
 
 /// Parse the remote URL, to capture the different parts.
 fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {

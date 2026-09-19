@@ -5,9 +5,9 @@ use clap::Args;
 
 use crate::config::Config;
 use crate::error::NotImplementedError;
+use crate::repo_tree::RepoTree;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
-use crate::tree::RepoTree;
 
 /// Remove a repository from the repo tree.
 #[derive(Args)]

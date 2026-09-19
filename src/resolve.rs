@@ -16,9 +16,9 @@ use itertools::Itertools;
 use which::which;
 
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
-use crate::tree::TreeSpace;
+use crate::tree_space::TreeSpace;
 
 /// Find the shortest end-path to identify two path.
 fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
