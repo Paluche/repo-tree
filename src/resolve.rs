@@ -46,13 +46,13 @@ fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
 
 /// Reduce the name of the repositories to the shortest path that identifies
 /// each repositories individually.
-fn reduce_repo_names<'repos>(
+fn reduce_repo_names<'repo_tree>(
     config: &Config,
-    repositories: &'repos RepoTree,
-) -> BTreeMap<String, &'repos Repository> {
+    repo_tree: &'repo_tree RepoTree,
+) -> BTreeMap<String, &'repo_tree Repository> {
     let mut ret: BTreeMap<String, &Repository> = BTreeMap::new();
 
-    for repository in repositories.iter() {
+    for repository in repo_tree.iter() {
         let name = repository.id.name.clone();
         if let Some(full_name) = repository
             .id
@@ -92,11 +92,11 @@ fn reduce_repo_names<'repos>(
 
 /// Get the map associating valid repository identifiers to the associated
 /// repository present in the repo tree.
-fn get_candidates<'repos>(
+fn get_candidates<'repo_tree>(
     config: &Config,
-    repositories: &'repos RepoTree,
-) -> BTreeMap<String, &'repos Repository> {
-    let mut ret = reduce_repo_names(config, repositories);
+    repo_tree: &'repo_tree RepoTree,
+) -> BTreeMap<String, &'repo_tree Repository> {
+    let mut ret = reduce_repo_names(config, repo_tree);
 
     for (alias, repo_name) in config.command.resolve.aliases.iter() {
         if let Some(repo) = ret.get(repo_name) {
@@ -167,12 +167,12 @@ fn repository_candidate_help(
 }
 
 /// Resolve a repository identifier into a local repository.
-pub fn resolve<'repos>(
+pub fn resolve<'repo_tree>(
     config: &Config,
-    repositories: &'repos RepoTree,
+    repo_tree: &'repo_tree RepoTree,
     repo_id: Option<String>,
-) -> Result<Option<&'repos Repository>, Box<dyn Error>> {
-    let mut candidates = get_candidates(config, repositories);
+) -> Result<Option<&'repo_tree Repository>, Box<dyn Error>> {
+    let mut candidates = get_candidates(config, repo_tree);
 
     let repo_id = match repo_id {
         Some(repo_id) => repo_id,
@@ -260,8 +260,8 @@ pub fn resolve_completer() -> ArgValueCompleter {
         let Ok(config) = Config::load() else {
             return vec![];
         };
-        let repositories = RepoTree::load_silent(&config, false);
-        let candidates = get_candidates(&config, &repositories);
+        let repo_tree = RepoTree::load_silent(&config, false);
+        let candidates = get_candidates(&config, &repo_tree);
         let matcher = SkimMatcherV2::default();
 
         candidates

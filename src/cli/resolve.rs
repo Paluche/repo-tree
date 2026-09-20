@@ -21,9 +21,8 @@ pub struct ResolveArgs {
 
 /// Execute the `rt resolve` command.
 pub fn run(config: &Config, args: ResolveArgs) -> i32 {
-    let repositories = RepoTree::load(config, args.refresh_cache);
-    if let Some(repository) = match resolve(config, &repositories, args.repo_id)
-    {
+    let repo_tree = RepoTree::load(config, args.refresh_cache);
+    if let Some(repository) = match resolve(config, &repo_tree, args.repo_id) {
         Ok(r) => r,
         Err(err) => {
             eprintln!("{err}");

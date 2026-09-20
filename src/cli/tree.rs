@@ -52,14 +52,14 @@ impl DirState {
 
 /// Directory representation.
 #[derive(Default)]
-struct Directory<'repos> {
+struct Directory<'repo_tree> {
     /// Children directories within this directory.
     children: BTreeMap<String, Self>,
     /// Repository present in this directory.
-    repository: Option<&'repos Repository>,
+    repository: Option<&'repo_tree Repository>,
 }
 
-impl<'repos> Directory<'repos> {
+impl<'repo_tree> Directory<'repo_tree> {
     /// Get the components of the repository root path.
     fn get_repo_components(
         config: &Config,
@@ -77,7 +77,7 @@ impl<'repos> Directory<'repos> {
 
     /// Create a new Directory and all its children recursively leading to the
     /// repository.
-    fn new<T>(mut components: T, repository: &'repos Repository) -> Self
+    fn new<T>(mut components: T, repository: &'repo_tree Repository) -> Self
     where
         T: Iterator<Item = String>,
     {
@@ -101,7 +101,7 @@ impl<'repos> Directory<'repos> {
     fn insert_internal<T>(
         &mut self,
         mut components: T,
-        repository: &'repos Repository,
+        repository: &'repo_tree Repository,
     ) where
         T: Iterator<Item = String>,
     {
@@ -116,7 +116,7 @@ impl<'repos> Directory<'repos> {
     }
 
     /// Insert a repository.
-    fn insert(&mut self, config: &Config, repository: &'repos Repository) {
+    fn insert(&mut self, config: &Config, repository: &'repo_tree Repository) {
         self.insert_internal(
             Self::get_repo_components(config, repository).into_iter(),
             repository,
@@ -258,19 +258,19 @@ impl<'repos> Directory<'repos> {
 }
 
 /// Representation of the repo tree root directory.
-struct RootDirectory<'config, 'repos> {
+struct RootDirectory<'config, 'repo_tree> {
     /// Configuration of the rt tool.
     config: &'config Config,
     /// Associated Directory struct, head of the Directory struct tree.
-    directory: Directory<'repos>,
+    directory: Directory<'repo_tree>,
 }
 
-impl<'config, 'repos> RootDirectory<'config, 'repos> {
+impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
     /// Instantiate a RootDirectory.
-    fn new(config: &'config Config, repositories: &'repos RepoTree) -> Self {
-        let mut directory: Directory<'repos> = Directory::default();
+    fn new(config: &'config Config, repo_tree: &'repo_tree RepoTree) -> Self {
+        let mut directory: Directory<'repo_tree> = Directory::default();
 
-        for repository in repositories.iter() {
+        for repository in repo_tree.iter() {
             directory.insert(config, repository);
         }
 
@@ -278,7 +278,7 @@ impl<'config, 'repos> RootDirectory<'config, 'repos> {
     }
 }
 
-impl<'config, 'repos> Display for RootDirectory<'config, 'repos> {
+impl<'config, 'repo_tree> Display for RootDirectory<'config, 'repo_tree> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.directory.display(
             f,
