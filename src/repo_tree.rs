@@ -108,11 +108,11 @@ impl RepoTree {
     ) -> (Self, Option<Vec<PathBuf>>) {
         if !refresh_cache {
             match Self::from_cache() {
-                Ok(repositories) => {
-                    if repositories.iter().all(|r| {
+                Ok(repo_tree) => {
+                    if repo_tree.iter().all(|r| {
                         !r.remote_config.has_been_modified().unwrap_or(true)
                     }) {
-                        return (repositories, None);
+                        return (repo_tree, None);
                     }
                 }
                 Err(err) => {
@@ -152,12 +152,12 @@ impl RepoTree {
     }
 
     /// Load some of the repositories based on the provided filters.
-    pub fn filtered<'repos>(
-        &'repos self,
+    pub fn filtered<'repo_tree>(
+        &'repo_tree self,
         config: &Config,
         filter_hosts: &[Glob],
         filter_names: &[Glob],
-    ) -> Vec<&'repos Repository> {
+    ) -> Vec<&'repo_tree Repository> {
         self.repositories
             .iter()
             .filter(|r| {

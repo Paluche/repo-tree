@@ -25,8 +25,8 @@ pub struct RmArgs {
 
 /// Execute the `rt rm` command.
 pub async fn run(config: &Config, args: RmArgs) -> i32 {
-    let repositories = RepoTree::load(config, args.refresh_cache);
-    let repository = match resolve(config, &repositories, args.repo_id) {
+    let repo_tree = RepoTree::load(config, args.refresh_cache);
+    let repository = match resolve(config, &repo_tree, args.repo_id) {
         Ok(v) => match v {
             Some(repo) => repo,
             None => {
