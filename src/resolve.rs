@@ -173,6 +173,10 @@ pub fn resolve<'repo_tree>(
     repo_id: Option<String>,
 ) -> Result<Option<&'repo_tree Repository>, Box<dyn Error>> {
     let mut candidates = get_candidates(config, repo_tree);
+    if candidates.is_empty() {
+        eprintln!("No repository in repo-tree");
+        return Ok(None);
+    }
 
     let repo_id = match repo_id {
         Some(repo_id) => repo_id,
