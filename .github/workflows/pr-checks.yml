@@ -279,7 +279,7 @@ jobs:
                   `--workspace`,
                   `--all-targets`,
                   `--`,
-                  `-D`,
+                  `--deny`,
                   `warnings`,
                 ],
                 { silent: !debugEnabled, ignoreReturnCode: true }
