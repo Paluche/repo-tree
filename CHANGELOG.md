@@ -57,6 +57,8 @@ None
   then printing the help text instead of doing the resolution.
 - **fetch**: Fix the `jj` command line that was fetching the repository to use
   the default fetch configuration. Using `rt fetch` we did not fetch the tags.
+- **resolve**: Fix computation of the short repository identifiers when there
+  was a conflict.
 
 ## [0.2.0] - 2026-06-21
 

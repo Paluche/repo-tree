@@ -25,24 +25,16 @@ use crate::tree_space::TreeSpace;
 fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
     let mut ret_a = Vec::new();
     let mut ret_b = Vec::new();
-    for (a, b) in zip(
-        path_a.split('/').collect::<Vec<&str>>(),
-        path_b.split('/').collect::<Vec<&str>>(),
-    )
-    .rev()
-    {
+    for (a, b) in zip(path_a.split('/').rev(), path_b.split('/').rev()) {
         ret_a.insert(0, a);
         ret_b.insert(0, b);
+
         if a != b {
-            break;
+            return Some((ret_a.join("/"), ret_b.join("/")));
         }
     }
 
-    if ret_a != ret_b {
-        Some((ret_a.join("/"), ret_b.join("/")))
-    } else {
-        None
-    }
+    None
 }
 
 /// Get the workspace associated with the repository candidate. Based on the
@@ -381,4 +373,45 @@ pub fn resolve_completer() -> ArgValueCompleter {
             })
             .collect::<Vec<CompletionCandidate>>()
     })
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_reduce_same_length() {
+        assert_eq!(
+            reduce("foo/bar/dead/beaf/toutidou", "foo/bar/deaf/beaf/toutidou",),
+            Some((
+                "dead/beaf/toutidou".to_string(),
+                "deaf/beaf/toutidou".to_string(),
+            ))
+        )
+    }
+
+    #[test]
+    fn test_reduce_different_length_diff() {
+        assert_eq!(
+            reduce("foo/bar/dead/beaf/toutidou", "deaf/beaf/toutidou",),
+            Some((
+                "dead/beaf/toutidou".to_string(),
+                "deaf/beaf/toutidou".to_string(),
+            ))
+        )
+    }
+
+    #[test]
+    fn test_reduce_min_length_match() {
+        assert_eq!(
+            reduce("foo/bar/dead/beaf/toutidou", "dead/beaf/toutidou",),
+            None,
+            // TODO Should it actually be the following?
+            // Some((
+            //     "bar/dead/beaf/toutidou".to_string(),
+            //     "deaf/beaf/toutidou".to_string(),
+            // ))
+        )
+    }
 }
