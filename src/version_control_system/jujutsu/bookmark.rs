@@ -3,16 +3,16 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
-use std::process::Command;
 
-use colored::Colorize;
-
-use crate::error::CommandError;
+use super::command::JujutsuCommand;
+use crate::config::JujutsuBookmarkConfig;
 
 /// Representation of a bookmark.
 pub struct Bookmark {
     /// Name of the Bookmark.
     name: String,
+    /// The local tracked bookmark is conflicted.
+    conflicted: bool,
     /// Target of the local bookmark.
     local_target: Option<String>,
     /// The bookmark is deleted locally and pending to be deleted remotely with
@@ -39,26 +39,33 @@ impl Bookmark {
     }
 
     /// Get the bookmark short representation.
-    pub fn get_repr(&self) -> Vec<String> {
-        if self.is_remote_only() {
+    pub fn get_repr(
+        &self,
+        bookmark_config: &JujutsuBookmarkConfig,
+    ) -> Vec<String> {
+        if self.conflicted {
+            Vec::from([bookmark_config
+                .tracked
+                .colorize(format!("{}??", self.name))])
+        } else if self.is_remote_only() {
             self.remotes
                 .iter()
                 .map(|remote| {
-                    format!("{}@{}", self.name.as_str(), remote)
-                        .purple()
-                        .to_string()
+                    bookmark_config.remote.colorize(format!(
+                        "{}@{}",
+                        self.name.as_str(),
+                        remote
+                    ))
                 })
                 .collect()
         } else if self.is_local_only() {
-            Vec::from([self.name.as_str().bright_green().to_string()])
+            Vec::from([bookmark_config.local.colorize(&self.name)])
         } else {
-            Vec::from([format!(
+            Vec::from([bookmark_config.tracked.colorize(format!(
                 "{}{}",
                 self.name.as_str(),
                 if self.modified { "*" } else { "" }
-            )
-            .bright_purple()
-            .to_string()])
+            ))])
         }
     }
 }
@@ -73,6 +80,7 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
         "remote",
         r#"if(normal_target, normal_target.change_id(), "")"#,
         "synced",
+        "conflict",
     ]
     .join(r#"++ "|" ++ "#)
         + r#"++ "\n""#;
@@ -82,6 +90,7 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
         remote: Option<String>,
         target: Option<String>,
         synced: bool,
+        conflict: bool,
     }
 
     impl Line {
@@ -111,23 +120,26 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
             let remote = option_string_part(parts.next().unwrap());
             let target = option_string_part(parts.next().unwrap());
             let synced = bool_part(parts.next().unwrap());
+            let conflict = bool_part(parts.next().unwrap());
 
             Self {
                 name,
                 remote,
                 target,
                 synced,
+                conflict,
             }
         }
 
         fn into_bookmark(self) -> Bookmark {
             Bookmark {
                 name: self.name,
-                deleted: if self.remote.is_none() {
+                deleted: if self.remote.is_none() && !self.conflict {
                     self.target.is_none()
                 } else {
                     false
                 },
+                conflicted: self.conflict,
                 local_target: if self.remote.is_none() {
                     self.target
                 } else {
@@ -152,25 +164,16 @@ pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
         }
     }
 
-    let mut command = Command::new("jj");
-    let output = command
-        .arg("--repository")
-        .arg(repo_path)
+    let lines: Vec<Line> = JujutsuCommand::new()?
+        .repository(repo_path)
         .arg("bookmark")
         .arg("list")
         .arg("--all")
         .arg("--template")
         .arg(template)
-        .output()?;
-
-    if !output.status.success() {
-        return Err(Box::new(CommandError::new(command, output)));
-    }
-
-    let lines: Vec<Line> = String::from_utf8(output.stdout)?
-        .split("\n")
-        .filter(|l| !l.is_empty())
-        .map(Line::from_line)
+        .output_lines()?
+        .iter()
+        .map(|l| Line::from_line(l))
         .collect();
 
     let mut ret = HashMap::new();

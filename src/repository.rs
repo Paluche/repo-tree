@@ -12,7 +12,8 @@ use crate::config::Config;
 use crate::error::NoRepositoryError;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_id::RepoId;
-use crate::tree::TreeSpace;
+use crate::tree_space::TreeSpace;
+use crate::tree_space::TreeSpaceKind;
 use crate::utils::get_last_modified;
 use crate::version_control_system::VcsRepository;
 use crate::version_control_system::VersionControlSystem;
@@ -46,19 +47,70 @@ impl RemoteConfig {
     }
 }
 
+/// A repository workspace.
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+pub enum Workspace {
+    /// Workspace located within a known tree-space.
+    Tree(TreeSpace, PathBuf),
+    /// Workspace located outside a known tree-space.
+    Other(PathBuf),
+}
+
+impl Workspace {
+    /// Create a new Workspace.
+    fn new(maybe_tree_space: Option<TreeSpace>, path: &Path) -> Self {
+        match maybe_tree_space {
+            Some(tree_space) => Self::Tree(tree_space, path.to_path_buf()),
+            None => Self::Other(path.to_path_buf()),
+        }
+    }
+
+    /// Is the workspace located within a known tree-space?
+    fn is_tree_workspace(&self, tree_space: &TreeSpace) -> bool {
+        match self {
+            Self::Tree(t, _) => t == tree_space,
+            Self::Other(_) => false,
+        }
+    }
+
+    /// Is the workspace located within a main kind tree-space?
+    fn is_main_workspace(&self) -> bool {
+        match self {
+            Self::Tree(tree_space, _) => {
+                matches!(tree_space.kind(), TreeSpaceKind::Main)
+            }
+            Self::Other(_) => true,
+        }
+    }
+
+    /// Get the tree-space associated with the workspace if applicable.
+    pub fn tree_space(&self) -> Option<&TreeSpace> {
+        match self {
+            Self::Tree(tree_space, _) => Some(tree_space),
+            Self::Other(_) => None,
+        }
+    }
+
+    /// Get the path to the workspace.
+    pub fn path(&self) -> &PathBuf {
+        match self {
+            Self::Tree(_, path) => path,
+            Self::Other(path) => path,
+        }
+    }
+}
+
 /// Representation of a repository.
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub struct Repository {
-    /// Identifier of the repository.
-    pub tree: Option<TreeSpace>,
+    /// Paths to the different workspaces in the repo tree for that repository.
+    pub workspaces: Vec<Workspace>,
     /// Identifier of the repository.
     pub id: RepoId,
     /// Type of version control system the repository uses.
     pub vcs: VersionControlSystem,
     /// Boolean indicating if the repository is a git submodule or not.
     pub is_submodule: bool,
-    /// Path to the root of the repository.
-    pub root: PathBuf,
     /// Path to the file containing the remote information.
     pub remote_config: RemoteConfig,
 }
@@ -74,7 +126,9 @@ impl Repository {
 
         while let Some(root) = current_path {
             match Self::try_new(config, root) {
-                Ok(repo) => return Ok(repo),
+                Ok(repo) => {
+                    return Ok(repo);
+                }
                 Err(err) => {
                     if err.downcast_ref::<NoRepositoryError>().is_none() {
                         return Err(err);
@@ -94,24 +148,28 @@ impl Repository {
         strategy: ExpectedTreeStrategy,
     ) -> Result<Self, Box<dyn Error>> {
         let repository = Self::discover_silent(config, path)?;
+        let workspace = repository.get_latest_workspace();
 
-        if let Some(expected_root) =
-            repository.expected_root(config, strategy).await?
-            && repository.root != expected_root
-            && !config.should_be_ignored(&repository.root)
+        if let Some(expected_root) = repository
+            .expected_root(workspace, config, strategy)
+            .await?
         {
-            eprintln!(
-                "⚠️Unexpected location for the repository {}. Currently in \
-                 \"{}\" should be in \"{}\". Run `{}` to fix it.",
-                repository.id.name,
-                repository.root.display(),
-                expected_root.display(),
-                if repository.root.starts_with(&config.root) {
-                    "rt clean".to_string()
-                } else {
-                    format!("rt insert \"{}\"", repository.root.display())
-                }
-            );
+            let root = workspace.path();
+
+            if root != &expected_root && !config.should_be_ignored(root) {
+                eprintln!(
+                    "⚠️Unexpected location for the repository {}. Currently \
+                     in \"{}\" should be in \"{}\". Run `{}` to fix it.",
+                    repository.id.name,
+                    root.display(),
+                    expected_root.display(),
+                    if root.starts_with(&config.root) {
+                        "rt clean".to_string()
+                    } else {
+                        format!("rt insert \"{}\"", root.display())
+                    }
+                );
+            }
         }
         Ok(repository)
     }
@@ -120,25 +178,86 @@ impl Repository {
     pub fn try_new(
         config: &Config,
         root: &Path,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Repository, Box<dyn Error>> {
         if let Some((vcs, is_submodule)) = VersionControlSystem::try_new(root) {
             let (remote_config, remote_url) =
                 vcs.get_repo(root).get_remote_url()?;
             let id = RepoId::from_repo(&root, remote_url.as_ref())?;
 
-            let tree = TreeSpace::from_path(config, root);
+            let workspace =
+                Workspace::new(TreeSpace::from_path(config, root), root);
 
             Ok(Self {
-                tree,
+                workspaces: Vec::from([workspace]),
                 id,
                 vcs,
                 is_submodule,
-                root: root.to_path_buf(),
                 remote_config: RemoteConfig::new(remote_config)?,
             })
         } else {
             Err(Box::new(NoRepositoryError(root.to_path_buf())))
         }
+    }
+}
+
+impl Repository {
+    /// Find out if the repository has the specified workspace.
+    fn has_workspace(&self, workspace: &Workspace) -> bool {
+        self.workspaces.iter().find(|w| w == &workspace).is_some()
+    }
+
+    /// Try to get the workspace located in the specified tree-space.
+    pub fn get_tree_workspace(
+        &self,
+        tree_space: &TreeSpace,
+    ) -> Option<&Workspace> {
+        let res: Vec<&Workspace> = self
+            .workspaces
+            .iter()
+            .filter(|workspace| workspace.is_tree_workspace(tree_space))
+            .collect();
+
+        if res.is_empty() {
+            None
+        } else {
+            if res.len() != 1 {
+                eprintln!(
+                    "Found several copies of a same repository for a same \
+                     tree-space"
+                );
+            }
+            Some(res[0])
+        }
+    }
+
+    /// Get the workspace which corresponds to the main repository.
+    pub fn get_main_workspace(&self) -> &Workspace {
+        if self.workspaces.len() == 1 {
+            return &self.workspaces[0];
+        }
+        let res: Vec<&Workspace> = self
+            .workspaces
+            .iter()
+            .filter(|workspace| workspace.is_main_workspace())
+            .collect();
+
+        if res.is_empty() {
+            panic!();
+        } else {
+            if res.len() != 1 {
+                eprintln!("Found several copies of a same main repository.");
+            }
+            res[0]
+        }
+    }
+
+    /// Get the workspace which has been added to the repository last. Should
+    /// correspond to the last workspace discovered for that repository.
+    pub fn get_latest_workspace(&self) -> &Workspace {
+        self.workspaces
+            .iter()
+            .last()
+            .expect("Must have at least 1 element")
     }
 
     /// Get the expected path to the root of the repository within the repo
@@ -148,15 +267,17 @@ impl Repository {
     // we should not have to do uselessly multiple times.
     pub async fn expected_root(
         &self,
+        workspace: &Workspace,
         config: &Config,
         strategy: ExpectedTreeStrategy,
     ) -> Result<Option<PathBuf>, Box<dyn Error>> {
+        assert!(self.has_workspace(workspace));
         Ok(if self.is_submodule {
             None
         } else {
             Some(
                 self.id
-                    .expected_tree(config, Some(&self.root), strategy)
+                    .expected_tree(config, Some(workspace.path()), strategy)
                     .await?
                     .repo_location(config, &self.id)?,
             )
@@ -164,9 +285,14 @@ impl Repository {
     }
 
     /// Get the git submodules present in the repository.
-    pub fn submodules(&self) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
+    pub fn submodules(
+        &self,
+        workspace: &Workspace,
+    ) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
+        assert!(self.has_workspace(workspace));
+
         Ok(if self.vcs.is_git() {
-            git::submodules::get(&self.root, &self.id.remote)?
+            git::submodules::get(workspace.path(), &self.id.remote)?
         } else {
             Vec::new()
         })
@@ -174,7 +300,12 @@ impl Repository {
 
     /// Get the struct to use to interact with the version control system of the
     /// repository.
-    pub fn get_vcs_repo(&self) -> Box<dyn VcsRepository> {
-        self.vcs.get_repo(&self.root)
+    pub fn get_vcs_repo(
+        &self,
+        workspace: &Workspace,
+    ) -> Box<dyn VcsRepository> {
+        assert!(self.has_workspace(workspace));
+
+        self.vcs.get_repo(workspace.path())
     }
 }

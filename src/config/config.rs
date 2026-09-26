@@ -8,6 +8,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use clap::builder::StyledStr;
+use clap_complete::engine::ArgValueCompleter;
 use clap_complete::engine::CompletionCandidate;
 use serde::Deserialize;
 use serde::Serialize;
@@ -102,18 +103,22 @@ impl Config {
         })
     }
 
-    /// Obtain completion candidates for a CLI host argument.
-    pub fn host_completer(&self, current: &OsStr) -> Vec<CompletionCandidate> {
-        self.remote_hosts
-            .iter()
-            .filter(|(host, _)| {
-                host.starts_with(current.to_str().unwrap_or(""))
+    /// Obtain the auto-completion candidates for a host argument.
+    pub fn host_completer() -> ArgValueCompleter {
+        ArgValueCompleter::new(|current: &OsStr| {
+            Config::load().map_or(Vec::new(), |c| {
+                c.remote_hosts
+                    .iter()
+                    .filter(|(host, _)| {
+                        host.starts_with(current.to_str().unwrap_or(""))
+                    })
+                    .map(|(host, data)| {
+                        CompletionCandidate::new(data.category.name.clone())
+                            .help(Some(StyledStr::from(host)))
+                    })
+                    .collect::<Vec<CompletionCandidate>>()
             })
-            .map(|(host, data)| {
-                CompletionCandidate::new(data.category.name.clone())
-                    .help(Some(StyledStr::from(host)))
-            })
-            .collect()
+        })
     }
 
     /// Get the specified RemoteHost struct for a given host.
@@ -132,11 +137,11 @@ impl Config {
 mod tests {
     use std::collections::BTreeMap;
 
-    use colored::Color;
     use globset::Glob;
     use indoc::indoc;
 
     use super::*;
+    use crate::colors::Color;
     use crate::colors::ColoredList;
     use crate::colors::ColoredText;
     use crate::config::host::HostInfo;
@@ -144,6 +149,7 @@ mod tests {
     use crate::config::prompt::GitUpstreamConfig;
     use crate::config::prompt::JujutsuBookmarkConfig;
     use crate::config::prompt::JujutsuPromptConfig;
+    use crate::config::prompt::JujutsuTagConfig;
     use crate::config::prompt::VcsPromptConfig;
     use crate::config::tree_category::TreeCategory;
     use crate::forge::Forge;
@@ -159,7 +165,7 @@ mod tests {
                     category: TreeCategory::new(
                         "test".to_string(),
                         None,
-                        ColoredText::new("󰙨", Color::Yellow),
+                        ColoredText::new("󰙨", Color::yellow()),
                     ),
                     info: HostInfo { forge: None },
                 },
@@ -337,7 +343,7 @@ mod tests {
                     name: "github",
                     raw_dir_name: None,
                     dir_name: "github",
-                    repr: ColoredText::new("", Color::White),
+                    repr: ColoredText::new("", Color::white()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::GitHub),
@@ -367,7 +373,7 @@ mod tests {
                     name: "kernel",
                     raw_dir_name: None,
                     dir_name: "kernel",
-                    repr: ColoredText::new("", Color::White),
+                    repr: ColoredText::new("", Color::white()),
                 },
                 info: HostInfo { forge: None },
             },
@@ -380,7 +386,7 @@ mod tests {
                     name: "bitbucket",
                     raw_dir_name: None,
                     dir_name: "bitbucket",
-                    repr: ColoredText::new("", Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::Bitbucket),
@@ -395,7 +401,7 @@ mod tests {
                     name: "codeberg",
                     raw_dir_name: None,
                     dir_name: "codeberg",
-                    repr: ColoredText::new("", Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::Forgejo),
@@ -411,7 +417,7 @@ mod tests {
                     name: "dev",
                     raw_dir_name: None,
                     dir_name: "dev",
-                    repr: ColoredText::new("", Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
             },
             LocalTreeSpaceRef {
@@ -419,7 +425,7 @@ mod tests {
                     name: "local",
                     raw_dir_name: None,
                     dir_name: "local",
-                    repr: ColoredText::new("󰋊", Color::White),
+                    repr: ColoredText::new("󰋊", Color::white()),
                 },
             },
             ArchiveTreeSpaceRef {
@@ -427,7 +433,7 @@ mod tests {
                     name: "archive",
                     raw_dir_name: None,
                     dir_name: "archive",
-                    repr: ColoredText::new("󰀼", Color::Yellow),
+                    repr: ColoredText::new("󰀼", Color::yellow()),
                 },
             },
         );
@@ -436,7 +442,7 @@ mod tests {
         check_unknown_host(
             &config,
             UnknownHost {
-                repr: ColoredText::new("", Color::Red),
+                repr: ColoredText::new("", Color::red()),
             },
         );
 
@@ -444,40 +450,55 @@ mod tests {
         assert_eq!(
             &config.prompt,
             &PromptConfig {
-                prefix: ColoredText::new("┣━┫", Color::Cyan),
-                separator: ColoredText::new("|", Color::Cyan),
+                prefix: ColoredText::new("┣━┫", Color::cyan()),
+                separator: ColoredText::new("|", Color::cyan()),
                 vcs: VcsPromptConfig {
                     git: ColoredText::new("󰊢", 166),
-                    jj: ColoredText::new("", Color::Blue),
+                    jj: ColoredText::new("", Color::blue()),
                 },
+                id: Color::green(),
                 git: GitPromptConfig {
-                    ongoing_operations: ColoredList::new("⛏", "🞍", Color::Red),
-                    branches: ColoredList::new("󰫍", "🞍", Color::Blue),
-                    tags: ColoredList::new("", "🞍", Color::Yellow),
+                    ongoing_operations: ColoredList::new(
+                        "⛏",
+                        "🞍",
+                        Color::red()
+                    ),
+                    branches: ColoredList::new("󰫍", "🞍", Color::blue()),
+                    tags: ColoredList::new("", "🞍", Color::yellow()),
                     upstream: GitUpstreamConfig::new(
                         "", "", "", "", "", "", "", 208,
                     ),
-                    stash: ColoredText::new("", Color::White),
+                    stash: ColoredText::new("", Color::white()),
                 },
                 jj: JujutsuPromptConfig {
                     bookmark: JujutsuBookmarkConfig {
-                        parent: ColoredList::new("󰫍", "🞍", Color::Yellow),
-                        current: ColoredList::new("󰫍", "🞍", Color::BrightBlue),
+                        local: Color::bright_green(),
+                        remote: Color::magenta(),
+                        tracked: Color::bright_magenta(),
+                        parent: ColoredList::new("󰫍", "🞍", Color::yellow()),
+                        current: ColoredList::new(
+                            "󰫍",
+                            "🞍",
+                            Color::bright_blue()
+                        ),
                         descendants: ColoredList::new(
                             "󰫎",
                             "🞍",
-                            Color::BrightBlue
+                            Color::bright_blue()
                         ),
-                        none: ColoredText::new("󰫌", Color::BrightBlack),
+                        none: ColoredText::new("󰫌", Color::bright_black()),
                         deleted: ColoredList::new(
                             "󰠙",
                             "🞍",
-                            colored::Color::AnsiColor(166)
+                            Color::ansi_color(166)
                         ),
                     },
-                    tags: ColoredList::new("", "🞍", Color::Yellow),
-                    wc_conflict: ColoredText::new("󰝧", Color::BrightRed),
-                    conflict: ColoredText::new("󰝧", Color::Red),
+                    tags: JujutsuTagConfig {
+                        repr: ColoredList::new("", "🞍", Color::yellow()),
+                        name: Color::yellow(),
+                    },
+                    wc_conflict: ColoredText::new("󰝧", Color::bright_red()),
+                    conflict: ColoredText::new("󰝧", Color::red()),
                 }
             },
         );
@@ -576,6 +597,9 @@ mod tests {
         text = ""
         color = "red"
 
+        [prompt]
+        id = "green"
+
         [prompt.prefix]
         text = "┣━┫"
         color = "cyan"
@@ -621,6 +645,11 @@ mod tests {
         text = ""
         color = "white"
 
+        [prompt.jj.bookmark]
+        local = "bright green"
+        remote = "magenta"
+        tracked = "bright magenta"
+
         [prompt.jj.bookmark.parent]
         prefix = "󰫍"
         separator = "🞍"
@@ -646,6 +675,9 @@ mod tests {
         color = 166
 
         [prompt.jj.tags]
+        name = "yellow"
+
+        [prompt.jj.tags.repr]
         prefix = ""
         separator = "🞍"
         color = "yellow"
@@ -753,14 +785,19 @@ mod tests {
         color = 'red'
 
         [prompt.jj.bookmark]
+        local = 'bright blue'
+        remote = 'blue'
         parent = { prefix = 'P', separator = ', ', color = 'green' }
         current = { prefix = 'C', separator = ', ', color = 'blue' }
         descendants = { prefix = 'D', separator = ', ', color = 'magenta' }
         none = { text = 'N', color = 'white' }
         deleted = { prefix = 'D', separator = ', ', color = 'bright yellow' }
 
+        [prompt.jj.tags]
+        repr = { prefix = 'T', separator = ', ', color = 'bright yellow'}
+        name = 'bright yellow'
+
         [prompt.jj]
-        tags = { prefix = 'T', separator = ', ', color = 'bright yellow'}
         wc_conflict = { text = '!', color = 'bright blue'}
         conflict = { text = '!', color = 'blue'}
 
@@ -799,7 +836,7 @@ mod tests {
                     name: "github",
                     raw_dir_name: None,
                     dir_name: "github",
-                    repr: ColoredText::new("", Color::White),
+                    repr: ColoredText::new("", Color::white()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::GitHub),
@@ -829,7 +866,7 @@ mod tests {
                     name: "mine",
                     raw_dir_name: None,
                     dir_name: "mine",
-                    repr: ColoredText::new("󱘎", Color::Blue),
+                    repr: ColoredText::new("󱘎", Color::blue()),
                 },
                 info: HostInfo { forge: None },
             },
@@ -842,7 +879,7 @@ mod tests {
                     name: "buildroot",
                     raw_dir_name: Some("."),
                     dir_name: ".",
-                    repr: ColoredText::new("󰥯", Color::Yellow),
+                    repr: ColoredText::new("󰥯", Color::yellow()),
                 },
                 info: HostInfo { forge: None },
             },
@@ -855,7 +892,7 @@ mod tests {
                     name: "bitbucket",
                     raw_dir_name: None,
                     dir_name: "bitbucket",
-                    repr: ColoredText::new("", Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::Bitbucket),
@@ -909,7 +946,7 @@ mod tests {
                     name: "kernel",
                     raw_dir_name: None,
                     dir_name: "kernel",
-                    repr: ColoredText::new("", Color::White),
+                    repr: ColoredText::new("", Color::white()),
                 },
                 info: HostInfo { forge: None },
             },
@@ -922,7 +959,7 @@ mod tests {
                     name: "codeberg",
                     raw_dir_name: None,
                     dir_name: "codeberg",
-                    repr: ColoredText::new("", Color::Blue),
+                    repr: ColoredText::new("", Color::blue()),
                 },
                 info: HostInfo {
                     forge: Some(Forge::Forgejo),
@@ -934,7 +971,7 @@ mod tests {
         check_unknown_host(
             &config,
             UnknownHost {
-                repr: ColoredText::new("?", Color::BrightRed),
+                repr: ColoredText::new("?", Color::bright_red()),
             },
         );
 
@@ -945,7 +982,7 @@ mod tests {
                     name: "dev",
                     raw_dir_name: None,
                     dir_name: "dev",
-                    repr: ColoredText::new("D", Color::Red),
+                    repr: ColoredText::new("D", Color::red()),
                 },
             },
             LocalTreeSpaceRef {
@@ -953,7 +990,7 @@ mod tests {
                     name: "local",
                     raw_dir_name: None,
                     dir_name: "local",
-                    repr: ColoredText::new("L", Color::Blue),
+                    repr: ColoredText::new("L", Color::blue()),
                 },
             },
             ArchiveTreeSpaceRef {
@@ -961,7 +998,7 @@ mod tests {
                     name: "archive",
                     raw_dir_name: Some("archives"),
                     dir_name: "archives",
-                    repr: ColoredText::new("A", Color::Red),
+                    repr: ColoredText::new("A", Color::red()),
                 },
             },
         );
@@ -970,16 +1007,21 @@ mod tests {
         assert_eq!(
             &config.prompt,
             &PromptConfig {
-                prefix: ColoredText::new("|", Color::Blue),
-                separator: ColoredText::new("/", Color::Blue),
+                prefix: ColoredText::new("|", Color::blue()),
+                separator: ColoredText::new("/", Color::blue()),
                 vcs: VcsPromptConfig {
-                    git: ColoredText::new("G", Color::AnsiColor(167)),
-                    jj: ColoredText::new("J", Color::Cyan),
+                    git: ColoredText::new("G", Color::ansi_color(167)),
+                    jj: ColoredText::new("J", Color::cyan()),
                 },
+                id: Color::green(),
                 git: GitPromptConfig {
-                    ongoing_operations: ColoredList::new("", ", ", Color::Blue),
-                    branches: ColoredList::new("B", ", ", Color::Yellow),
-                    tags: ColoredList::new("T", ", ", Color::BrightYellow),
+                    ongoing_operations: ColoredList::new(
+                        "",
+                        ", ",
+                        Color::blue()
+                    ),
+                    branches: ColoredList::new("B", ", ", Color::yellow()),
+                    tags: ColoredList::new("T", ", ", Color::bright_yellow()),
                     upstream: GitUpstreamConfig::new(
                         "G",
                         "V",
@@ -988,29 +1030,39 @@ mod tests {
                         "D",
                         "L",
                         "_",
-                        Color::Green,
+                        Color::green(),
                     ),
-                    stash: ColoredText::new("stash", Color::Red),
+                    stash: ColoredText::new("stash", Color::red()),
                 },
                 jj: JujutsuPromptConfig {
                     bookmark: JujutsuBookmarkConfig {
-                        parent: ColoredList::new("P", ", ", Color::Green,),
-                        current: ColoredList::new("C", ", ", Color::Blue,),
+                        local: Color::bright_blue(),
+                        remote: Color::blue(),
+                        tracked: Color::bright_magenta(),
+                        parent: ColoredList::new("P", ", ", Color::green(),),
+                        current: ColoredList::new("C", ", ", Color::blue(),),
                         descendants: ColoredList::new(
                             "D",
                             ", ",
-                            Color::Magenta,
+                            Color::magenta(),
                         ),
-                        none: ColoredText::new("N", Color::White),
+                        none: ColoredText::new("N", Color::white()),
                         deleted: ColoredList::new(
                             "D",
                             ", ",
-                            Color::BrightYellow
+                            Color::bright_yellow()
                         ),
                     },
-                    tags: ColoredList::new("T", ", ", Color::BrightYellow),
-                    wc_conflict: ColoredText::new("!", Color::BrightBlue),
-                    conflict: ColoredText::new("!", Color::Blue),
+                    tags: JujutsuTagConfig {
+                        repr: ColoredList::new(
+                            "T",
+                            ", ",
+                            Color::bright_yellow()
+                        ),
+                        name: Color::bright_yellow(),
+                    },
+                    wc_conflict: ColoredText::new("!", Color::bright_blue()),
+                    conflict: ColoredText::new("!", Color::blue()),
                 }
             },
         );
@@ -1149,6 +1201,9 @@ mod tests {
         text = "?"
         color = "bright red"
 
+        [prompt]
+        id = "green"
+
         [prompt.prefix]
         text = "|"
         color = "blue"
@@ -1194,6 +1249,11 @@ mod tests {
         text = "stash"
         color = "red"
 
+        [prompt.jj.bookmark]
+        local = "bright blue"
+        remote = "blue"
+        tracked = "bright magenta"
+
         [prompt.jj.bookmark.parent]
         prefix = "P"
         separator = ", "
@@ -1219,6 +1279,9 @@ mod tests {
         color = "bright yellow"
 
         [prompt.jj.tags]
+        name = "bright yellow"
+
+        [prompt.jj.tags.repr]
         prefix = "T"
         separator = ", "
         color = "bright yellow"

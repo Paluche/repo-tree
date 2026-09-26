@@ -2,19 +2,18 @@
 use std::fs::remove_dir_all;
 
 use clap::Args;
-use clap_complete::engine::ArgValueCompleter;
 
 use crate::config::Config;
 use crate::error::NotImplementedError;
+use crate::repo_tree::RepoTree;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
-use crate::tree::RepoTree;
 
 /// Remove a repository from the repo tree.
 #[derive(Args)]
 pub struct RmArgs {
     /// Repository identifier identifying the repository to remove.
-    #[arg(add=ArgValueCompleter::new(resolve_completer))]
+    #[arg(add=resolve_completer())]
     repo_id: Option<String>,
     /// Force the removal of the repository, even if it is not empty.
     #[arg(short, long)]
@@ -26,22 +25,25 @@ pub struct RmArgs {
 
 /// Execute the `rt rm` command.
 pub async fn run(config: &Config, args: RmArgs) -> i32 {
-    let repositories = RepoTree::load(config, args.refresh_cache);
-    let repository = match resolve(config, &repositories, args.repo_id) {
-        Ok(v) => match v {
-            Some(repo) => repo,
-            None => {
-                eprintln!("No repository found matching the given identifier");
-                return 2;
+    let repo_tree = RepoTree::load(config, args.refresh_cache);
+    let (repository, workspace) =
+        match resolve(config, &repo_tree, args.repo_id, None) {
+            Ok(v) => match v {
+                Some(repo) => repo,
+                None => {
+                    eprintln!(
+                        "No repository found matching the given identifier"
+                    );
+                    return 2;
+                }
+            },
+            Err(err) => {
+                eprintln!("{err}");
+                return 1;
             }
-        },
-        Err(err) => {
-            eprintln!("{err}");
-            return 1;
-        }
-    };
+        };
 
-    match &repository.get_vcs_repo().get_repo_state() {
+    match &repository.get_vcs_repo(workspace).get_repo_state() {
         Ok(repo_state) => {
             if repo_state.has_unpushed_commits() {
                 eprintln!("WARNING: The repository has unpushed commits");
@@ -62,8 +64,9 @@ pub async fn run(config: &Config, args: RmArgs) -> i32 {
     if !args.force {
         // Ask the user for confirmation before removing the repository.
         println!(
-            "Are you sure you want to remove the repository {}? [y/N]",
-            repository.root.display()
+            "Are you sure you want to remove the repository {} from the
+            repo-tree? [y/N]",
+            repository.id.display(config),
         );
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
@@ -73,16 +76,19 @@ pub async fn run(config: &Config, args: RmArgs) -> i32 {
         }
     }
 
-    // Remove the repository from the repo tree.
-    remove_dir_all(&repository.root).expect("Failed to remove the repository");
+    for workspace in repository.workspaces.iter() {
+        let root = workspace.path();
+        // Remove the repository from the repo tree.
+        remove_dir_all(root).expect("Failed to remove the repository");
 
-    // Remove parent directories if they are empty.
-    let parent = &repository.root;
-    while let Some(parent) = parent.parent() {
-        if parent.read_dir().unwrap().next().is_none() {
-            std::fs::remove_dir(parent).unwrap();
-        } else {
-            break;
+        // Remove parent directories if they are empty.
+        let parent = &root;
+        while let Some(parent) = parent.parent() {
+            if parent.read_dir().unwrap().next().is_none() {
+                std::fs::remove_dir(parent).unwrap();
+            } else {
+                break;
+            }
         }
     }
 

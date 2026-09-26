@@ -10,11 +10,14 @@ and this project adheres to
 
 ### Release highlights
 
-Introduction of the `tree-spaces`, you have three available ones being:
+- Introduction of the `tree-spaces`, you have three available ones being:
 
-- `dev`: Active (non-archived) repositories with a remote.
-- `local`: Repositories without a remote.
-- `archive`: Archive repositories with a remote.
+  - `dev`: Active (non-archived) repositories with a remote.
+  - `local`: Repositories without a remote.
+  - `archive`: Archive repositories with a remote.
+
+- Introduction of the "workspace tree-spaces" allowing to have several copies of
+  a same repository on different trees.
 
 ### Breaking changes
 
@@ -41,13 +44,21 @@ None
 
 - We are no more depending on the `jj-lib` crate. All `jj` interaction are done
   by calling the CLI.
-- jj prompt: Display the list of locally deleted bookmarks pending to be either
-  pushed and deleted from the remote too or be forgotten locally about.
+- **jj prompt**: Display the list of locally deleted bookmarks pending to be either
+  pushed and deleted from the remote too or to be forgotten locally about.
+- **jj prompt**: Make the bookmark and tags prompt even more configurable. Might
+  break local configuration.
 
 ### Fixed bugs
 
 - Fix computation of the expected path of a local repository, to properly use
   the configuration values.
+- **rcd**: Fix bug when arguments contain -h anywhere within. The function was
+  then printing the help text instead of doing the resolution.
+- **fetch**: Fix the `jj` command line that was fetching the repository to use
+  the default fetch configuration. Using `rt fetch` we did not fetch the tags.
+- **resolve**: Fix computation of the short repository identifiers when there
+  was a conflict.
 
 ## [0.2.0] - 2026-06-21
 

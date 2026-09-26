@@ -125,7 +125,7 @@ fn generate_rcd_zsh(
 
         function rcd()
         {
-            if [[ "$@" == *-h* ]] || [[ "$@" == *--help* ]]
+            if ((${@[(Ie)-h]})) || ((${@[(Ie)--help]}))
             then
                 echo "Resolve the name of a repository and cd in its location"
                 echo ""
@@ -143,7 +143,7 @@ fn generate_rcd_zsh(
                 return 0
             fi
 
-            if [ "${*}" = '-' ]
+            if [ "${#}" -eq 1 ] && [ "${1}" = "-" ]
             then
                 if [ -n "${__PREVIOUS_REPO_ROOT}" ]
                 then
@@ -154,7 +154,7 @@ fn generate_rcd_zsh(
                     return 1
                 fi
             else
-                p=$(rt resolve $@)
+                p=$(rt resolve "$@")
                 a=$?
             fi
 

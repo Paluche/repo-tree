@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use super::TreeCategory;
+use crate::colors::Color;
 use crate::colors::ColoredText;
 
 /// Configuration for the different tree spaces.
@@ -35,7 +36,7 @@ impl Default for DevTreeSpace {
             category: TreeCategory::new(
                 "dev".to_string(),
                 None,
-                ColoredText::new("", colored::Color::Blue),
+                ColoredText::new("", Color::blue()),
             ),
         }
     }
@@ -56,7 +57,7 @@ impl Default for LocalTreeSpace {
             category: TreeCategory::new(
                 "local".to_string(),
                 None,
-                ColoredText::new("󰋊", colored::Color::White),
+                ColoredText::new("󰋊", Color::white()),
             ),
         }
     }
@@ -76,7 +77,7 @@ impl Default for ArchiveTreeSpace {
             category: TreeCategory::new(
                 "archive".to_string(),
                 None,
-                ColoredText::new("󰀼", colored::Color::Yellow),
+                ColoredText::new("󰀼", Color::yellow()),
             ),
         }
     }

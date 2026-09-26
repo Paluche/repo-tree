@@ -5,11 +5,9 @@ use std::fs::canonicalize;
 use std::fs::read_to_string;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
-
-use which::which;
 
 use super::super::git;
+use super::command::JujutsuCommand;
 use super::get_jj_dir;
 use super::get_repo_dir;
 
@@ -31,18 +29,13 @@ pub fn get_remote_url(
     Ok(git::get_remote_url_repo(&get_git_backend_repo(repo_path)?)?)
 }
 
-/// Start a new command line to call jj.
-fn new_jj_command() -> Command {
-    Command::new(which("jj").expect("Jujutsu not installed"))
-}
-
 /// Clone a Jujutsu repository.
 pub fn clone<P: AsRef<OsStr>>(
     remote_url: &str,
     location: P,
     colocated: bool,
-) -> i32 {
-    new_jj_command()
+) -> Result<(), Box<dyn Error>> {
+    JujutsuCommand::new()?
         .arg("git")
         .arg("clone")
         .arg(if colocated {
@@ -53,39 +46,31 @@ pub fn clone<P: AsRef<OsStr>>(
         .arg(remote_url)
         .arg(location)
         .status()
-        .expect("Error executing command")
-        .code()
-        .unwrap()
 }
 
 /// Initialize a Git-colocated Jujutsu repository.
-pub fn init_colocate<P: AsRef<OsStr>>(location: P) -> i32 {
-    new_jj_command()
+pub fn init_colocate<P: AsRef<OsStr>>(
+    location: P,
+) -> Result<(), Box<dyn Error>> {
+    JujutsuCommand::new()?
         .arg("git")
         .arg("init")
         .arg("--colocate")
         .arg(location)
         .status()
-        .expect("Error executing command")
-        .code()
-        .unwrap()
 }
 
 /// Fetch the repository.
-pub fn fetch<P: AsRef<OsStr>>(location: P, quiet: bool) -> i32 {
-    let mut cmd = new_jj_command();
-    cmd.arg("--repository")
-        .arg(location)
-        .arg("git")
-        .arg("fetch")
-        .arg("--all-remotes");
+pub fn fetch<P: AsRef<OsStr>>(
+    location: P,
+    quiet: bool,
+) -> Result<(), Box<dyn Error>> {
+    let mut cmd = JujutsuCommand::new()?;
+    cmd.repository(location).arg("git").arg("fetch");
 
     if quiet {
         cmd.arg("--quiet");
     }
 
     cmd.status()
-        .expect("Error executing command")
-        .code()
-        .unwrap()
 }

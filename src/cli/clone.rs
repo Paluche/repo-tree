@@ -7,7 +7,7 @@ use super::ForceTreeSpace;
 use super::force_tree_into_strategy;
 use crate::config::Config;
 use crate::repo_id::RepoId;
-use crate::tree::RepoTree;
+use crate::repo_tree::RepoTree;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::jujutsu;
 
@@ -30,7 +30,7 @@ async fn do_clone(
     force_tree: Option<ForceTreeSpace>,
     repo_id: &RepoId,
     vcs: &VersionControlSystem,
-) -> Result<i32, Box<dyn Error>> {
+) -> Result<(), Box<dyn Error>> {
     let location = repo_id
         .expected_tree(config, None, force_tree_into_strategy(force_tree))
         .await?
@@ -48,10 +48,7 @@ async fn do_clone(
                 && matches!(vcs, VersionControlSystem::JujutsuGit)
             {
                 eprintln!("Repository already cloned, initializing JJ into");
-                let res = jujutsu::init_colocate(&location);
-                if res != 0 {
-                    return Ok(res);
-                }
+                jujutsu::init_colocate(&location)?;
             } else {
                 eprintln!(
                     "{} repository already cloned but is a {current_vcs} \
@@ -61,7 +58,7 @@ async fn do_clone(
             }
         } else {
             eprintln!("Clone location {} already exists", location.display());
-            return Ok(1);
+            return Ok(());
         }
     } else {
         let remote_url = &repo_id
@@ -70,18 +67,14 @@ async fn do_clone(
             .expect("Remote URL provided by the CLI")
             .url;
 
-        let res = vcs.get_repo(&location).clone(remote_url);
-
-        if res != 0 {
-            return Ok(res);
-        }
+        vcs.get_repo(&location).clone(remote_url)?;
     }
 
     // Refresh the cache.
     RepoTree::load(config, true);
 
     println!("{}", location.display());
-    Ok(0)
+    Ok(())
 }
 
 /// Execute the `rt clone` command.
@@ -90,7 +83,7 @@ pub async fn run(config: &Config, args: CloneArgs) -> i32 {
 
     if let Ok(repo_id) = RepoId::from_remote_url(&args.url) {
         match do_clone(config, args.force_tree, &repo_id, &vcs).await {
-            Ok(c) => c,
+            Ok(()) => 0,
             Err(err) => {
                 eprintln!("{err}");
                 1

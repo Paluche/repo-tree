@@ -1,20 +1,23 @@
 //! Action to resolve the path to a repository from its name or alias.
 
 use clap::Args;
-use clap_complete::engine::ArgValueCompleter;
 
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
-use crate::tree::RepoTree;
+use crate::tree_space::TreeSpace;
 
 /// Resolve the name of a repository into its path.
 #[derive(Args)]
 pub struct ResolveArgs {
     /// Repository identifier to resolve into the actual path within the
     /// repo_tree.
-    #[arg(add=ArgValueCompleter::new(resolve_completer))]
+    #[arg(add=resolve_completer())]
     repo_id: Option<String>,
+    /// Precise the tree-space from which you want the repository.
+    #[arg(short, long, add=TreeSpace::completer())]
+    tree: Option<TreeSpace>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
@@ -22,16 +25,17 @@ pub struct ResolveArgs {
 
 /// Execute the `rt resolve` command.
 pub fn run(config: &Config, args: ResolveArgs) -> i32 {
-    let repositories = RepoTree::load(config, args.refresh_cache);
-    if let Some(repository) = match resolve(config, &repositories, args.repo_id)
-    {
-        Ok(r) => r,
-        Err(err) => {
-            eprintln!("{err}");
-            return 1;
+    let repo_tree = RepoTree::load(config, args.refresh_cache);
+    if let Some((_, workspace)) =
+        match resolve(config, &repo_tree, args.repo_id, args.tree.as_ref()) {
+            Ok(r) => r,
+            Err(err) => {
+                eprintln!("{err}");
+                return 1;
+            }
         }
-    } {
-        println!("{}", repository.root.display());
+    {
+        println!("{}", workspace.path().display());
         0
     } else {
         2

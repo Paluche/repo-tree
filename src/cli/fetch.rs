@@ -5,8 +5,8 @@ use std::error::Error;
 use clap::Args;
 
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Fetch all the repositories within the repo_tree.
 #[derive(Args)]
@@ -39,7 +39,8 @@ pub fn fetch_repo(
     if !quiet {
         println!("Fetching repository {}", repository.id.display(config));
     }
-    for submodule in repository.submodules()? {
+    let workspace = repository.get_main_workspace();
+    for submodule in repository.submodules(workspace)? {
         let root = submodule.abs_path();
         let repository = Repository::try_new(config, &root)?;
 
@@ -57,7 +58,7 @@ pub fn fetch_repo(
         );
     }
 
-    ok += if repository.get_vcs_repo().fetch(quiet) == 0 {
+    ok += if repository.get_vcs_repo(workspace).fetch(quiet).is_ok() {
         1
     } else {
         0
@@ -69,11 +70,13 @@ pub fn fetch_repo(
 
 /// Execute `rt fetch` command.
 pub fn run(config: &Config, args: FetchArgs) -> i32 {
-    let repositories = RepoTree::load(config, args.refresh_cache);
+    let repo_tree = RepoTree::load(config, args.refresh_cache);
 
-    let (ok, total) = repositories
-        .iter()
-        .map(|r| fetch_repo(config, args.quiet, r, false).unwrap_or((0, 1)))
+    let (ok, total) = repo_tree
+        .repo_iter()
+        .map(|repo| {
+            fetch_repo(config, args.quiet, repo, false).unwrap_or((0, 1))
+        })
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
         .unwrap_or((0, 0));
 

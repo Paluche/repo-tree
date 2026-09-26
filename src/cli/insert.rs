@@ -11,8 +11,8 @@ use clap_complete::PathCompleter;
 use super::ForceTreeSpace;
 use super::force_tree_into_strategy;
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Clone a repository within the repo tree.
 #[derive(Args)]
@@ -29,7 +29,7 @@ pub struct InsertArgs {
     refresh_cache: bool,
 }
 
-/// Refresh the repositories cache based on the refresh_cache boolean value.
+/// Refresh the repo tree cache based on the refresh_cache boolean value.
 fn refresh_cache(config: &Config, refresh_cache: bool) {
     if refresh_cache {
         RepoTree::load(config, true);
@@ -47,8 +47,14 @@ pub async fn run(config: &Config, args: InsertArgs) -> i32 {
             }
         };
 
+    let workspace = repository.get_latest_workspace();
+
     let expected_root = match repository
-        .expected_root(config, force_tree_into_strategy(args.force_tree))
+        .expected_root(
+            repository.get_latest_workspace(),
+            config,
+            force_tree_into_strategy(args.force_tree),
+        )
         .await
     {
         Ok(value) => match value {
@@ -67,7 +73,8 @@ pub async fn run(config: &Config, args: InsertArgs) -> i32 {
         }
     };
 
-    if repository.root == expected_root {
+    let root = workspace.path();
+    if root == &expected_root {
         eprintln!("Repository already at the correct location");
         refresh_cache(config, args.refresh_cache);
         return 0;
@@ -83,18 +90,14 @@ pub async fn run(config: &Config, args: InsertArgs) -> i32 {
         return 1;
     }
 
-    if let Err(err) = rename(&repository.root, &expected_root) {
+    if let Err(err) = rename(root, &expected_root) {
         eprintln!("{err}");
         refresh_cache(config, args.refresh_cache);
         return 1;
     }
-    println!(
-        "{} moved to {}",
-        repository.root.display(),
-        expected_root.display()
-    );
+    println!("{} moved to {}", root.display(), expected_root.display());
 
-    let mut current = repository.root.as_path();
+    let mut current = root.as_path();
     let mut removed = false;
     while let Some(next) = current.parent() {
         if next

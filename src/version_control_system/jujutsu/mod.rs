@@ -1,10 +1,11 @@
 //! Module for retrieving JuJutsu information.
 mod bookmark;
+mod command;
 mod git;
 mod prompt;
 mod repo_state;
 mod revset;
-mod tag;
+mod workspace;
 
 use std::error::Error;
 use std::fs::read_to_string;
@@ -16,6 +17,7 @@ pub use git::init_colocate;
 
 use super::VcsRepository;
 use crate::config::Config;
+use crate::error::NotARepositoryError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
 
@@ -62,24 +64,50 @@ impl VcsRepository for JujutsuVcs {
         git::get_remote_url(&self.repo_path)
     }
 
-    fn clone(&self, remote_url: &str) -> i32 {
+    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
         git::clone(remote_url, &self.repo_path, self.colocated)
     }
 
-    fn fetch(&self, quiet: bool) -> i32 {
+    fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>> {
         git::fetch(&self.repo_path, quiet)
     }
 
-    fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32 {
-        let ret =
-            super::git::prompt::prompt(config, prompt, &self.repo_path, true);
-        if ret != 0 {
-            return ret;
+    fn prompt(
+        &self,
+        config: &Config,
+        prompt: &mut Prompt<'_>,
+    ) -> Result<(), Box<dyn Error>> {
+        if let Err(err) =
+            super::git::prompt::prompt(config, prompt, &self.repo_path, true)
+            && err.downcast_ref::<NotARepositoryError>().is_none()
+        {
+            return Err(err);
         }
         prompt::prompt(config, prompt, &self.repo_path)
     }
 
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
         repo_state::get_repo_state(&self.repo_path)
+    }
+
+    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
+        let workspaces = workspace::list_workspaces(&self.repo_path)?;
+
+        if workspaces.len() <= 1 {
+            return Ok(None);
+        }
+
+        Ok(workspaces
+            .into_iter()
+            .find(|w| w.path == self.repo_path)
+            .map(|w| w.name))
+    }
+
+    fn create_workspace(
+        &self,
+        name: &str,
+        destination: &Path,
+    ) -> Result<(), Box<dyn Error>> {
+        workspace::add_workspace(&self.repo_path, name, destination)
     }
 }

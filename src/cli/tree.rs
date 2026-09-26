@@ -8,8 +8,10 @@ use colored::ColoredString;
 use colored::Colorize;
 
 use crate::config::Config;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
+use crate::repository::Workspace;
+use crate::tree_space::TreeSpace;
 
 /// Display a tree of your repo_tree.
 #[derive(Args)]
@@ -51,24 +53,23 @@ impl DirState {
 
 /// Directory representation.
 #[derive(Default)]
-struct Directory<'repos> {
+struct Directory<'repo_tree> {
     /// Children directories within this directory.
     children: BTreeMap<String, Self>,
     /// Repository present in this directory.
-    repository: Option<&'repos Repository>,
+    repository: Option<(&'repo_tree Repository, &'repo_tree Workspace)>,
 }
 
-impl<'repos> Directory<'repos> {
+impl<'repo_tree> Directory<'repo_tree> {
     /// Get the components of the repository root path.
     fn get_repo_components(
         config: &Config,
-        repository: &Repository,
+        workspace: &Workspace,
     ) -> Vec<String> {
-        assert!(repository.root.starts_with(&config.root));
+        let root = workspace.path();
+        assert!(root.starts_with(&config.root));
 
-        repository
-            .root
-            .iter()
+        root.iter()
             .skip(config.root.iter().count())
             .map(|os_str| os_str.to_str().unwrap().to_owned())
             .collect()
@@ -76,13 +77,20 @@ impl<'repos> Directory<'repos> {
 
     /// Create a new Directory and all its children recursively leading to the
     /// repository.
-    fn new<T>(mut components: T, repository: &'repos Repository) -> Self
+    fn new<T>(
+        mut components: T,
+        repository: &'repo_tree Repository,
+        workspace: &'repo_tree Workspace,
+    ) -> Self
     where
         T: Iterator<Item = String>,
     {
         if let Some(child_name) = components.next() {
             let mut children = BTreeMap::new();
-            children.insert(child_name, Directory::new(components, repository));
+            children.insert(
+                child_name,
+                Directory::new(components, repository, workspace),
+            );
             Self {
                 children,
                 repository: None,
@@ -90,7 +98,7 @@ impl<'repos> Directory<'repos> {
         } else {
             Self {
                 children: BTreeMap::new(),
-                repository: Some(repository),
+                repository: Some((repository, workspace)),
             }
         }
     }
@@ -100,25 +108,34 @@ impl<'repos> Directory<'repos> {
     fn insert_internal<T>(
         &mut self,
         mut components: T,
-        repository: &'repos Repository,
+        repository: &'repo_tree Repository,
+        workspace: &'repo_tree Workspace,
     ) where
         T: Iterator<Item = String>,
     {
         if let Some(child_name) = components.next() {
             if let Some(sub_dir) = self.children.get_mut(&child_name) {
-                sub_dir.insert_internal(components, repository);
+                sub_dir.insert_internal(components, repository, workspace);
             } else {
-                self.children
-                    .insert(child_name, Directory::new(components, repository));
+                self.children.insert(
+                    child_name,
+                    Directory::new(components, repository, workspace),
+                );
             }
         }
     }
 
     /// Insert a repository.
-    fn insert(&mut self, config: &Config, repository: &'repos Repository) {
+    fn insert(
+        &mut self,
+        config: &Config,
+        repository: &'repo_tree Repository,
+        workspace: &'repo_tree Workspace,
+    ) {
         self.insert_internal(
-            Self::get_repo_components(config, repository).into_iter(),
+            Self::get_repo_components(config, workspace).into_iter(),
             repository,
+            workspace,
         );
     }
 
@@ -147,13 +164,15 @@ impl<'repos> Directory<'repos> {
             current_dir.to_string().blue(),
         )?;
 
-        if let Some(r) = &current.repository {
+        if let Some((r, w)) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
-            let submodules = r.submodules().unwrap();
+            let submodules = r.submodules(w).unwrap();
+            let workspace =
+                r.get_vcs_repo(w).get_workspace_name().unwrap_or(None);
             if let Some(remote) = &r.id.remote {
                 writeln!(
                     f,
-                    "{prefix}{}{} {}",
+                    "{prefix}{}{} {}{}{}",
                     if submodules.is_empty() {
                         DirState::FinalSubDir
                     } else {
@@ -162,6 +181,18 @@ impl<'repos> Directory<'repos> {
                     .get_subdir_prefix(),
                     remote.url.green(),
                     r.vcs.short_display(config),
+                    if let Some(workspace) = workspace {
+                        format!(" {workspace}@").bright_green().to_string()
+                    } else {
+                        "".to_string()
+                    },
+                    if let Some(tree_space) = w.tree_space()
+                        && matches!(tree_space, TreeSpace::Archive)
+                    {
+                        " 󰌾".red().to_string()
+                    } else {
+                        "".to_string()
+                    },
                 )?;
             }
             if !submodules.is_empty() {
@@ -243,27 +274,27 @@ impl<'repos> Directory<'repos> {
 }
 
 /// Representation of the repo tree root directory.
-struct RootDirectory<'config, 'repos> {
+struct RootDirectory<'config, 'repo_tree> {
     /// Configuration of the rt tool.
     config: &'config Config,
     /// Associated Directory struct, head of the Directory struct tree.
-    directory: Directory<'repos>,
+    directory: Directory<'repo_tree>,
 }
 
-impl<'config, 'repos> RootDirectory<'config, 'repos> {
+impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
     /// Instantiate a RootDirectory.
-    fn new(config: &'config Config, repositories: &'repos RepoTree) -> Self {
-        let mut directory: Directory<'repos> = Directory::default();
+    fn new(config: &'config Config, repo_tree: &'repo_tree RepoTree) -> Self {
+        let mut directory: Directory<'repo_tree> = Directory::default();
 
-        for repository in repositories.iter() {
-            directory.insert(config, repository);
+        for (repository, workspace) in repo_tree.workspace_iter() {
+            directory.insert(config, repository, workspace);
         }
 
         Self { config, directory }
     }
 }
 
-impl<'config, 'repos> Display for RootDirectory<'config, 'repos> {
+impl<'config, 'repo_tree> Display for RootDirectory<'config, 'repo_tree> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.directory.display(
             f,

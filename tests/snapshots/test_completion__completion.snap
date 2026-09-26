@@ -73,7 +73,7 @@ precmd_functions+='_update_repo_root'
 
 function rcd()
 {
-    if [[ "$@" == *-h* ]] || [[ "$@" == *--help* ]]
+    if ((${@[(Ie)-h]})) || ((${@[(Ie)--help]}))
     then
         echo "Resolve the name of a repository and cd in its location"
         echo ""
@@ -91,7 +91,7 @@ function rcd()
         return 0
     fi
 
-    if [ "${*}" = '-' ]
+    if [ "${#}" -eq 1 ] && [ "${1}" = "-" ]
     then
         if [ -n "${__PREVIOUS_REPO_ROOT}" ]
         then
@@ -102,7 +102,7 @@ function rcd()
             return 1
         fi
     else
-        p=$(rt resolve $@)
+        p=$(rt resolve "$@")
         a=$?
     fi
 

@@ -166,14 +166,29 @@ pub trait VcsRepository {
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>>;
 
     /// Clone a repository.
-    fn clone(&self, remote_url: &str) -> i32;
+    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>>;
 
     /// Fetch the repository.
-    fn fetch(&self, quiet: bool) -> i32;
+    fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>>;
 
     /// Build the prompt line for a repository.
-    fn prompt(&self, config: &Config, prompt: &mut Prompt<'_>) -> i32;
+    fn prompt(
+        &self,
+        config: &Config,
+        prompt: &mut Prompt<'_>,
+    ) -> Result<(), Box<dyn Error>>;
 
     /// Get the repository state.
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
+
+    /// The name of the workspace associated with the repository.
+    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>>;
+
+    /// Create a new workspace of the repository.
+    #[expect(dead_code)]
+    fn create_workspace(
+        &self,
+        name: &str,
+        destination: &Path,
+    ) -> Result<(), Box<dyn Error>>;
 }

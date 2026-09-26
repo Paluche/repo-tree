@@ -6,8 +6,8 @@ use clap_complete::engine::ArgValueCompleter;
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
+use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
-use crate::tree::RepoTree;
 
 /// Find out if there is something to do by the user in order to keep this
 /// repository updated.
@@ -70,7 +70,10 @@ pub async fn run(config: &Config, args: StateArgs) -> i32 {
         );
     }
 
-    let repo_state = match repository.get_vcs_repo().get_repo_state() {
+    let repo_state = match repository
+        .get_vcs_repo(repository.get_main_workspace())
+        .get_repo_state()
+    {
         Ok(v) => v,
         Err(err) => {
             eprintln!("{err}");
