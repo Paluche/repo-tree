@@ -9,13 +9,12 @@ use std::str::Chars;
 
 use chrono::DateTime;
 use chrono::Utc;
-use colored::ColoredString;
-use colored::Colorize;
 use pathdiff::diff_paths;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
 
 use super::new_git_command;
+use crate::config::GitStatusCommandConfig;
 use crate::utils::get_last_modified;
 
 #[derive(Hash, PartialEq, Eq, EnumIter)]
@@ -61,30 +60,63 @@ impl EntryStatus {
         }
     }
 
-    /// Get the colored string representation of the entry status.
-    fn to_colored_string(&self, staged: bool) -> ColoredString {
-        let ret = match self {
-            Self::Unmodified => " ",
-            Self::Modified => "M",
-            Self::FileTypeChanged => "T",
-            Self::Added => "A",
-            Self::Deleted => "D",
-            Self::Renamed => "R",
-            Self::Copied => "C",
-            Self::Updated => "U",
-            Self::Untracked => "?",
-            Self::Ignored => "!",
+    /// Obtain a struct which implements the Display trait for EntryStatus.
+    pub fn display<'entry_status, 'config>(
+        &'entry_status self,
+        git_status_config: &'config GitStatusCommandConfig,
+        staged: bool,
+    ) -> EntryStatusDisplay<'entry_status, 'config> {
+        EntryStatusDisplay {
+            entry_status: self,
+            git_status_config,
+            staged,
+        }
+    }
+}
+
+/// Implement the Display for the EntryStatus struct.
+pub struct EntryStatusDisplay<'entry_status, 'config> {
+    /// EntryStatus to display.
+    entry_status: &'entry_status EntryStatus,
+    /// Configuration dictating how to display the content of the entry status.
+    git_status_config: &'config GitStatusCommandConfig,
+    /// Set to true if the entry status represents a staged entry.
+    staged: bool,
+}
+
+impl<'entry_status, 'config> Display
+    for EntryStatusDisplay<'entry_status, 'config>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let entry_config = &self.git_status_config.entry;
+        let char_repr = match self.entry_status {
+            EntryStatus::Unmodified => entry_config.unmodified,
+            EntryStatus::Modified => entry_config.modified,
+            EntryStatus::FileTypeChanged => entry_config.file_type_changed,
+            EntryStatus::Added => entry_config.added,
+            EntryStatus::Deleted => entry_config.deleted,
+            EntryStatus::Renamed => entry_config.renamed,
+            EntryStatus::Copied => entry_config.copied,
+            EntryStatus::Updated => entry_config.updated,
+            EntryStatus::Untracked => entry_config.untracked,
+            EntryStatus::Ignored => entry_config.ignored,
         };
 
-        if matches!(self, Self::Unmodified | Self::Untracked | Self::Ignored) {
-            ret.white()
-        } else if matches!(self, Self::Updated) {
-            ret.red()
-        } else if staged {
-            ret.green()
-        } else {
-            ret.red()
-        }
+        let color = match self.entry_status {
+            EntryStatus::Unmodified
+            | EntryStatus::Untracked
+            | EntryStatus::Ignored => &self.git_status_config.unimportant,
+            EntryStatus::Updated => &self.git_status_config.updated,
+            _ => {
+                if self.staged {
+                    &self.git_status_config.staged
+                } else {
+                    &self.git_status_config.unstaged
+                }
+            }
+        };
+
+        write!(f, "{}", color.colorize(char_repr))
     }
 }
 
@@ -139,13 +171,41 @@ impl SubmoduleStatus {
         }
     }
 
-    /// Get the colored string representation of the entry status.
-    fn to_colored_string(&self) -> ColoredString {
-        match self {
-            Self::NotASubmodule => "    ".blue(),
-            Self::Untracked => "????".blue(),
-            Self::Ignored => "!!!!".blue(),
-            &Self::Submodule {
+    /// Obtain a struct which implements the Display trait for SubmoduleStatus.
+    pub fn display<'submodule_status, 'config>(
+        &'submodule_status self,
+        git_status_config: &'config GitStatusCommandConfig,
+    ) -> SubmoduleStatusDisplay<'submodule_status, 'config> {
+        SubmoduleStatusDisplay {
+            submodule_status: self,
+            git_status_config,
+        }
+    }
+}
+
+/// Implement the Display for the SubmoduleStatus struct.
+pub struct SubmoduleStatusDisplay<'submodule_status, 'config> {
+    /// SubmoduleStatus to display.
+    submodule_status: &'submodule_status SubmoduleStatus,
+    /// Configuration dictating how to display the content of the submodule
+    /// status.
+    git_status_config: &'config GitStatusCommandConfig,
+}
+
+impl<'submodule_status, 'config> Display
+    for SubmoduleStatusDisplay<'submodule_status, 'config>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = match self.submodule_status {
+            SubmoduleStatus::NotASubmodule => "    ".to_string(),
+            SubmoduleStatus::Untracked => {
+                format!("{0}{0}{0}{0}", self.git_status_config.entry.untracked)
+            }
+
+            SubmoduleStatus::Ignored => {
+                format!("{0}{0}{0}{0}", self.git_status_config.entry.ignored)
+            }
+            &SubmoduleStatus::Submodule {
                 commit_changed,
                 tracked_changed,
                 has_untracked,
@@ -154,9 +214,10 @@ impl SubmoduleStatus {
                 if commit_changed { "C" } else { " " },
                 if tracked_changed { "M" } else { " " },
                 if has_untracked { "?" } else { " " },
-            )
-            .blue(),
-        }
+            ),
+        };
+
+        write!(f, "{}", self.git_status_config.submodule.colorize(text))
     }
 }
 
@@ -226,19 +287,57 @@ pub struct ItemStatus {
 }
 
 impl ItemStatus {
-    /// Display the item status.
-    pub fn display(
-        &self,
-        cwd: &Path,
-        repo_root: &Path,
-        rel_path: Option<&str>,
-    ) -> String {
-        let mut ret = format!(
+    /// Obtain a struct which implements the Display trait for ItemStatus.
+    pub fn display<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>(
+        &'item_status self,
+        git_status_config: &'config GitStatusCommandConfig,
+        cwd: &'cwd Path,
+        repo_root: &'repo_root Path,
+        rel_path: Option<&'rel_path str>,
+    ) -> ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
+    {
+        ItemStatusDisplay {
+            item_status: self,
+            git_status_config,
+            cwd,
+            repo_root,
+            rel_path,
+        }
+    }
+}
+
+/// Implement the Display for the ItemStatus struct.
+pub struct ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
+{
+    /// ItemStatus to display.
+    item_status: &'item_status ItemStatus,
+    /// Configuration dictating how to display the content of the item status.
+    git_status_config: &'config GitStatusCommandConfig,
+    /// Current working directory.
+    cwd: &'cwd Path,
+    /// Absolute path to the root of the main repository.
+    repo_root: &'repo_root Path,
+    /// Relative path to the root of the repository, if it is a submodule.
+    rel_path: Option<&'rel_path str>,
+}
+
+impl<'item_status, 'config, 'cwd, 'repo_root, 'rel_path> Display
+    for ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
             "{}{} {} ",
-            self.staged.to_colored_string(true),
-            self.unstaged.to_colored_string(false),
-            self.submodule_status.to_colored_string(),
-        );
+            self.item_status
+                .staged
+                .display(self.git_status_config, true),
+            self.item_status
+                .unstaged
+                .display(self.git_status_config, false),
+            self.item_status
+                .submodule_status
+                .display(self.git_status_config),
+        )?;
 
         fn format_path(
             cwd: &Path,
@@ -255,12 +354,23 @@ impl ItemStatus {
             diff_paths(ret, cwd).unwrap().display().to_string()
         }
 
-        if let Some(orig_path) = &self.orig_path {
-            ret.push_str(&format_path(cwd, repo_root, rel_path, orig_path));
-            ret.push_str(" -> ");
+        if let Some(orig_path) = &self.item_status.orig_path {
+            write!(
+                f,
+                "{} -> ",
+                format_path(self.cwd, self.repo_root, self.rel_path, orig_path)
+            )?;
         }
-        ret.push_str(&format_path(cwd, repo_root, rel_path, &self.path));
-        ret
+        write!(
+            f,
+            "{}",
+            format_path(
+                self.cwd,
+                self.repo_root,
+                self.rel_path,
+                &self.item_status.path
+            )
+        )
     }
 }
 
@@ -460,16 +570,46 @@ pub struct UpstreamInfo {
     pub gone: bool,
 }
 
-impl Display for UpstreamInfo {
+impl UpstreamInfo {
+    /// Obtain a struct which implements the Display trait for SubmoduleStatus.
+    pub fn display<'upstream_info, 'config>(
+        &'upstream_info self,
+        git_status_config: &'config GitStatusCommandConfig,
+    ) -> UpstreamInfoDisplay<'upstream_info, 'config> {
+        UpstreamInfoDisplay {
+            upstream_info: self,
+            git_status_config,
+        }
+    }
+}
+
+/// Implement the Display for the UpstreamInfo struct.
+pub struct UpstreamInfoDisplay<'upstream_info, 'config> {
+    /// UpstreamInfo to display.
+    upstream_info: &'upstream_info UpstreamInfo,
+    /// Configuration dictating how to display the content of the item status.
+    git_status_config: &'config GitStatusCommandConfig,
+}
+
+impl<'upstream_info, 'config> Display
+    for UpstreamInfoDisplay<'upstream_info, 'config>
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let upstream_config = &self.git_status_config.upstream;
         write!(
             f,
             "{}{}  {}{}  {}",
-            self.ahead.to_string().green(),
-            "".green(),
-            self.behind.to_string().red(),
-            "".red(),
-            self.name.cyan()
+            upstream_config
+                .ahead
+                .color
+                .colorize(self.upstream_info.ahead),
+            upstream_config.ahead,
+            upstream_config
+                .behind
+                .color
+                .colorize(self.upstream_info.behind),
+            upstream_config.behind,
+            upstream_config.name.colorize(&self.upstream_info.name)
         )
     }
 }

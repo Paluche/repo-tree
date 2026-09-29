@@ -12,6 +12,7 @@ use colored::Colorize;
 // upcoming new VCS trait.
 use crate::cli::cwd_default_path;
 use crate::config::Config;
+use crate::config::GitStatusCommandConfig;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repository::Repository;
 use crate::tree::RepoTree;
@@ -37,6 +38,7 @@ pub struct StatusArgs {
 
 /// Build the multi-line string representing a repository status.
 fn format_repo_status(
+    git_status_config: &GitStatusCommandConfig,
     cwd: &Path,
     main_repo_path: &Path,
     rel_path: Option<&str>,
@@ -59,7 +61,10 @@ fn format_repo_status(
     let mut branch_info_line =
         format!("{} -> {}", head_info.oid.yellow(), head_info.branch.red());
     if let Some(upstream_info) = &head_info.upstream {
-        branch_info_line.push_str(&format!(" {upstream_info}"));
+        branch_info_line.push_str(&format!(
+            " {}",
+            upstream_info.display(git_status_config)
+        ));
     }
     ret.push_str(&format!("┊ {prefix}{branch_info_line}\n"));
 
@@ -103,7 +108,7 @@ fn format_repo_status(
         ret.push_str(&format!(
             "┊ {}{}\n",
             prefix,
-            item.display(cwd, main_repo_path, rel_path)
+            item.display(git_status_config, cwd, main_repo_path, rel_path)
         ));
         if matches!(item.submodule_status, SubmoduleStatus::Submodule { .. }) {
             let mut repo_path = main_repo_path.to_path_buf();
@@ -116,6 +121,7 @@ fn format_repo_status(
             let status = git::status(&repo_path).unwrap();
 
             ret.push_str(&format_repo_status(
+                git_status_config,
                 cwd,
                 main_repo_path,
                 Some(&rel_path),
@@ -157,6 +163,7 @@ pub async fn run(config: &Config, args: StatusArgs) -> i32 {
     println!(
         "{}",
         format_repo_status(
+            &config.command.git_status,
             if args.no_relative_path {
                 &repository.root
             } else {

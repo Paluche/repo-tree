@@ -531,6 +531,36 @@ fn default_config() -> Result<(), Box<dyn Error>> {
 
     [command.todo]
     ignore = []
+
+    [command.git_status]
+    unimportant = "white"
+    updated = "red"
+    staged = "green"
+    unstaged = "red"
+    submodule = "blue"
+
+    [command.git_status.upstream]
+    name = "cyan"
+
+    [command.git_status.upstream.ahead]
+    text = ""
+    color = "green"
+
+    [command.git_status.upstream.behind]
+    text = ""
+    color = "red"
+
+    [command.git_status.entry]
+    unmodified = " "
+    modified = "M"
+    file_type_changed = "T"
+    added = "A"
+    deleted = "D"
+    renamed = "R"
+    copied = "C"
+    updated = "U"
+    untracked = "?"
+    ignored = "!"
     "#);
 
     Ok(())
@@ -1123,6 +1153,36 @@ fn full_config() -> Result<(), Box<dyn Error>> {
 
     [command.todo]
     ignore = ["Paluche/jj-test-repo"]
+
+    [command.git_status]
+    unimportant = "white"
+    updated = "red"
+    staged = "green"
+    unstaged = "red"
+    submodule = "blue"
+
+    [command.git_status.upstream]
+    name = "cyan"
+
+    [command.git_status.upstream.ahead]
+    text = ""
+    color = "green"
+
+    [command.git_status.upstream.behind]
+    text = ""
+    color = "red"
+
+    [command.git_status.entry]
+    unmodified = " "
+    modified = "M"
+    file_type_changed = "T"
+    added = "A"
+    deleted = "D"
+    renamed = "R"
+    copied = "C"
+    updated = "U"
+    untracked = "?"
+    ignored = "!"
     "#);
 
     Ok(())

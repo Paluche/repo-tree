@@ -22,6 +22,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use clap_complete::engine::CompletionCandidate;
+pub use command::GitStatusCommandConfig;
 pub use config::Config;
 pub use host::RemoteHost;
 pub use prompt::JujutsuBookmarkConfig;

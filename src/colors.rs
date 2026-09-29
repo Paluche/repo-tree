@@ -308,7 +308,7 @@ pub struct ColoredText {
     /// Text value.
     text: String,
     /// Color of the text.
-    color: Color,
+    pub color: Color,
 }
 
 impl Deref for ColoredText {
