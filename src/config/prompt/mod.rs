@@ -1,8 +1,10 @@
 //! Configuration to customize the prompt display.
-mod git;
-mod jujutsu;
+pub(super) mod git;
+pub(super) mod jujutsu;
 
 pub use git::GitPromptConfig;
+pub use git::GitSummarizeStatusConfig;
+pub use git::GitSummarizeSubmoduleStatusConfig;
 pub use jujutsu::JujutsuBookmarkConfig;
 pub use jujutsu::JujutsuPromptConfig;
 pub use jujutsu::JujutsuTagConfig;

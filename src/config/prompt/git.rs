@@ -126,6 +126,140 @@ impl Default for GitUpstreamConfig {
     }
 }
 
+/// Configuration for the Git repository status summary in the prompt.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct GitSummarizeStatusConfig {
+    /// Representation that shows that the repository has at least one new file
+    /// added.
+    #[serde(default = "GitSummarizeStatusConfig::default_added")]
+    pub added: char,
+    /// Representation that shows that the repository has at least one tracked
+    /// file which is modified.
+    #[serde(default = "GitSummarizeStatusConfig::default_modified")]
+    pub modified: char,
+    /// Representation that shows that the repository has at least one tracked
+    /// file which type changed.
+    #[serde(default = "GitSummarizeStatusConfig::default_file_type_changed")]
+    pub file_type_changed: char,
+    /// Representation that shows that the repository has at least one of the
+    /// added file is a copy from another one.
+    #[serde(default = "GitSummarizeStatusConfig::default_copied")]
+    pub copied: char,
+    /// Representation that shows that the repository has at least one of the
+    /// tracked file has been renamed.
+    #[serde(default = "GitSummarizeStatusConfig::default_renamed")]
+    pub renamed: char,
+    /// Representation that shows that the repository has at least one of the,
+    /// previously, tracked file has been deleted.
+    #[serde(default = "GitSummarizeStatusConfig::default_deleted")]
+    pub deleted: char,
+    /// Representation that shows that the repository has at least one of the,
+    /// previously, tracked file has been deleted.
+    #[serde(default = "GitSummarizeStatusConfig::default_untracked")]
+    pub untracked: char,
+}
+
+#[allow(clippy::missing_docs_in_private_items)]
+impl GitSummarizeStatusConfig {
+    fn default_added() -> char {
+        ''
+    }
+
+    fn default_modified() -> char {
+        ''
+    }
+
+    fn default_file_type_changed() -> char {
+        ''
+    }
+
+    fn default_copied() -> char {
+        ''
+    }
+
+    fn default_renamed() -> char {
+        ''
+    }
+
+    fn default_deleted() -> char {
+        ''
+    }
+
+    fn default_untracked() -> char {
+        ''
+    }
+}
+
+impl Default for GitSummarizeStatusConfig {
+    fn default() -> Self {
+        Self {
+            added: Self::default_added(),
+            modified: Self::default_modified(),
+            file_type_changed: Self::default_file_type_changed(),
+            copied: Self::default_copied(),
+            renamed: Self::default_renamed(),
+            deleted: Self::default_deleted(),
+            untracked: Self::default_untracked(),
+        }
+    }
+}
+
+/// Configuration for the Git repository submodule status summary in the prompt.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct GitSummarizeSubmoduleStatusConfig {
+    /// Color to use to display the submodule status.
+    #[serde(default = "GitSummarizeSubmoduleStatusConfig::default_color")]
+    pub color: Color,
+    /// Representation that at least one submodule is at a different commit
+    /// than what is expected from the parent repository history.
+    #[serde(
+        default = "GitSummarizeSubmoduleStatusConfig::default_commit_changed"
+    )]
+    pub commit_changed: char,
+    /// Representation that at least one submodule has uncommit changes on
+    /// tracked files.
+    #[serde(
+        default = "GitSummarizeSubmoduleStatusConfig::default_tracked_changed"
+    )]
+    pub tracked_changed: char,
+    /// Representation that at least one submodule has untracked and
+    /// non-ignored files in it.
+    #[serde(
+        default = "GitSummarizeSubmoduleStatusConfig::default_has_untracked"
+    )]
+    pub has_untracked: char,
+}
+
+#[allow(clippy::missing_docs_in_private_items)]
+impl GitSummarizeSubmoduleStatusConfig {
+    fn default_color() -> Color {
+        Color::red()
+    }
+
+    fn default_commit_changed() -> char {
+        ''
+    }
+
+    fn default_tracked_changed() -> char {
+        ''
+    }
+
+    fn default_has_untracked() -> char {
+        ''
+    }
+}
+
+impl Default for GitSummarizeSubmoduleStatusConfig {
+    fn default() -> Self {
+        Self {
+            color: Self::default_color(),
+            commit_changed: Self::default_commit_changed(),
+            tracked_changed: Self::default_tracked_changed(),
+            has_untracked: Self::default_has_untracked(),
+        }
+    }
+}
+
 /// Configuration for the Git prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct GitPromptConfig {
@@ -141,6 +275,16 @@ pub struct GitPromptConfig {
     /// How to display the upstream information.
     #[serde(default)]
     pub upstream: GitUpstreamConfig,
+    /// How to display the status summary.
+    pub status: GitSummarizeStatusConfig,
+    /// Color to use to display the staged status.
+    #[serde(default = "GitPromptConfig::default_staged")]
+    pub staged: Color,
+    /// Color to use to display the unstaged status.
+    #[serde(default = "GitPromptConfig::default_unstaged")]
+    pub unstaged: Color,
+    /// How to display the status summary.
+    pub submodule_status: GitSummarizeSubmoduleStatusConfig,
     /// How to display the fact that there are stashed changes.
     #[serde(default = "GitPromptConfig::default_stash")]
     pub stash: ColoredText,
@@ -160,6 +304,14 @@ impl GitPromptConfig {
         ColoredList::new("", "🞍", Color::yellow())
     }
 
+    fn default_staged() -> Color {
+        Color::green()
+    }
+
+    fn default_unstaged() -> Color {
+        Color::red()
+    }
+
     fn default_stash() -> ColoredText {
         ColoredText::new("", Color::white())
     }
@@ -172,6 +324,10 @@ impl Default for GitPromptConfig {
             branches: Self::default_branches(),
             tags: Self::default_tags(),
             upstream: GitUpstreamConfig::default(),
+            status: GitSummarizeStatusConfig::default(),
+            staged: Self::default_staged(),
+            unstaged: Self::default_unstaged(),
+            submodule_status: GitSummarizeSubmoduleStatusConfig::default(),
             stash: Self::default_stash(),
         }
     }

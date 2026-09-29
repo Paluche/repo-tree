@@ -1,8 +1,6 @@
 //! Build the shell prompt information for Git repositories.
 use std::path::Path;
 
-use colored::Colorize;
-
 use crate::config::Config;
 use crate::prompt::Prompt;
 use crate::prompt::PromptListField;
@@ -59,13 +57,13 @@ pub fn prompt(
 
         prompt.push(format!(
             "{}{}",
-            staged.as_string().green(),
-            unstaged.as_string().red()
+            config.staged.colorize(staged.display(&config.status)),
+            config.unstaged.colorize(unstaged.display(&config.status)),
         ));
     }
 
     // Submodule status.
-    prompt.push(submodules.as_string().red());
+    prompt.push(submodules.display(&config.submodule_status));
 
     // stash status
     if git_status.nb_stash != 0 {
