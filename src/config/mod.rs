@@ -11,6 +11,8 @@ mod config;
 mod host;
 mod prompt;
 mod repository_location;
+#[cfg(test)]
+mod test;
 mod tree_category;
 mod tree_space;
 
