@@ -1,4 +1,7 @@
 //! Builder for prompt string.
+
+use std::fmt::Display;
+
 use itertools::join;
 
 use crate::colors::IsEmpty;
@@ -33,11 +36,11 @@ impl<'repo> Prompt<'repo> {
     }
 
     /// Obtain a displayable struct representing the Prompt.
-    pub fn display<'pb, 'config>(
-        &'pb self,
+    pub fn display<'prompt, 'config>(
+        &'prompt self,
         config: &'config Config,
-    ) -> Display<'pb, 'repo, 'config> {
-        Display {
+    ) -> PromptDisplay<'prompt, 'repo, 'config> {
+        PromptDisplay {
             prompt: self,
             config,
         }
@@ -45,7 +48,7 @@ impl<'repo> Prompt<'repo> {
 }
 
 /// Displayable struct representing the Prompt.
-pub struct Display<'prompt, 'repo, 'config> {
+pub struct PromptDisplay<'prompt, 'repo, 'config> {
     /// Prompt we are displaying.
     prompt: &'prompt Prompt<'repo>,
     // XXX Tree representation!!!!
@@ -53,8 +56,8 @@ pub struct Display<'prompt, 'repo, 'config> {
     config: &'config Config,
 }
 
-impl<'prompt, 'repo, 'config> std::fmt::Display
-    for Display<'prompt, 'repo, 'config>
+impl<'prompt, 'repo, 'config> Display
+    for PromptDisplay<'prompt, 'repo, 'config>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -131,7 +134,7 @@ impl IsEmpty for PromptListField {
     }
 }
 
-impl std::fmt::Display for PromptListField {
+impl Display for PromptListField {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", join(self.list.iter(), self.separator))
     }
