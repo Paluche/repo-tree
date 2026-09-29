@@ -4,7 +4,6 @@ use std::fmt::Display;
 
 use itertools::join;
 
-use crate::colors::IsEmpty;
 use crate::config::Config;
 use crate::repository::Repository;
 
@@ -28,8 +27,9 @@ impl<'repo> Prompt<'repo> {
     /// Extend the prompt line with a string.
     pub fn push<S>(&mut self, string: S)
     where
-        S: ToString + IsEmpty,
+        S: ToString,
     {
+        let string = string.to_string();
         if !string.is_empty() {
             self.fields.push(string.to_string())
         }
@@ -120,16 +120,16 @@ impl PromptListField {
     /// Extend the prompt line with a string.
     pub fn push<S>(&mut self, string: S)
     where
-        S: ToString + IsEmpty,
+        S: ToString,
     {
+        let string = string.to_string();
         if !string.is_empty() {
-            self.list.push(string.to_string())
+            self.list.push(string);
         }
     }
-}
 
-impl IsEmpty for PromptListField {
-    fn is_empty(&self) -> bool {
+    /// Is the list empty?
+    pub fn is_empty(&self) -> bool {
         self.list.is_empty()
     }
 }

@@ -10,7 +10,6 @@ use super::repo_state::wc_has_conflicts;
 use super::revset;
 use super::revset::RevSetOrder;
 use crate::colors::ColoredList;
-use crate::colors::IsEmpty;
 use crate::config::Config;
 use crate::config::JujutsuBookmarkConfig;
 use crate::config::JujutsuTagConfig;

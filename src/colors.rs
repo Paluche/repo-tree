@@ -4,28 +4,12 @@ use core::str::FromStr;
 use std::fmt::Display;
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::ops::Deref;
 
 use colored::Colorize;
 use itertools::join;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::ser::SerializeSeq;
-
-/// Trait to implement is_empty().
-pub trait IsEmpty {
-    /// Find out if the struct is to be considered empty.
-    fn is_empty(&self) -> bool;
-}
-
-impl<T> IsEmpty for T
-where
-    T: Deref<Target = str>,
-{
-    fn is_empty(&self) -> bool {
-        self.deref().is_empty()
-    }
-}
 
 /// Color configuration.
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -311,20 +295,6 @@ pub struct ColoredText {
     pub color: Color,
 }
 
-impl Deref for ColoredText {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.text
-    }
-}
-
-impl IsEmpty for &ColoredText {
-    fn is_empty(&self) -> bool {
-        self.text.is_empty()
-    }
-}
-
 impl ColoredText {
     /// Create a new ColoredText.
     pub fn new<S, C>(text: S, color: C) -> Self
@@ -336,6 +306,11 @@ impl ColoredText {
             text: text.to_string(),
             color: Color::from(color),
         }
+    }
+
+    /// Find out if the colored text is to be considered empty.
+    pub fn is_empty(&self) -> bool {
+        self.text.is_empty()
     }
 }
 
@@ -394,17 +369,15 @@ pub struct ColoredListDisplay<'config, 'list, T> {
     list: &'list [T],
 }
 
-impl<'config, 'list, T> IsEmpty for ColoredListDisplay<'config, 'list, T> {
-    fn is_empty(&self) -> bool {
-        self.list.is_empty()
-    }
-}
-
 impl<'config, 'list, T> Display for ColoredListDisplay<'config, 'list, T>
 where
     T: Display,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.list.is_empty() {
+            return Ok(());
+        }
+
         write!(
             f,
             "{}",
