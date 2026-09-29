@@ -25,6 +25,8 @@ use clap_complete::engine::CompletionCandidate;
 pub use command::GitStatusCommandConfig;
 pub use config::Config;
 pub use host::RemoteHost;
+pub use prompt::GitSummarizeStatusConfig;
+pub use prompt::GitSummarizeSubmoduleStatusConfig;
 pub use prompt::JujutsuBookmarkConfig;
 pub use prompt::JujutsuTagConfig;
 pub use tree_category::TreeCategory;

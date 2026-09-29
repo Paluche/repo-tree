@@ -99,6 +99,10 @@ fn default_config() -> Result<(), Box<dyn Error>> {
     text = ""
     color = "blue"
 
+    [prompt.git]
+    staged = "green"
+    unstaged = "red"
+
     [prompt.git.ongoing_operations]
     prefix = "⛏"
     separator = "🞍"
@@ -123,6 +127,21 @@ fn default_config() -> Result<(), Box<dyn Error>> {
     local = ""
     detached = ""
     color = 208
+
+    [prompt.git.status]
+    added = ""
+    modified = ""
+    file_type_changed = ""
+    copied = ""
+    renamed = ""
+    deleted = ""
+    untracked = ""
+
+    [prompt.git.submodule_status]
+    color = "red"
+    commit_changed = ""
+    tracked_changed = ""
+    has_untracked = ""
 
     [prompt.git.stash]
     text = ""

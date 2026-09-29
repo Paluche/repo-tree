@@ -15,6 +15,8 @@ use strum::IntoEnumIterator;
 
 use super::new_git_command;
 use crate::config::GitStatusCommandConfig;
+use crate::config::GitSummarizeStatusConfig;
+use crate::config::GitSummarizeSubmoduleStatusConfig;
 use crate::utils::get_last_modified;
 
 #[derive(Hash, PartialEq, Eq, EnumIter)]
@@ -254,20 +256,44 @@ impl SummarizeSubmoduleStatus {
         }
     }
 
-    /// Convert the summary into a short representation string based on logos.
-    pub fn as_string(&self) -> String {
-        let mut ret = String::new();
-        if self.commit_changed != 0 {
-            ret.push('');
+    /// Obtain a struct which implements the Display trait for
+    /// SummarizeSubmoduleStatus.
+    pub fn display<'submodule_status, 'config>(
+        &'submodule_status self,
+        config: &'config GitSummarizeSubmoduleStatusConfig,
+    ) -> SummarizeSubmoduleStatusDisplay<'submodule_status, 'config> {
+        SummarizeSubmoduleStatusDisplay {
+            summarize_submodule_status: self,
+            config,
         }
-        if self.tracked_changed != 0 {
-            ret.push('');
+    }
+}
+
+/// Implement the Display for the SummarizeSubmoduleStatus struct.
+pub struct SummarizeSubmoduleStatusDisplay<'submodule_status, 'config> {
+    /// SummarizeSubmoduleStatus to display.
+    summarize_submodule_status: &'submodule_status SummarizeSubmoduleStatus,
+    /// Configuration dictating how to display the content of the submodule
+    /// status.
+    config: &'config GitSummarizeSubmoduleStatusConfig,
+}
+
+impl<'submodule_status, 'config> Display
+    for SummarizeSubmoduleStatusDisplay<'submodule_status, 'config>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let color = &self.config.color;
+        if self.summarize_submodule_status.commit_changed != 0 {
+            write!(f, "{}", color.colorize(self.config.commit_changed))?;
         }
-        if self.has_untracked != 0 {
-            ret.push('')
+        if self.summarize_submodule_status.tracked_changed != 0 {
+            write!(f, "{}", color.colorize(self.config.tracked_changed))?;
+        }
+        if self.summarize_submodule_status.has_untracked != 0 {
+            write!(f, "{}", color.colorize(self.config.has_untracked))?;
         }
 
-        ret
+        Ok(())
     }
 }
 
@@ -523,38 +549,60 @@ impl SummarizeStatus {
         *self.map.get_mut(entry_status).unwrap() += 1;
     }
 
-    /// Convert the summary into a short representation string based on logos.
-    pub fn as_string(&self) -> String {
-        let mut ret = String::new();
-        if *self.map.get(&EntryStatus::Added).unwrap() != 0 {
-            ret.push('');
+    /// Obtain a struct which implements the Display trait for SummarizeStatus.
+    pub fn display<'summarize_status, 'config>(
+        &'summarize_status self,
+        config: &'config GitSummarizeStatusConfig,
+    ) -> SummarizeStatusDisplay<'summarize_status, 'config> {
+        SummarizeStatusDisplay {
+            summarize_status: self,
+            config,
+        }
+    }
+}
+
+/// Implement the Display trait for SummarizeStatus.
+pub struct SummarizeStatusDisplay<'summarize_status, 'config> {
+    /// SummarizeStatus to display.
+    summarize_status: &'summarize_status SummarizeStatus,
+    /// Configuration dictating how to display the content of the item status.
+    config: &'config GitSummarizeStatusConfig,
+}
+
+impl<'summarize_status, 'config> Display
+    for SummarizeStatusDisplay<'summarize_status, 'config>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let map = &self.summarize_status.map;
+        if *map.get(&EntryStatus::Added).unwrap() != 0 {
+            write!(f, "{}", self.config.added)?;
         }
 
-        if *self.map.get(&EntryStatus::Modified).unwrap() != 0 {
-            ret.push('');
+        if *map.get(&EntryStatus::Modified).unwrap() != 0 {
+            write!(f, "{}", self.config.modified)?;
         }
 
-        if *self.map.get(&EntryStatus::FileTypeChanged).unwrap() != 0 {
-            ret.push('');
+        if *map.get(&EntryStatus::FileTypeChanged).unwrap() != 0 {
+            write!(f, "{}", self.config.file_type_changed)?;
         }
 
-        if *self.map.get(&EntryStatus::Copied).unwrap() != 0 {
-            ret.push('')
+        if *map.get(&EntryStatus::Copied).unwrap() != 0 {
+            write!(f, "{}", self.config.copied)?;
         }
 
-        if *self.map.get(&EntryStatus::Renamed).unwrap() != 0 {
-            ret.push('')
+        if *map.get(&EntryStatus::Renamed).unwrap() != 0 {
+            write!(f, "{}", self.config.renamed)?;
         }
 
-        if *self.map.get(&EntryStatus::Deleted).unwrap() != 0 {
-            ret.push('')
+        if *map.get(&EntryStatus::Deleted).unwrap() != 0 {
+            write!(f, "{}", self.config.deleted)?;
         }
 
-        if *self.map.get(&EntryStatus::Untracked).unwrap() != 0 {
-            ret.push('')
+        if *map.get(&EntryStatus::Untracked).unwrap() != 0 {
+            write!(f, "{}", self.config.untracked)?;
         }
 
-        ret
+        Ok(())
     }
 }
 
