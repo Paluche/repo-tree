@@ -42,12 +42,6 @@ impl TreeCategory {
     pub fn dir_name(&self) -> &str {
         self.dir_name.as_ref().unwrap_or(&self.name)
     }
-
-    #[cfg(test)]
-    /// Get the raw `dir_name` configuration value.
-    pub fn raw_dir_name(&self) -> Option<&str> {
-        self.dir_name.as_deref()
-    }
 }
 
 impl Display for TreeCategory {

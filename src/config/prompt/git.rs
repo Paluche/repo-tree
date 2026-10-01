@@ -82,34 +82,6 @@ impl GitUpstreamConfig {
         Color::ansi_color(208)
     }
 
-    #[cfg(test)]
-    #[allow(clippy::too_many_arguments)]
-    pub fn new<S, C>(
-        gone: S,
-        up_to_date: S,
-        ahead: S,
-        behind: S,
-        diverged: S,
-        local: S,
-        detached: S,
-        color: C,
-    ) -> Self
-    where
-        S: ToString,
-        Color: From<C>,
-    {
-        Self {
-            gone: gone.to_string(),
-            up_to_date: up_to_date.to_string(),
-            ahead: ahead.to_string(),
-            behind: behind.to_string(),
-            diverged: diverged.to_string(),
-            local: local.to_string(),
-            detached: detached.to_string(),
-            color: Color::from(color),
-        }
-    }
-
     pub fn gone(&self) -> String {
         self.color.colorize(&self.gone)
     }

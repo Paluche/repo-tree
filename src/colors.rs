@@ -239,7 +239,7 @@ impl Color {
         colored::Color::BrightGreen.into()
     }
 
-    #[cfg(test)]
+    #[expect(dead_code)]
     pub fn bright_yellow() -> Self {
         colored::Color::BrightYellow.into()
     }

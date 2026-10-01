@@ -3,8 +3,6 @@ mod git;
 mod jujutsu;
 
 pub use git::GitPromptConfig;
-#[cfg(test)]
-pub use git::GitUpstreamConfig;
 pub use jujutsu::JujutsuBookmarkConfig;
 pub use jujutsu::JujutsuPromptConfig;
 pub use jujutsu::JujutsuTagConfig;
