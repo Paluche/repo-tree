@@ -8,6 +8,7 @@ use crate::resolve::ResolveFilter;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 use crate::tree_space::TreeSpace;
+use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
 
 /// Resolve the name of a repository into its path.
@@ -18,8 +19,11 @@ pub struct ResolveArgs {
     #[arg(add=resolve_completer())]
     repo_id: Option<String>,
     /// Precise the tree-space from which you want the repository.
-    #[arg(short, long, add=TreeSpace::completer())]
+    #[arg(short, long, conflicts_with="kind", add=TreeSpace::completer())]
     tree: Option<TreeSpace>,
+    /// Precise the tree-space from which you want the repository.
+    #[arg(short, long, conflicts_with="tree", add=TreeSpaceKind::completer())]
+    kind: Option<TreeSpaceKind>,
     /// Force recreating the cache.
     #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
@@ -28,9 +32,11 @@ pub struct ResolveArgs {
 /// Execute the `rt resolve` command.
 pub fn run(config: &Config, ui: &Ui<'_>, args: ResolveArgs) -> i32 {
     let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
-    let filter = match args.tree {
-        Some(tree_space) => ResolveFilter::TreeSpace(tree_space),
-        None => ResolveFilter::All,
+    let Ok(filter) = ResolveFilter::from_cli_args(args.tree, args.kind) else {
+        panic!(
+            "Arguments should have been mutually conflicting and managed by \
+             clap."
+        );
     };
 
     if let Some((_, workspace)) =
