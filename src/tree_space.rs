@@ -92,7 +92,7 @@ impl<'config> TreeOrganization<'config> {
 }
 
 /// The different kind of tree-space.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, ValueEnum, EnumIter, EnumDocs)]
 pub enum TreeSpaceKind {
     /// Tree-space containing main repositories.
     Main,
@@ -111,6 +111,21 @@ impl TreeSpaceKind {
     /// Is the tree-space of the workspace kind.
     pub fn is_workspace(&self) -> bool {
         matches!(self, Self::Workspace)
+    }
+
+    /// CLI completion candidates for a tree space kind argument.
+    pub fn completer() -> ArgValueCompleter {
+        ArgValueCompleter::new(|current: &OsStr| {
+            Self::iter()
+                .filter_map(|kind| {
+                    let name = kind.to_string();
+                    name.starts_with(current.to_str().unwrap_or("")).then_some(
+                        CompletionCandidate::new(kind.to_string())
+                            .help(Some(StyledStr::from(kind.doc()))),
+                    )
+                })
+                .collect()
+        })
     }
 }
 
@@ -262,7 +277,7 @@ impl TreeSpace {
     pub fn completer() -> ArgValueCompleter {
         ArgValueCompleter::new(|current: &OsStr| {
             Config::load().map_or(Vec::new(), |config| {
-                TreeSpace::iter()
+                Self::iter()
                     .filter_map(|tree_space| {
                         tree_space.into_completion_candidate(&config, current)
                     })
