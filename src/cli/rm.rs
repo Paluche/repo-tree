@@ -9,6 +9,7 @@ use crate::repo_tree::RepoTree;
 use crate::resolve::ResolveFilter;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
+use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
 
 /// Remove a repository from the repo tree.
@@ -28,23 +29,25 @@ pub struct RmArgs {
 /// Execute the `rt rm` command.
 pub async fn run(config: &Config, ui: &Ui<'_>, args: RmArgs) -> i32 {
     let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
-    let (repository, workspace) =
-        match resolve(config, ui, &repo_tree, args.repo_id, ResolveFilter::All)
-        {
-            Ok(v) => match v {
-                Some(repo) => repo,
-                None => {
-                    ui.error(
-                        "No repository found matching the given identifier",
-                    );
-                    return 2;
-                }
-            },
-            Err(err) => {
-                ui.error(err);
-                return 1;
+    let (repository, workspace) = match resolve(
+        config,
+        ui,
+        &repo_tree,
+        args.repo_id,
+        ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
+    ) {
+        Ok(v) => match v {
+            Some(repo) => repo,
+            None => {
+                ui.error("No repository found matching the given identifier");
+                return 2;
             }
-        };
+        },
+        Err(err) => {
+            ui.error(err);
+            return 1;
+        }
+    };
 
     match &repository.get_vcs_repo(workspace).get_repo_state() {
         Ok(repo_state) => {

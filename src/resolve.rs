@@ -20,6 +20,7 @@ use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
 use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
+use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
 
 /// All potential filter options for the resolve() function.
@@ -31,12 +32,28 @@ pub enum ResolveFilter {
     /// Filter based on a specific tree-space. Expecting the repository to
     /// resolve to, to belong the specified tree-space.
     TreeSpace(TreeSpace),
+    /// Filter based on a kind of tree-space. Expecting the repository to
+    /// resolve to, to belong in a tree-space of the specified kind.
+    TreeSpaceKind(TreeSpaceKind),
 }
 
 impl ResolveFilter {
     /// Find out if the value is the All variant.
     fn is_all(&self) -> bool {
         matches!(self, Self::All)
+    }
+
+    /// Get the enum value associated with the CLI arguments association.
+    pub fn from_cli_args(
+        tree: Option<TreeSpace>,
+        kind: Option<TreeSpaceKind>,
+    ) -> Result<Self, ()> {
+        match (tree, kind) {
+            (Some(_), Some(_)) => Err(()),
+            (Some(t), None) => Ok(Self::TreeSpace(t)),
+            (None, Some(k)) => Ok(Self::TreeSpaceKind(k)),
+            (None, None) => Ok(Self::All),
+        }
     }
 }
 
@@ -68,6 +85,14 @@ fn get_workspace<'repo_tree>(
         ResolveFilter::TreeSpace(tree_space) => {
             repository.get_tree_workspace(ui, tree_space)
         }
+        ResolveFilter::TreeSpaceKind(tree_space_kind) => repository
+            .workspaces
+            .iter()
+            .filter_map(|w| {
+                w.tree_space()
+                    .and_then(|t| (&t.kind() == tree_space_kind).then_some(w))
+            })
+            .next(),
     }
 }
 
@@ -233,6 +258,8 @@ pub fn resolve_repo<'repo_tree>(
                 ResolveFilter::All => "repo-tree".to_string(),
                 ResolveFilter::TreeSpace(tree_space) =>
                     format!("tree space {}", tree_space.display(config)),
+                ResolveFilter::TreeSpaceKind(tree_space_kind) =>
+                    format!("tree spaces of kind {}", tree_space_kind),
             }
         ));
         return Ok(None);
