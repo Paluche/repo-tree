@@ -6,6 +6,7 @@ use clap::Args;
 use crate::config::Config;
 use crate::error::NotImplementedError;
 use crate::repo_tree::RepoTree;
+use crate::resolve::ResolveFilter;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 use crate::ui::Ui;
@@ -28,7 +29,8 @@ pub struct RmArgs {
 pub async fn run(config: &Config, ui: &Ui<'_>, args: RmArgs) -> i32 {
     let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
     let (repository, workspace) =
-        match resolve(config, ui, &repo_tree, args.repo_id, None) {
+        match resolve(config, ui, &repo_tree, args.repo_id, ResolveFilter::All)
+        {
             Ok(v) => match v {
                 Some(repo) => repo,
                 None => {

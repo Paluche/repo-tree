@@ -4,6 +4,7 @@ use clap::Args;
 
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
+use crate::resolve::ResolveFilter;
 use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 use crate::tree_space::TreeSpace;
@@ -27,9 +28,13 @@ pub struct ResolveArgs {
 /// Execute the `rt resolve` command.
 pub fn run(config: &Config, ui: &Ui<'_>, args: ResolveArgs) -> i32 {
     let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
+    let filter = match args.tree {
+        Some(tree_space) => ResolveFilter::TreeSpace(tree_space),
+        None => ResolveFilter::All,
+    };
+
     if let Some((_, workspace)) =
-        match resolve(config, ui, &repo_tree, args.repo_id, args.tree.as_ref())
-        {
+        match resolve(config, ui, &repo_tree, args.repo_id, filter) {
             Ok(r) => r,
             Err(err) => {
                 eprintln!("{err}");
