@@ -92,7 +92,7 @@ impl<'config> TreeOrganization<'config> {
 }
 
 /// The different kind of tree-space.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TreeSpaceKind {
     /// Tree-space containing main repositories.
     Main,
@@ -111,6 +111,19 @@ impl TreeSpaceKind {
     /// Is the tree-space of the workspace kind.
     pub fn is_workspace(&self) -> bool {
         matches!(self, Self::Workspace)
+    }
+}
+
+impl Display for TreeSpaceKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Main => "main",
+                Self::Workspace => "workspace",
+            }
+        )
     }
 }
 
