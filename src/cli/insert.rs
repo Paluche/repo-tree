@@ -8,10 +8,10 @@ use clap::Args;
 use clap_complete::ArgValueCompleter;
 use clap_complete::PathCompleter;
 
-use super::ForceTreeSpace;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::tree_space::ForceTreeSpace;
 use crate::ui::Ui;
 
 /// Clone a repository within the repo tree.
