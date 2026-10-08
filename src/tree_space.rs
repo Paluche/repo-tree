@@ -18,9 +18,11 @@ use strum::IntoEnumIterator;
 use crate::colors::ColoredText;
 use crate::config::Config;
 use crate::config::TreeCategory;
+use crate::error::InvalidForceTreeSpace;
 use crate::error::InvalidWorkspaceTreeSpace;
 use crate::error::UnexpectedTreeSpaceError;
 use crate::error::UnknownRemoteHostError;
+use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_id::RepoId;
 
 /// Tree organization model on how the repositories are organized / stored in
@@ -100,6 +102,12 @@ pub enum TreeSpaceKind {
 }
 
 impl TreeSpaceKind {
+    /// Is the tree-space of the workspace kind.
+    #[cfg(test)]
+    pub fn is_main(&self) -> bool {
+        matches!(self, Self::Main)
+    }
+
     /// Is the tree-space of the workspace kind.
     pub fn is_workspace(&self) -> bool {
         matches!(self, Self::Workspace)
@@ -275,7 +283,6 @@ pub enum WorkspaceTreeSpace {
 
 impl WorkspaceTreeSpace {
     /// CLI completion candidates for a workspace tree space argument.
-    #[expect(dead_code)]
     pub fn completer() -> ArgValueCompleter {
         ArgValueCompleter::new(|current: &OsStr| {
             Config::load().map_or(Vec::new(), |config| {
@@ -324,6 +331,50 @@ impl TryFrom<TreeSpace> for WorkspaceTreeSpace {
             TreeSpace::Agent => Ok(Self::Agent),
             TreeSpace::Dev | TreeSpace::Local | TreeSpace::Archive => {
                 Err(InvalidWorkspaceTreeSpace(value))
+            }
+        }
+    }
+}
+
+/// Possible values to force the tree-space one repository can be added in to.
+#[derive(Clone, Debug, ValueEnum, EnumIter)]
+pub enum ForceTreeSpace {
+    /// Force the repository to be added in the dev tree-space, if the
+    /// repository has a remote configured.
+    Dev,
+    /// Force the repository to be added in the archive tree-space, if the
+    /// repository has a remote configured.
+    Archive,
+}
+
+impl Into<ExpectedTreeStrategy> for Option<ForceTreeSpace> {
+    fn into(self) -> ExpectedTreeStrategy {
+        match self {
+            None => ExpectedTreeStrategy::Exact,
+            Some(ForceTreeSpace::Dev) => ExpectedTreeStrategy::ForceDev,
+            Some(ForceTreeSpace::Archive) => ExpectedTreeStrategy::ForceArchive,
+        }
+    }
+}
+
+impl From<ForceTreeSpace> for TreeSpace {
+    fn from(value: ForceTreeSpace) -> Self {
+        match value {
+            ForceTreeSpace::Dev => Self::Dev,
+            ForceTreeSpace::Archive => Self::Archive,
+        }
+    }
+}
+
+impl TryFrom<TreeSpace> for ForceTreeSpace {
+    type Error = InvalidForceTreeSpace;
+
+    fn try_from(value: TreeSpace) -> Result<Self, Self::Error> {
+        match value {
+            TreeSpace::Dev => Ok(Self::Dev),
+            TreeSpace::Archive => Ok(Self::Archive),
+            TreeSpace::Agent | TreeSpace::Local => {
+                Err(InvalidForceTreeSpace(value))
             }
         }
     }
@@ -417,6 +468,35 @@ mod tests {
                  is not of kind 'workspace' but {:?}",
                 tree_space.kind()
             )
+        }
+    }
+
+    #[test]
+    fn check_force_tree_space_into_tree_space() {
+        for force_tree_space in ForceTreeSpace::iter() {
+            let tree_space: TreeSpace = force_tree_space.clone().into();
+            let kind = tree_space.kind();
+
+            assert!(
+                kind.is_main(),
+                "{force_tree_space:?} convert into {tree_space:?} which is not
+                of kind 'main' but {kind:?}"
+            )
+        }
+    }
+
+    #[test]
+    fn check_tree_space_into_force_tree_space() {
+        for tree_space in TreeSpace::iter().filter(|t| t.kind().is_workspace())
+        {
+            match <TreeSpace as TryInto<WorkspaceTreeSpace>>::try_into(
+                tree_space,
+            ) {
+                Ok(_) => (),
+                Err(err) => {
+                    panic!("{err}");
+                }
+            }
         }
     }
 }
