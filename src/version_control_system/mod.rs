@@ -195,7 +195,6 @@ pub trait VcsRepository {
     ) -> Result<Option<String>, Box<dyn Error>>;
 
     /// Create a new workspace of the repository.
-    #[expect(dead_code)]
     fn create_workspace(
         &self,
         ui: &Ui<'_>,

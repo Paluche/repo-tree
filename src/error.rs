@@ -93,6 +93,11 @@ pub struct UnimplementedForgeApi(pub String);
 pub struct NotARepositoryError(pub VersionControlSystem, pub String);
 
 #[derive(Debug, Error)]
-#[error("TreeSpace::{0:?} is not a workspace tree-space")]
+#[error("TreeSpace::{0:?} cannot be converted into a WorkspaceTreeSpace")]
 /// Error during the parsing of the configuration.
 pub struct InvalidWorkspaceTreeSpace(pub TreeSpace);
+
+#[derive(Debug, Error)]
+#[error("TreeSpace::{0:?} cannot be converted into a ForceTreeSpace")]
+/// Error during the parsing of the configuration.
+pub struct InvalidForceTreeSpace(pub TreeSpace);

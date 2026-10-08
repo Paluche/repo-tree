@@ -24,7 +24,6 @@ mod todo;
 mod tree;
 
 use crate::config::Config;
-use crate::repo_id::ExpectedTreeStrategy;
 use crate::ui::Ui;
 
 /// Control of the colored output.
@@ -97,27 +96,6 @@ fn cwd_default_path(ui: &Ui, path: Option<String>) -> PathBuf {
         canonicalize(env::current_dir().unwrap().join(ret)).unwrap()
     } else {
         ret
-    }
-}
-
-/// Possible values to force the tree-space one repository can be added in to.
-#[derive(Clone, Debug, ValueEnum)]
-pub enum ForceTreeSpace {
-    /// Force the repository to be added in the dev tree-space, if the
-    /// repository has a remote configured.
-    Dev,
-    /// Force the repository to be added in the archive tree-space, if the
-    /// repository has a remote configured.
-    Archive,
-}
-
-impl Into<ExpectedTreeStrategy> for Option<ForceTreeSpace> {
-    fn into(self) -> ExpectedTreeStrategy {
-        match self {
-            None => ExpectedTreeStrategy::Exact,
-            Some(ForceTreeSpace::Dev) => ExpectedTreeStrategy::ForceDev,
-            Some(ForceTreeSpace::Archive) => ExpectedTreeStrategy::ForceArchive,
-        }
     }
 }
 
