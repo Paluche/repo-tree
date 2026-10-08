@@ -4,7 +4,6 @@ use std::error::Error;
 use clap::Args;
 
 use super::ForceTreeSpace;
-use super::force_tree_into_strategy;
 use crate::config::Config;
 use crate::repo_id::RepoId;
 use crate::repo_tree::RepoTree;
@@ -34,7 +33,7 @@ async fn do_clone(
     vcs: &VersionControlSystem,
 ) -> Result<(), Box<dyn Error>> {
     let location = repo_id
-        .expected_tree(config, ui, None, force_tree_into_strategy(force_tree))
+        .expected_tree(config, ui, None, force_tree.into())
         .await?
         .repo_location(config, repo_id)?;
 

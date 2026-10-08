@@ -9,7 +9,6 @@ use clap_complete::ArgValueCompleter;
 use clap_complete::PathCompleter;
 
 use super::ForceTreeSpace;
-use super::force_tree_into_strategy;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
@@ -58,7 +57,7 @@ pub async fn run(config: &Config, ui: &mut Ui<'_>, args: InsertArgs) -> i32 {
             config,
             ui,
             repository.get_latest_workspace(),
-            force_tree_into_strategy(args.force_tree),
+            args.force_tree.into(),
         )
         .await
     {

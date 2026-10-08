@@ -111,14 +111,13 @@ pub enum ForceTreeSpace {
     Archive,
 }
 
-/// Convert the force_tree argument into a ExpectedTreeStrategy.
-pub fn force_tree_into_strategy(
-    force_tree: Option<ForceTreeSpace>,
-) -> ExpectedTreeStrategy {
-    match force_tree {
-        None => ExpectedTreeStrategy::Exact,
-        Some(ForceTreeSpace::Dev) => ExpectedTreeStrategy::ForceDev,
-        Some(ForceTreeSpace::Archive) => ExpectedTreeStrategy::ForceArchive,
+impl Into<ExpectedTreeStrategy> for Option<ForceTreeSpace> {
+    fn into(self) -> ExpectedTreeStrategy {
+        match self {
+            None => ExpectedTreeStrategy::Exact,
+            Some(ForceTreeSpace::Dev) => ExpectedTreeStrategy::ForceDev,
+            Some(ForceTreeSpace::Archive) => ExpectedTreeStrategy::ForceArchive,
+        }
     }
 }
 
