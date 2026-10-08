@@ -3,10 +3,10 @@ use std::error::Error;
 
 use clap::Args;
 
-use super::ForceTreeSpace;
 use crate::config::Config;
 use crate::repo_id::RepoId;
 use crate::repo_tree::RepoTree;
+use crate::tree_space::ForceTreeSpace;
 use crate::ui::Ui;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::jujutsu;
