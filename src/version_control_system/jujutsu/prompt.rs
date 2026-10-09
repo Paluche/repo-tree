@@ -15,7 +15,6 @@ use crate::config::JujutsuBookmarkConfig;
 use crate::config::JujutsuTagConfig;
 use crate::prompt::Prompt;
 use crate::prompt::PromptListField;
-use crate::ui::Ui;
 
 /// The different categories of bookmarks we are listing.
 enum BookmarkCategory {
@@ -32,7 +31,6 @@ impl BookmarkCategory {
     /// Get the bookmarks associated with the current category.
     fn get_bookmarks<'bookmarks>(
         &self,
-        ui: &Ui<'_>,
         repo_path: &Path,
         bookmarks: &'bookmarks Bookmarks,
     ) -> Result<Vec<&'bookmarks Bookmark>, Box<dyn Error>> {
@@ -42,7 +40,7 @@ impl BookmarkCategory {
             Self::Descendants => ("@+::", RevSetOrder::ChildrenFirst),
         };
 
-        Ok(revset::list_bookmarks(ui, repo_path, revset, order)?
+        Ok(revset::list_bookmarks(repo_path, revset, order)?
             .iter()
             .map(|name| bookmarks.get(name).unwrap())
             .collect())
@@ -63,7 +61,6 @@ impl BookmarkCategory {
 
 /// Build the list of bookmarks of the specified category for the prompt line.
 fn list_bookmarks(
-    ui: &Ui<'_>,
     bookmark_config: &JujutsuBookmarkConfig,
     field: &mut PromptListField,
     category: BookmarkCategory,
@@ -73,7 +70,7 @@ fn list_bookmarks(
     field.push(
         category.get_repr(bookmark_config).display(
             &category
-                .get_bookmarks(ui, repo_path, bookmarks)?
+                .get_bookmarks(repo_path, bookmarks)?
                 .iter()
                 .flat_map(|b| b.get_repr(bookmark_config))
                 .collect::<Vec<String>>(),
@@ -103,14 +100,13 @@ fn list_deleted_bookmarks(
 
 /// Build the list of tags for the prompt line.
 fn list_tags(
-    ui: &Ui<'_>,
     tag_config: &JujutsuTagConfig,
     field: &mut PromptListField,
     repo_path: &Path,
 ) -> Result<(), Box<dyn Error>> {
     field.push(
         tag_config.repr.display(
-            &revset::list_tags(ui, repo_path, "@-", RevSetOrder::default())?
+            &revset::list_tags(repo_path, "@-", RevSetOrder::default())?
                 .iter()
                 .map(|tag| tag_config.name.colorize(tag))
                 .collect::<Vec<String>>(),
@@ -123,17 +119,15 @@ fn list_tags(
 /// Build the prompt line for a Jujutsu repository.
 pub fn prompt(
     config: &Config,
-    ui: &Ui<'_>,
     prompt: &mut Prompt<'_>,
     repo_path: &Path,
 ) -> Result<(), Box<dyn Error>> {
     let prompt_config = &config.prompt.jj;
     {
         let mut field = PromptListField::new(" ");
-        let bookmarks = get_bookmarks(ui, repo_path)?;
+        let bookmarks = get_bookmarks(repo_path)?;
 
         list_bookmarks(
-            ui,
             &prompt_config.bookmark,
             &mut field,
             BookmarkCategory::Parent,
@@ -141,7 +135,6 @@ pub fn prompt(
             &bookmarks,
         )?;
         list_bookmarks(
-            ui,
             &prompt_config.bookmark,
             &mut field,
             BookmarkCategory::Current,
@@ -149,14 +142,13 @@ pub fn prompt(
             &bookmarks,
         )?;
         list_bookmarks(
-            ui,
             &prompt_config.bookmark,
             &mut field,
             BookmarkCategory::Descendants,
             repo_path,
             &bookmarks,
         )?;
-        list_tags(ui, &prompt_config.tags, &mut field, repo_path)?;
+        list_tags(&prompt_config.tags, &mut field, repo_path)?;
 
         if field.is_empty() {
             prompt.push(&prompt_config.bookmark.none)
@@ -167,9 +159,9 @@ pub fn prompt(
         list_deleted_bookmarks(&prompt_config.bookmark, prompt, &bookmarks)?;
     }
 
-    if wc_has_conflicts(ui, repo_path)? {
+    if wc_has_conflicts(repo_path)? {
         prompt.push(&prompt_config.wc_conflict);
-    } else if has_conflicts(ui, repo_path)? {
+    } else if has_conflicts(repo_path)? {
         prompt.push(&prompt_config.conflict);
     }
 

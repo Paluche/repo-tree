@@ -20,7 +20,6 @@ use crate::config::Config;
 use crate::error::NotARepositoryError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
-use crate::ui::Ui;
 
 /// Get the path to the jj directory from the repository root path.
 pub fn get_jj_dir(repo_path: &Path) -> PathBuf {
@@ -61,27 +60,21 @@ impl JujutsuVcs {
 impl VcsRepository for JujutsuVcs {
     fn get_remote_url(
         &self,
-        _ui: &Ui<'_>,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {
         git::get_remote_url(&self.repo_path)
     }
 
-    fn clone(
-        &self,
-        ui: &Ui<'_>,
-        remote_url: &str,
-    ) -> Result<(), Box<dyn Error>> {
-        git::clone(ui, remote_url, &self.repo_path, self.colocated)
+    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
+        git::clone(remote_url, &self.repo_path, self.colocated)
     }
 
-    fn fetch(&self, ui: &Ui<'_>, quiet: bool) -> Result<(), Box<dyn Error>> {
-        git::fetch(ui, &self.repo_path, quiet)
+    fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>> {
+        git::fetch(&self.repo_path, quiet)
     }
 
     fn prompt(
         &self,
         config: &Config,
-        ui: &Ui<'_>,
         prompt: &mut Prompt<'_>,
     ) -> Result<(), Box<dyn Error>> {
         if let Err(err) =
@@ -90,18 +83,15 @@ impl VcsRepository for JujutsuVcs {
         {
             return Err(err);
         }
-        prompt::prompt(config, ui, prompt, &self.repo_path)
+        prompt::prompt(config, prompt, &self.repo_path)
     }
 
-    fn get_repo_state(&self, ui: &Ui<'_>) -> Result<RepoState, Box<dyn Error>> {
-        repo_state::get_repo_state(ui, &self.repo_path)
+    fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>> {
+        repo_state::get_repo_state(&self.repo_path)
     }
 
-    fn get_workspace_name(
-        &self,
-        ui: &Ui<'_>,
-    ) -> Result<Option<String>, Box<dyn Error>> {
-        let workspaces = workspace::list_workspaces(ui, &self.repo_path)?;
+    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
+        let workspaces = workspace::list_workspaces(&self.repo_path)?;
 
         if workspaces.len() <= 1 {
             return Ok(None);
@@ -115,10 +105,9 @@ impl VcsRepository for JujutsuVcs {
 
     fn create_workspace(
         &self,
-        ui: &Ui<'_>,
         name: &str,
         destination: &Path,
     ) -> Result<(), Box<dyn Error>> {
-        workspace::add_workspace(ui, &self.repo_path, name, destination)
+        workspace::add_workspace(&self.repo_path, name, destination)
     }
 }

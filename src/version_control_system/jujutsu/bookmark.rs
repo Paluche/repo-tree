@@ -6,7 +6,6 @@ use std::path::Path;
 
 use super::command::JujutsuCommand;
 use crate::config::JujutsuBookmarkConfig;
-use crate::ui::Ui;
 
 /// Representation of a bookmark.
 pub struct Bookmark {
@@ -75,10 +74,7 @@ impl Bookmark {
 pub type Bookmarks = HashMap<String, Bookmark>;
 
 /// Get the bookmarks the repository currently have.
-pub fn get_bookmarks(
-    ui: &Ui<'_>,
-    repo_path: &Path,
-) -> Result<Bookmarks, Box<dyn Error>> {
+pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
     let template = [
         "name",
         "remote",
@@ -174,7 +170,7 @@ pub fn get_bookmarks(
         .arg("--all")
         .arg("--template")
         .arg(template)
-        .output_lines(ui)?
+        .output_lines()?
         .iter()
         .map(|l| Line::from_line(l))
         .collect();
