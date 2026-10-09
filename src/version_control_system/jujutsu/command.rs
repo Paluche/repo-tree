@@ -2,21 +2,17 @@
 
 use std::error::Error;
 use std::ffi::OsStr;
-use std::ffi::OsString;
 use std::process::Command;
 use std::process::Output;
 
 use which::which;
 
 use crate::error::CommandError;
-use crate::ui::Ui;
 
 /// Manage the execution of a Jujutsu command.
 pub struct JujutsuCommand {
     /// Actual command.
     command: Command,
-    /// Repository into which the command must be run
-    repository: Option<OsString>,
 }
 
 impl JujutsuCommand {
@@ -24,10 +20,7 @@ impl JujutsuCommand {
     pub fn global() -> Result<Self, which::Error> {
         Self::new_command().map(|mut command| {
             command.current_dir(std::env::home_dir().unwrap());
-            Self {
-                command,
-                repository: None,
-            }
+            Self { command }
         })
     }
 
@@ -39,10 +32,7 @@ impl JujutsuCommand {
                 .arg("--repository")
                 .arg(&repository)
                 .arg("--ignore-working-copy");
-            Self {
-                command,
-                repository: Some(repository.as_ref().to_os_string()),
-            }
+            Self { command }
         })
     }
 
@@ -54,10 +44,7 @@ impl JujutsuCommand {
     ) -> Result<Self, which::Error> {
         Self::new_command().map(|mut command| {
             command.arg("--repository").arg(&repository);
-            Self {
-                command,
-                repository: Some(repository.as_ref().to_os_string()),
-            }
+            Self { command }
         })
     }
 
@@ -72,44 +59,16 @@ impl JujutsuCommand {
         self
     }
 
-    /// Update a potential stale workspace.
-    pub fn workspace_update_stale<S: AsRef<OsStr>>(
-        repository: S,
-    ) -> Result<(), Box<dyn Error>> {
-        Self::new_command()?
-            .arg("--repository")
-            .arg(repository)
-            .arg("workspace")
-            .arg("update-stale")
-            .status()?;
-        Ok(())
-    }
-
     /// Get the output lines of the command.
-    fn output(
-        &mut self,
-        ui: &Ui<'_>,
-        first_try: bool,
-    ) -> Result<Output, Box<dyn Error>> {
+    fn output(&mut self) -> Result<Output, Box<dyn Error>> {
         let output = self.command.output()?;
         let status = output.status;
         if !status.success() {
-            if first_try
-                && String::from_utf8_lossy(output.stderr.as_slice())
-                    .contains("Run `jj workspace update-stale` to update it.")
-            {
-                if let Some(repository) = &self.repository {
-                    ui.hint("Updating stalled workspace...");
-                    Self::workspace_update_stale(repository)?;
-                }
-                self.output(ui, false)
-            } else {
-                Err(Box::new(CommandError::new(
-                    &self.command,
-                    status,
-                    Some(output),
-                )))
-            }
+            Err(Box::new(CommandError::new(
+                &self.command,
+                status,
+                Some(output),
+            )))
         } else {
             Ok(output)
         }
@@ -117,11 +76,8 @@ impl JujutsuCommand {
 
     /// Get the output lines of the command. Managing the case where the
     /// workspace is now stalled and needs to be updated.
-    pub fn output_lines(
-        &mut self,
-        ui: &Ui<'_>,
-    ) -> Result<Vec<String>, Box<dyn Error>> {
-        let output = self.output(ui, true)?;
+    pub fn output_lines(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
+        let output = self.output()?;
         Ok(String::from_utf8(output.stdout)?
             .split("\n")
             .filter(|l| !l.is_empty())
@@ -131,7 +87,7 @@ impl JujutsuCommand {
 
     /// Execute the command and checks it succeeds. Managing the case where
     /// the workspace is now stalled and needs to be updated.
-    pub fn status(&mut self, ui: &Ui<'_>) -> Result<(), Box<dyn Error>> {
-        self.output(ui, true).map(|_| ())
+    pub fn status(&mut self) -> Result<(), Box<dyn Error>> {
+        self.output().map(|_| ())
     }
 }

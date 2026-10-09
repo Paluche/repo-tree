@@ -24,7 +24,6 @@ use crate::ui::Ui;
 /// Search recursively repositories in a directory.
 fn _search(
     config: &Config,
-    ui: &Ui<'_>,
     tree_space_kind: &TreeSpaceKind,
     repositories: &mut Vec<Repository>,
     empty_dirs: &mut Vec<PathBuf>,
@@ -39,7 +38,7 @@ fn _search(
     for entry in dir.read_dir().expect("read dir call failed").flatten() {
         empty_dir = false;
         let root = entry.path();
-        let repo = Repository::try_new(config, ui, &root);
+        let repo = Repository::try_new(config, &root);
 
         if let Ok(repo) = repo {
             if tree_space_kind.is_workspace() {
@@ -59,14 +58,7 @@ fn _search(
                 repositories.push(repo);
             }
         } else {
-            _search(
-                config,
-                ui,
-                tree_space_kind,
-                repositories,
-                empty_dirs,
-                &root,
-            );
+            _search(config, tree_space_kind, repositories, empty_dirs, &root);
         }
     }
 
@@ -95,7 +87,6 @@ fn search(config: &Config, ui: &Ui<'_>) -> (Vec<Repository>, Vec<PathBuf>) {
             }
             _search(
                 config,
-                ui,
                 &tree_space.kind(),
                 &mut repositories,
                 &mut empty_dirs,
@@ -115,7 +106,6 @@ fn search(config: &Config, ui: &Ui<'_>) -> (Vec<Repository>, Vec<PathBuf>) {
         let dir_path = config.root.join(tree_space.category(config).dir_name());
         _search(
             config,
-            ui,
             &tree_space.kind(),
             &mut repositories,
             &mut empty_dirs,

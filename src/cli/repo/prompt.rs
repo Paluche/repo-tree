@@ -55,7 +55,7 @@ pub async fn run(config: &Config, ui: &mut Ui<'_>, args: PromptArgs) -> i32 {
     let mut prompt = Prompt::new(&repository, workspace);
     match repository
         .get_vcs_repo(workspace)
-        .prompt(config, ui, &mut prompt)
+        .prompt(config, &mut prompt)
     {
         Ok(_) => {
             println!("{}", prompt.display(config));

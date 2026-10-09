@@ -44,7 +44,7 @@ pub fn fetch_repo(
     let workspace = repository.get_main_workspace(ui);
     for submodule in repository.submodules(workspace)? {
         let root = submodule.abs_path();
-        let repository = Repository::try_new(config, ui, &root)?;
+        let repository = Repository::try_new(config, &root)?;
 
         let (_ok, _total) = fetch_repo(config, ui, quiet, &repository, true)?;
         ok += _ok;
@@ -60,7 +60,7 @@ pub fn fetch_repo(
         );
     }
 
-    ok += if repository.get_vcs_repo(workspace).fetch(ui, quiet).is_ok() {
+    ok += if repository.get_vcs_repo(workspace).fetch(quiet).is_ok() {
         1
     } else {
         0
