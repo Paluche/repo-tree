@@ -90,7 +90,7 @@ pub async fn run(config: &Config, ui: &Ui<'_>, args: ListArgs) -> i32 {
         ui.clear_and_print_current_line(&repository.id.name);
 
         if let Some(repo_state) =
-            match &repository.get_vcs_repo(workspace).get_repo_state(ui) {
+            match &repository.get_vcs_repo(workspace).get_repo_state() {
                 Ok(v) => Some(v),
                 Err(err) => {
                     if err.downcast_ref::<NotImplementedError>().is_some() {

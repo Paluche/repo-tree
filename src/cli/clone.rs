@@ -49,7 +49,7 @@ async fn do_clone(
                 && matches!(vcs, VersionControlSystem::JujutsuGit)
             {
                 ui.hint("Repository already cloned, initializing JJ into");
-                jujutsu::init_colocate(ui, &location)?;
+                jujutsu::init_colocate(&location)?;
             } else {
                 ui.hint(format!(
                     "{} repository already cloned but is a {current_vcs} \
@@ -71,7 +71,7 @@ async fn do_clone(
             .expect("Remote URL provided by the CLI")
             .url;
 
-        vcs.get_repo(&location).clone(ui, remote_url)?;
+        vcs.get_repo(&location).clone(remote_url)?;
     }
 
     // Refresh the cache.

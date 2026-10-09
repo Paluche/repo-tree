@@ -74,7 +74,7 @@ pub async fn run(config: &Config, ui: &mut Ui<'_>, args: StateArgs) -> i32 {
 
     let repo_state = match repository
         .get_vcs_repo(repository.get_main_workspace(ui))
-        .get_repo_state(ui)
+        .get_repo_state()
     {
         Ok(v) => v,
         Err(err) => {

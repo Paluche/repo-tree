@@ -38,17 +38,14 @@ fn refresh_cache(config: &Config, ui: &Ui<'_>, refresh_cache: bool) {
 
 /// Execute the `rt insert` command.
 pub async fn run(config: &Config, ui: &mut Ui<'_>, args: InsertArgs) -> i32 {
-    let repository = match Repository::discover_silent(
-        config,
-        ui,
-        &PathBuf::from(args.path),
-    ) {
-        Ok(r) => r,
-        Err(err) => {
-            eprintln!("{err}");
-            return 1;
-        }
-    };
+    let repository =
+        match Repository::discover_silent(config, &PathBuf::from(args.path)) {
+            Ok(r) => r,
+            Err(err) => {
+                eprintln!("{err}");
+                return 1;
+            }
+        };
 
     let workspace = repository.get_latest_workspace();
 

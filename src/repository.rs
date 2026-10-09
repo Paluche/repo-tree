@@ -121,13 +121,12 @@ impl Repository {
     /// about the repository location.
     pub fn discover_silent(
         config: &Config,
-        ui: &Ui<'_>,
         path: &Path,
     ) -> Result<Self, Box<dyn Error>> {
         let mut current_path = Some(path);
 
         while let Some(root) = current_path {
-            match Self::try_new(config, ui, root) {
+            match Self::try_new(config, root) {
                 Ok(repo) => {
                     return Ok(repo);
                 }
@@ -150,7 +149,7 @@ impl Repository {
         path: &Path,
         strategy: ExpectedTreeStrategy,
     ) -> Result<Self, Box<dyn Error>> {
-        let repository = Self::discover_silent(config, ui, path)?;
+        let repository = Self::discover_silent(config, path)?;
         let workspace = repository.get_latest_workspace();
 
         if let Some(expected_root) = repository
@@ -180,12 +179,11 @@ impl Repository {
     /// Try loading a repository which root is the one provided.
     pub fn try_new(
         config: &Config,
-        ui: &Ui<'_>,
         root: &Path,
     ) -> Result<Repository, Box<dyn Error>> {
         if let Some((vcs, is_submodule)) = VersionControlSystem::try_new(root) {
             let (remote_config, remote_url) =
-                vcs.get_repo(root).get_remote_url(ui)?;
+                vcs.get_repo(root).get_remote_url()?;
             let id = RepoId::from_repo(&root, remote_url.as_ref())?;
 
             let workspace =

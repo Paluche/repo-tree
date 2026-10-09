@@ -10,7 +10,6 @@ use super::super::git;
 use super::command::JujutsuCommand;
 use super::get_jj_dir;
 use super::get_repo_dir;
-use crate::ui::Ui;
 
 /// Get the path to the git backend repository.
 pub fn get_git_backend_repo(
@@ -32,7 +31,6 @@ pub fn get_remote_url(
 
 /// Clone a Jujutsu repository.
 pub fn clone<P: AsRef<OsStr>>(
-    ui: &Ui<'_>,
     remote_url: &str,
     location: P,
     colocated: bool,
@@ -47,12 +45,11 @@ pub fn clone<P: AsRef<OsStr>>(
         })
         .arg(remote_url)
         .arg(location)
-        .status(ui)
+        .status()
 }
 
 /// Initialize a Git-colocated Jujutsu repository.
 pub fn init_colocate<P: AsRef<OsStr>>(
-    ui: &Ui<'_>,
     location: P,
 ) -> Result<(), Box<dyn Error>> {
     JujutsuCommand::global()?
@@ -60,12 +57,11 @@ pub fn init_colocate<P: AsRef<OsStr>>(
         .arg("init")
         .arg("--colocate")
         .arg(location)
-        .status(ui)
+        .status()
 }
 
 /// Fetch the repository.
 pub fn fetch<P: AsRef<OsStr>>(
-    ui: &Ui<'_>,
     location: P,
     quiet: bool,
 ) -> Result<(), Box<dyn Error>> {
@@ -76,5 +72,5 @@ pub fn fetch<P: AsRef<OsStr>>(
         cmd.arg("--quiet");
     }
 
-    cmd.status(ui)
+    cmd.status()
 }
