@@ -44,7 +44,7 @@ pub async fn run(config: &Config, ui: &Ui<'_>, args: RmArgs) -> i32 {
             }
         };
 
-    match &repository.get_vcs_repo(workspace).get_repo_state(ui) {
+    match &repository.get_vcs_repo(workspace).get_repo_state() {
         Ok(repo_state) => {
             if repo_state.has_unpushed_commits() {
                 ui.warning("The repository has unpushed commits");

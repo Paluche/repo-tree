@@ -13,7 +13,6 @@ use serde::Serialize;
 use crate::config::Config;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
-use crate::ui::Ui;
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Default, ValueEnum, Serialize, Deserialize,
@@ -164,40 +163,30 @@ pub trait VcsRepository {
     /// first defined remote.
     fn get_remote_url(
         &self,
-        ui: &Ui<'_>,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>>;
 
     /// Clone a repository.
-    fn clone(
-        &self,
-        ui: &Ui<'_>,
-        remote_url: &str,
-    ) -> Result<(), Box<dyn Error>>;
+    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>>;
 
     /// Fetch the repository.
-    fn fetch(&self, ui: &Ui<'_>, quiet: bool) -> Result<(), Box<dyn Error>>;
+    fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>>;
 
     /// Build the prompt line for a repository.
     fn prompt(
         &self,
         config: &Config,
-        ui: &Ui<'_>,
         prompt: &mut Prompt<'_>,
     ) -> Result<(), Box<dyn Error>>;
 
     /// Get the repository state.
-    fn get_repo_state(&self, ui: &Ui<'_>) -> Result<RepoState, Box<dyn Error>>;
+    fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
 
     /// The name of the workspace associated with the repository.
-    fn get_workspace_name(
-        &self,
-        ui: &Ui<'_>,
-    ) -> Result<Option<String>, Box<dyn Error>>;
+    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>>;
 
     /// Create a new workspace of the repository.
     fn create_workspace(
         &self,
-        ui: &Ui<'_>,
         name: &str,
         destination: &Path,
     ) -> Result<(), Box<dyn Error>>;
