@@ -4,38 +4,26 @@ use std::error::Error;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::path::PathBuf;
-use std::path::absolute;
 
+use super::super::VcsWorkspace;
 use super::command::JujutsuCommand;
-
-/// Representation of a Jujutsu workspace.
-pub struct JujutsuWorkspace {
-    /// Name of the workspace.
-    pub name: String,
-
-    /// Path where the workspace is located.
-    pub path: PathBuf,
-}
 
 /// List all workspaces associated with the specified repository.
 pub fn list_workspaces(
     repo_path: &Path,
-) -> Result<Vec<JujutsuWorkspace>, Box<dyn Error>> {
+) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
     Ok(JujutsuCommand::repo(repo_path)?
         .arg("workspace")
         .arg("list")
         .arg("--template")
-        .arg(r#"name ++ "\t" ++ "\n""#)
+        .arg(r#"name ++ "\t" ++ root ++ "\n""#)
         .output_lines()?
         .iter()
         .map(|l| {
             let mut parts = l.split("\t");
             let name = parts.next().unwrap().to_string();
-            let path =
-                absolute(repo_path.join(PathBuf::from(parts.next().unwrap())))
-                    .unwrap();
-
-            JujutsuWorkspace { name, path }
+            let path = PathBuf::from(parts.next().unwrap());
+            VcsWorkspace { name, path }
         })
         .collect())
 }

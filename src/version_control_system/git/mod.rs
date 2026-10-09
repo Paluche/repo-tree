@@ -14,6 +14,7 @@ pub use status::status;
 pub use submodules::SubmoduleInfo;
 
 use super::VcsRepository;
+use super::VcsWorkspace;
 use crate::config::Config;
 use crate::error::NotImplementedError;
 use crate::prompt::Prompt;
@@ -106,8 +107,7 @@ impl VcsRepository for GitVcs {
         )))
     }
 
-    /// Get the workspace name of the repository instance.
-    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
+    fn get_workspace(&self) -> Result<Option<VcsWorkspace>, Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Workspace / worktree interaction not for Git Version Control \
              System"
@@ -115,7 +115,6 @@ impl VcsRepository for GitVcs {
         )))
     }
 
-    /// Crate a workspace.
     fn add_workspace(
         &self,
         _name: &str,

@@ -16,6 +16,7 @@ use std::path::PathBuf;
 pub use git::init_colocate;
 
 use super::VcsRepository;
+use super::VcsWorkspace;
 use crate::config::Config;
 use crate::error::NotARepositoryError;
 use crate::prompt::Prompt;
@@ -90,17 +91,14 @@ impl VcsRepository for JujutsuVcs {
         repo_state::get_repo_state(&self.repo_path)
     }
 
-    fn get_workspace_name(&self) -> Result<Option<String>, Box<dyn Error>> {
+    fn get_workspace(&self) -> Result<Option<VcsWorkspace>, Box<dyn Error>> {
         let workspaces = workspace::list_workspaces(&self.repo_path)?;
 
         if workspaces.len() <= 1 {
             return Ok(None);
         }
 
-        Ok(workspaces
-            .into_iter()
-            .find(|w| w.path == self.repo_path)
-            .map(|w| w.name))
+        Ok(workspaces.into_iter().find(|w| w.path == self.repo_path))
     }
 
     fn add_workspace(
