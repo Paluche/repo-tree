@@ -326,63 +326,86 @@ jobs:
       - uses: dtolnay/rust-toolchain@e2a55d2ffb04f378e9626c28d38b36d230d1e12f # v1
         with:
           toolchain: stable
-      - env:
-          TOTAL_COMMITS: ${{ steps.pr-details.outputs.total-commits }}
-          BASE_REF_SHA: ${{ steps.pr-details.outputs.base-ref-sha }}
-          HEAD_REF_SHA: ${{ steps.pr-details.outputs.head-ref-sha }}
-        run: |
-          res=0
-          if ! commits=( $(git rev-list --reverse "${BASE_REF_SHA}..${HEAD_REF_SHA}") )
-          then
-              echo "::error::Failed to get the list of commits to check."
-              exit 1
-          fi
-          {
-              echo "# Build Validation Report"
-              echo ""
-              echo "**Total commits**: ${TOTAL_COMMITS}"
-              echo ""
-          } >> "${GITHUB_STEP_SUMMARY}"
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          RUST_BACKTRACE: 1
+          CARGO_TERM_COLOR: always
+          RUSTFLAGS: -D warnings
+        with:
+          script: |
+            const debugEnabled = process.env.ACTIONS_STEP_DEBUG === 'true';
+            const pullRequestParams = {
+              pull_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            };
 
-          export RUST_BACKTRACE=1
-          export CARGO_TERM_COLOR=always
-          export RUSTFLAGS='-D warnings'
-          failed_count=0
-          error_log=/tmp/error_log.txt
+            const commits = await github.paginate(
+              github.rest.pulls.listCommits,
+              pullRequestParams
+            );
 
-          for commit in "${commits[@]}"
-          do
-              commit_desc=$(git log -n 1 --pretty='`%H`: %s')
-              echo "::group:: check ${commit}"
-              git checkout "${commit}"
-              if cargo +stable build --all-features --workspace --all-targets 2>&1 | tee "${error_log}"
-              then
-                  echo "::endgroup::"
-                  echo "✅"
-                  echo "- ✅ ${commit_desc}" >> "${GITHUB_STEP_SUMMARY}"
-              else
-                  echo "::endgroup::"
-                  echo "❌ Develop group above for details"
-                  {
-                      echo "- ❌ ${commit_desc}"
-                      echo ""
-                      echo "<details><summary>Details</summary>"
-                      echo ""
-                      echo "```"
-                      cat "${error_log}"
-                      echo "```"
-                      echo "</details>"
-                  } >> "${GITHUB_STEP_SUMMARY}"
-                  failed_count=$(( failed_count + 1 ))
-              fi
-          done
+            // Start building the summary
+            core.summary
+              .addHeading('Build Validation Report', 1)
+              .addEOL()
+              .addRaw(`**Total commits:** ${commits.length}`, true)
+              .addEOL();
 
-          if [ "${failed_count}" -ne 0 ]
-          then
-              echo "::error::Build validation failed for ${failed_count} commit(s)."
-              exit 1
-          fi
-          echo "All commits passed build validation! 🎉" >> "${GITHUB_STEP_SUMMARY}"
+            let failedCount = 0;
+
+            for (const data of commits) {
+              const commitId = data.sha;
+              const commitTitle = data.commit.message.split('\n')[0];
+
+              console.log(`Validating: ${commitId} - ${commitTitle}`);
+              await exec.exec(
+                'git',
+                ['checkout', commitId],
+                {silent: !debugEnabled}
+              );
+              const {
+                exitCode,
+                stderr,
+              } = await exec.getExecOutput(
+                `cargo`,
+                [
+                  `+stable`,
+                  `build`,
+                  `--all-features`,
+                  `--workspace`,
+                  `--all-targets`,
+                ],
+                { silent: !debugEnabled, ignoreReturnCode: true }
+              );
+
+              if (exitCode === 0) {
+                console.log(`✅ PASS`);
+                core.summary.addRaw(
+                  `- ✅ \`${commitId}\`: ${commitTitle}`,
+                  true
+                );
+              } else {
+                console.log(`❌ Failed`);
+                console.log(stderr);
+                core.summary
+                  .addRaw(`- ❌ \`${commitId}\`: ${commitTitle}`, true)
+                  .addEOL()
+                  .addDetails(`Details`, `\n\n\`\`\`\n${stderr}\`\`\`\n`)
+                  .addEOL();
+                failedCount++;
+              }
+            }
+
+            if (failedCount > 0) {
+              core.setFailed(
+                `Build validation failed for ${failedCount} commit(s).`
+              );
+            } else {
+              core.summary
+                .addEOL()
+                .addRaw(`All commits passed build validation! 🎉`, true);
+            }
 
   check-tests:
     name: cargo test
