@@ -146,6 +146,7 @@ impl<'repo_tree> Directory<'repo_tree> {
     /// Get pretty string representation of the Directory.
     fn display<T: Display>(
         &self,
+        ui: &Ui<'_>,
         config: &Config,
         f: &mut std::fmt::Formatter<'_>,
         prefix: String,
@@ -171,7 +172,7 @@ impl<'repo_tree> Directory<'repo_tree> {
         if let Some((r, w)) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
             let submodules = r.submodules(w).unwrap();
-            let workspace = r.get_vcs_repo(w).get_workspace().unwrap_or(None);
+            let workspace = r.get_vcs_repo(w).get_workspace(ui, config).unwrap_or(None);
             if let Some(remote) = &r.id.remote {
                 writeln!(
                     f,
@@ -260,6 +261,7 @@ impl<'repo_tree> Directory<'repo_tree> {
         let final_i = current.children.len() - 1;
         for (i, (name, directory)) in current.children.iter().enumerate() {
             directory.display(
+                ui,
                 config,
                 f,
                 format!("{prefix}{}", dir_state.get_subdir_prefix()),
@@ -277,16 +279,19 @@ impl<'repo_tree> Directory<'repo_tree> {
 }
 
 /// Representation of the repo tree root directory.
-struct RootDirectory<'config, 'repo_tree> {
+struct RootDirectory<'ui, 'ui_config, 'config, 'repo_tree> {
+    /// TODO
+    ui: &'ui Ui<'ui_config>,
     /// Configuration of the rt tool.
     config: &'config Config,
     /// Associated Directory struct, head of the Directory struct tree.
     directory: Directory<'repo_tree>,
 }
 
-impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
+impl<'ui, 'ui_config, 'config, 'repo_tree> RootDirectory<'ui, 'ui_config, 'config, 'repo_tree> {
     /// Instantiate a RootDirectory.
     fn new(
+        ui: &'ui Ui<'ui_config>,
         config: &'config Config,
         repo_tree: &'repo_tree RepoTree,
         maybe_tree_space: Option<TreeSpace>,
@@ -302,13 +307,14 @@ impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
             directory.insert(config, repository, workspace);
         }
 
-        Self { config, directory }
+        Self { ui, config, directory }
     }
 }
 
-impl<'config, 'repo_tree> Display for RootDirectory<'config, 'repo_tree> {
+impl<'ui, 'ui_config, 'config, 'repo_tree> Display for RootDirectory<'ui, 'ui_config, 'config, 'repo_tree> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.directory.display(
+            self.ui,
             self.config,
             f,
             "".to_string(),
@@ -323,6 +329,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: TreeArgs) -> i32 {
     println!(
         "{}",
         RootDirectory::new(
+            ui,
             config,
             &RepoTree::load(ui, config, args.refresh_cache),
             args.tree,

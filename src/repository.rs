@@ -102,6 +102,11 @@ impl Workspace {
         }
     }
 
+    /// Find out if a repository exists.
+    pub fn exists(&self) -> bool {
+        self.path().exists()
+    }
+
     /// Remove a workspace.
     pub fn rm(&self) {
         let root = self.path();
@@ -109,12 +114,19 @@ impl Workspace {
         remove_dir_all(root).expect("Failed to remove the repository");
 
         // Remove parent directories if they are empty.
-        let parent = &root;
-        while let Some(parent) = parent.parent() {
-            if parent.read_dir().unwrap().next().is_none() {
-                std::fs::remove_dir(parent).unwrap();
-            } else {
-                break;
+        if let Some(mut parent) = root.parent() {
+            loop {
+                if let Ok(mut i) = parent.read_dir() {
+                    if i.next().is_some() {
+                        break;
+                    }
+                    std::fs::remove_dir(parent).unwrap();
+                };
+
+                parent = match parent.parent() {
+                    Some(p) => p,
+                    None => break,
+                };
             }
         }
     }
@@ -163,7 +175,8 @@ impl Repository {
 
     /// Search for a repository at the given path.
     pub async fn discover(
-        ui: &mut Ui<'_>, config: &Config,
+        ui: &mut Ui<'_>,
+        config: &Config,
         path: &Path,
         strategy: ExpectedTreeStrategy,
     ) -> Result<Self, Box<dyn Error>> {
@@ -293,7 +306,8 @@ impl Repository {
     // we should not have to do uselessly multiple times.
     pub async fn expected_root(
         &self,
-        ui: &mut Ui<'_>, config: &Config,
+        ui: &mut Ui<'_>,
+        config: &Config,
         workspace: &Workspace,
         strategy: ExpectedTreeStrategy,
     ) -> Result<Option<PathBuf>, Box<dyn Error>> {

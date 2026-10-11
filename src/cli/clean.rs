@@ -89,8 +89,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
             RepoTree::load_silent_with_empty_dirs(ui, config, true)
         else {
             panic!(
-                "Cache forced to be refreshed so empty_dirs should be \
-                 available"
+                "Cache forced to be refreshed so empty_dirs should be available"
             );
         };
 

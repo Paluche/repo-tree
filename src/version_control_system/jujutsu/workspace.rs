@@ -4,12 +4,17 @@ use std::error::Error;
 use std::fs::create_dir_all;
 use std::path::Path;
 use std::path::PathBuf;
+use std::path::absolute;
 
 use super::super::VcsWorkspace;
 use super::command::JujutsuCommand;
+use crate::config::Config;
+use crate::ui::Ui;
 
 /// List all workspaces associated with the specified repository.
 pub fn list_workspaces(
+    ui: &Ui<'_>,
+    config: &Config,
     repo_path: &Path,
 ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
     Ok(JujutsuCommand::repo(repo_path)?
@@ -22,8 +27,27 @@ pub fn list_workspaces(
         .map(|l| {
             let mut parts = l.split("\t");
             let name = parts.next().unwrap().to_string();
-            let path = PathBuf::from(parts.next().unwrap());
+            let path = absolute(PathBuf::from(parts.next().unwrap())).unwrap();
             VcsWorkspace { name, path }
+        })
+        .filter(|w| {
+            if w.path.exists() {
+                true
+            } else {
+                ui.warning(format!(
+                    "Deleting unexisting workspace {}{} of repository {}",
+                    w.path.display(),
+                    w.display_name(config),
+                    repo_path.display()
+                ));
+                match forget_workspace(repo_path, &w.name) {
+                    Ok(()) => false,
+                    Err(err) => {
+                        ui.error(err);
+                        true
+                    }
+                }
+            }
         })
         .collect())
 }
@@ -72,6 +96,10 @@ pub fn forget_workspace(
     repo_path: &Path,
     name: &str,
 ) -> Result<(), Box<dyn Error>> {
+    if name == "default" {
+        panic!("Attempted to forget default workspace");
+    }
+
     JujutsuCommand::repo(repo_path)?
         .arg("workspace")
         .arg("forget")

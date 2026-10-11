@@ -57,7 +57,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: PromptArgs) -> i32 {
         .prompt(config, &mut prompt)
     {
         Ok(_) => {
-            println!("{}", prompt.display(config));
+            println!("{}", prompt.display(ui, config));
             0
         }
         Err(err) => {

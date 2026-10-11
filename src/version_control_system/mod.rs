@@ -14,6 +14,7 @@ use crate::config::Config;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
 use crate::repository::Workspace;
+use crate::ui::Ui;
 
 #[derive(
     Debug, Copy, Clone, PartialEq, Default, ValueEnum, Serialize, Deserialize,
@@ -233,7 +234,11 @@ pub trait VcsRepository {
     fn get_repo_state(&self) -> Result<RepoState, Box<dyn Error>>;
 
     /// The name of the workspace associated with the repository.
-    fn get_workspace(&self) -> Result<Option<VcsWorkspace>, Box<dyn Error>>;
+    fn get_workspace(
+        &self,
+        ui: &Ui<'_>,
+        config: &Config,
+    ) -> Result<Option<VcsWorkspace>, Box<dyn Error>>;
 
     /// Create a new workspace of the repository.
     fn add_workspace(
@@ -243,5 +248,8 @@ pub trait VcsRepository {
     ) -> Result<(), Box<dyn Error>>;
 
     /// Remove the workspace.
-    fn remove_workspace(&self) -> Result<(), Box<dyn Error>>;
+    fn remove_workspace(&self,
+        ui: &Ui<'_>,
+        config: &Config,
+        ) -> Result<(), Box<dyn Error>>;
 }
