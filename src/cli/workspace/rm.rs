@@ -65,8 +65,9 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceRmArgs) -> i32 {
     if !args.force {
         // Ask the user for confirmation before removing the repository.
         println!(
-            "Are you sure you want to remove the repository {} from the
-            repo-tree? [y/N]",
+            "Are you sure you want to remove the workspace {} of the \
+            repository {} from the repo-tree? [y/N]",
+            workspace.path().display(),
             repository.id.display(config),
         );
         let mut input = String::new();
@@ -77,10 +78,15 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceRmArgs) -> i32 {
         }
     }
 
-    workspace.rm();
-
-    // Refresh the cache.
-    RepoTree::load(ui, config, true);
-
-    0
+    match repository.get_vcs_repo(workspace).remove_workspace(ui, config) {
+        Ok(()) => {
+            // Refresh the cache.
+            RepoTree::load(ui, config, true);
+            0
+        }
+        Err(err) => {
+            ui.error(err);
+            1
+        }
+    }
 }
