@@ -26,14 +26,13 @@ pub struct CloneArgs {
 
 /// Do the cloning of the repository.
 async fn do_clone(
-    config: &Config,
-    ui: &mut Ui<'_>,
+    ui: &mut Ui<'_>, config: &Config,
     force_tree: Option<ForceTreeSpace>,
     repo_id: &RepoId,
     vcs: &VersionControlSystem,
 ) -> Result<(), Box<dyn Error>> {
     let location = repo_id
-        .expected_tree(config, ui, None, force_tree.into())
+        .expected_tree(ui, config, None, force_tree.into())
         .await?
         .repo_location(config, repo_id)?;
 
@@ -75,18 +74,18 @@ async fn do_clone(
     }
 
     // Refresh the cache.
-    RepoTree::load(config, ui, true);
+    RepoTree::load(ui, config, true);
 
     println!("{}", location.display());
     Ok(())
 }
 
 /// Execute the `rt clone` command.
-pub async fn run(config: &Config, ui: &mut Ui<'_>, args: CloneArgs) -> i32 {
+pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CloneArgs) -> i32 {
     let vcs = args.vcs.unwrap_or(config.command.clone.default_vcs);
 
     if let Ok(repo_id) = RepoId::from_remote_url(&args.url) {
-        match do_clone(config, ui, args.force_tree, &repo_id, &vcs).await {
+        match do_clone(ui, config, args.force_tree, &repo_id, &vcs).await {
             Ok(()) => 0,
             Err(err) => {
                 ui.error(err);

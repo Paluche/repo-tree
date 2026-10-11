@@ -43,15 +43,14 @@ pub struct NextPrevArgs {
 
 /// Execute the `rt todo next` or `rt todo prev` command.
 pub async fn run(
-    config: &Config,
     ui: &mut Ui<'_>,
+    config: &Config,
     args: NextPrevArgs,
     reverse: bool,
 ) -> i32 {
     let repo_path = cwd_default_path(ui, None);
     let current_repository = match Repository::discover(
-        config,
-        ui,
+        ui, config,
         &repo_path,
         ExpectedTreeStrategy::Lazy,
     )
@@ -67,12 +66,12 @@ pub async fn run(
         }
     };
 
-    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
+    let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
 
     // Skip the current repository.
     for repository in into_iter_from(
         repo_tree
-            .filtered(config, ui, &args.hosts, &args.names, &args.trees)
+            .filtered(ui, config, &args.hosts, &args.names, &args.trees)
             .into_iter()
             .map(|(r, _)| r)
             .collect::<Vec<&Repository>>(),

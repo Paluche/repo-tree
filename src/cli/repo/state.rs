@@ -27,14 +27,13 @@ pub struct StateArgs {
 }
 
 /// Execute the `rt repo state` command.
-pub async fn run(config: &Config, ui: &mut Ui<'_>, args: StateArgs) -> i32 {
+pub async fn run(ui: &mut Ui<'_>, config: &Config, args: StateArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, ui, true);
+        RepoTree::load(ui, config, true);
     }
 
     let repository = match Repository::discover(
-        config,
-        ui,
+        ui, config,
         &cwd_default_path(ui, args.repository),
         ExpectedTreeStrategy::Lazy,
     )

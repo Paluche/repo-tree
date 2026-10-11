@@ -169,8 +169,8 @@ impl RepoId {
     /// In which tree the repository should be, based on its ID.
     pub async fn expected_tree(
         &self,
-        config: &Config,
         ui: &mut Ui<'_>,
+        config: &Config,
         repo_path: Option<&Path>,
         strategy: ExpectedTreeStrategy,
     ) -> Result<TreeSpace, Box<dyn Error>> {
@@ -311,7 +311,7 @@ mod tests {
             .join("foo")
             .join("bar");
         let tree = id
-            .expected_tree(&config, &mut ui, Some(&repo_path), strategy)
+            .expected_tree(&mut ui, &config, Some(&repo_path), strategy)
             .block_on()
             .unwrap();
 
@@ -365,7 +365,7 @@ mod tests {
             .join("foo")
             .join("bar");
         let tree = id
-            .expected_tree(&config, &mut ui, Some(&repo_path), strategy)
+            .expected_tree(&mut ui, &config, Some(&repo_path), strategy)
             .block_on()
             .unwrap();
 
@@ -420,7 +420,7 @@ mod tests {
         let id = RepoId::from_repo(&repo_path, None)
             .expect("No remote no parse URL error");
         let tree = id
-            .expected_tree(&config, &mut ui, Some(&repo_path), strategy)
+            .expected_tree(&mut ui, &config, Some(&repo_path), strategy)
             .block_on()
             .unwrap();
 

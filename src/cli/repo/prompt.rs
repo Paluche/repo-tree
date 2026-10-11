@@ -25,17 +25,16 @@ pub struct PromptArgs {
 }
 
 /// Execute `rt repo prompt` command.
-pub async fn run(config: &Config, ui: &mut Ui<'_>, args: PromptArgs) -> i32 {
+pub async fn run(ui: &mut Ui<'_>, config: &Config, args: PromptArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, ui, true);
+        RepoTree::load(ui, config, true);
     }
 
     let repo_path = cwd_default_path(ui, args.repository);
     SHOULD_COLORIZE.set_override(true);
 
     let repository = match Repository::discover(
-        config,
-        ui,
+        ui, config,
         &repo_path,
         ExpectedTreeStrategy::Lazy,
     )

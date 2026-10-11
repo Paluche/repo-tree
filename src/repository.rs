@@ -144,8 +144,7 @@ impl Repository {
 
     /// Search for a repository at the given path.
     pub async fn discover(
-        config: &Config,
-        ui: &mut Ui<'_>,
+        ui: &mut Ui<'_>, config: &Config,
         path: &Path,
         strategy: ExpectedTreeStrategy,
     ) -> Result<Self, Box<dyn Error>> {
@@ -153,7 +152,7 @@ impl Repository {
         let workspace = repository.get_latest_workspace();
 
         if let Some(expected_root) = repository
-            .expected_root(config, ui, workspace, strategy)
+            .expected_root(ui, config, workspace, strategy)
             .await?
         {
             let root = workspace.path();
@@ -275,8 +274,7 @@ impl Repository {
     // we should not have to do uselessly multiple times.
     pub async fn expected_root(
         &self,
-        config: &Config,
-        ui: &mut Ui<'_>,
+        ui: &mut Ui<'_>, config: &Config,
         workspace: &Workspace,
         strategy: ExpectedTreeStrategy,
     ) -> Result<Option<PathBuf>, Box<dyn Error>> {
@@ -286,7 +284,7 @@ impl Repository {
         } else {
             Some(
                 self.id
-                    .expected_tree(config, ui, Some(workspace.path()), strategy)
+                    .expected_tree(ui, config, Some(workspace.path()), strategy)
                     .await?
                     .repo_location(config, &self.id)?,
             )

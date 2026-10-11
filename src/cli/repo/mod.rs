@@ -31,11 +31,11 @@ enum RepoAction {
 }
 
 /// Execute the `rt repo` sub-commands.
-pub async fn run(config: &Config, ui: &mut Ui<'_>, args: RepoArgs) -> i32 {
+pub async fn run(ui: &mut Ui<'_>, config: &Config, args: RepoArgs) -> i32 {
     match args.action {
-        RepoAction::Root(args) => root::run(config, ui, args),
-        RepoAction::Remote(args) => remote::run(config, ui, args).await,
-        RepoAction::State(args) => state::run(config, ui, args).await,
-        RepoAction::Prompt(args) => prompt::run(config, ui, args).await,
+        RepoAction::Root(args) => root::run(ui, config, args),
+        RepoAction::Remote(args) => remote::run(ui, config, args).await,
+        RepoAction::State(args) => state::run(ui, config, args).await,
+        RepoAction::Prompt(args) => prompt::run(ui, config, args).await,
     }
 }

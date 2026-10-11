@@ -30,14 +30,14 @@ pub struct InsertArgs {
 }
 
 /// Refresh the repo tree cache based on the refresh_cache boolean value.
-fn refresh_cache(config: &Config, ui: &Ui<'_>, refresh_cache: bool) {
+fn refresh_cache(ui: &Ui<'_>, config: &Config, refresh_cache: bool) {
     if refresh_cache {
-        RepoTree::load(config, ui, true);
+        RepoTree::load(ui, config, true);
     }
 }
 
 /// Execute the `rt insert` command.
-pub async fn run(config: &Config, ui: &mut Ui<'_>, args: InsertArgs) -> i32 {
+pub async fn run(ui: &mut Ui<'_>, config: &Config, args: InsertArgs) -> i32 {
     let repository =
         match Repository::discover_silent(config, &PathBuf::from(args.path)) {
             Ok(r) => r,
@@ -51,8 +51,7 @@ pub async fn run(config: &Config, ui: &mut Ui<'_>, args: InsertArgs) -> i32 {
 
     let expected_root = match repository
         .expected_root(
-            config,
-            ui,
+            ui, config,
             repository.get_latest_workspace(),
             args.force_tree.into(),
         )
@@ -77,7 +76,7 @@ pub async fn run(config: &Config, ui: &mut Ui<'_>, args: InsertArgs) -> i32 {
     let root = workspace.path();
     if root == &expected_root {
         eprintln!("Repository already at the correct location");
-        refresh_cache(config, ui, args.refresh_cache);
+        refresh_cache(ui, config, args.refresh_cache);
         return 0;
     }
 
@@ -87,13 +86,13 @@ pub async fn run(config: &Config, ui: &mut Ui<'_>, args: InsertArgs) -> i32 {
         && let Err(err) = create_dir_all(parent)
     {
         ui.error(err);
-        refresh_cache(config, ui, args.refresh_cache);
+        refresh_cache(ui, config, args.refresh_cache);
         return 1;
     }
 
     if let Err(err) = rename(root, &expected_root) {
         ui.error(err);
-        refresh_cache(config, ui, args.refresh_cache);
+        refresh_cache(ui, config, args.refresh_cache);
         return 1;
     }
     println!("{} moved to {}", root.display(), expected_root.display());
@@ -124,7 +123,7 @@ pub async fn run(config: &Config, ui: &mut Ui<'_>, args: InsertArgs) -> i32 {
     }
 
     // Repo tree changed, refresh the cache.
-    refresh_cache(config, ui, true);
+    refresh_cache(ui, config, true);
 
     0
 }

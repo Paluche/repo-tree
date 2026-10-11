@@ -25,8 +25,8 @@ enum GitAction {
 }
 
 /// Execute `rt git` sub-commands.
-pub async fn run(config: &Config, ui: &mut Ui<'_>, args: GitArgs) -> i32 {
+pub async fn run(ui: &mut Ui<'_>, config: &Config, args: GitArgs) -> i32 {
     match args.action {
-        GitAction::Status(args) => status::run(config, ui, args).await,
+        GitAction::Status(args) => status::run(ui, config, args).await,
     }
 }
