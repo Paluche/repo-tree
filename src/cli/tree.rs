@@ -320,12 +320,12 @@ impl<'config, 'repo_tree> Display for RootDirectory<'config, 'repo_tree> {
 }
 
 /// Execute the `rt tree` command.
-pub fn run(config: &Config, ui: &Ui<'_>, args: TreeArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: TreeArgs) -> i32 {
     println!(
         "{}",
         RootDirectory::new(
             config,
-            &RepoTree::load(config, ui, args.refresh_cache),
+            &RepoTree::load(ui, config, args.refresh_cache),
             args.tree,
         )
     );

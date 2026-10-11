@@ -120,18 +120,18 @@ pub async fn run() -> i32 {
     }
 
     match args.action {
-        Action::Resolve(args) => resolve::run(&config, &ui, args),
-        Action::ResolveUrl(args) => resolve_url::run(&config, &ui, args),
-        Action::List(args) => list::run(&config, &ui, args),
-        Action::Tree(args) => tree::run(&config, &ui, args),
-        Action::Clean(args) => clean::run(&config, &mut ui, args).await,
-        Action::Fetch(args) => fetch::run(&config, &ui, args),
-        Action::Todo(args) => todo::run(&config, &mut ui, args).await,
-        Action::Repo(args) => repo::run(&config, &mut ui, args).await,
-        Action::Git(args) => git::run(&config, &mut ui, args).await,
-        Action::Clone(args) => clone::run(&config, &mut ui, args).await,
-        Action::Rm(args) => rm::run(&config, &ui, args).await,
-        Action::RefreshCache(args) => refresh_cache::run(&config, &ui, args),
-        Action::Insert(args) => insert::run(&config, &mut ui, args).await,
+        Action::Resolve(args) => resolve::run(&ui, &config, args),
+        Action::ResolveUrl(args) => resolve_url::run(&ui, &config, args),
+        Action::List(args) => list::run(&ui, &config, args),
+        Action::Tree(args) => tree::run(&ui, &config, args),
+        Action::Clean(args) => clean::run(&mut ui, &config, args).await,
+        Action::Fetch(args) => fetch::run(&ui, &config, args),
+        Action::Todo(args) => todo::run(&mut ui, &config, args).await,
+        Action::Repo(args) => repo::run(&mut ui, &config, args).await,
+        Action::Git(args) => git::run(&mut ui, &config, args).await,
+        Action::Clone(args) => clone::run(&mut ui, &config, args).await,
+        Action::Rm(args) => rm::run(&ui, &config, args).await,
+        Action::RefreshCache(args) => refresh_cache::run(&ui, &config, args),
+        Action::Insert(args) => insert::run(&mut ui, &config, args).await,
     }
 }

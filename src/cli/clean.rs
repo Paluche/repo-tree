@@ -27,15 +27,15 @@ pub struct CleanArgs {
 }
 
 /// Execute the `rt clean` command.
-pub async fn run(config: &Config, ui: &mut Ui<'_>, args: CleanArgs) -> i32 {
+pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
     // Do not use the cache, assure we have an up-to-date list of repositories
     // before doing any action that will modify the directories.
-    let repo_tree = RepoTree::load_silent(config, ui, true);
+    let repo_tree = RepoTree::load_silent(ui, config, true);
     let repos_to_move: Vec<(&Repository, &Workspace, PathBuf)> = repo_tree
         .workspace_iter()
         .filter_map(|(r, w)| {
             match r
-                .expected_root(config, ui, w, ExpectedTreeStrategy::Exact)
+                .expected_root(ui, config, w, ExpectedTreeStrategy::Exact)
                 .block_on()
             {
                 Ok(v) => v.and_then(|p| (&p != w.path()).then_some((r, w, p))),
@@ -86,7 +86,7 @@ pub async fn run(config: &Config, ui: &mut Ui<'_>, args: CleanArgs) -> i32 {
         // Force the cache to be refreshed at the same time as loading the empty
         // directories.
         let (_, Some(empty_dirs)) =
-            RepoTree::load_silent_with_empty_dirs(config, ui, true)
+            RepoTree::load_silent_with_empty_dirs(ui, config, true)
         else {
             panic!(
                 "Cache forced to be refreshed so empty_dirs should be \

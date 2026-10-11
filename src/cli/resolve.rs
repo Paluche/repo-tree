@@ -30,8 +30,8 @@ pub struct ResolveArgs {
 }
 
 /// Execute the `rt resolve` command.
-pub fn run(config: &Config, ui: &Ui<'_>, args: ResolveArgs) -> i32 {
-    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
+pub fn run(ui: &Ui<'_>, config: &Config, args: ResolveArgs) -> i32 {
+    let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
     let Ok(filter) = ResolveFilter::from_cli_args(args.tree, args.kind) else {
         panic!(
             "Arguments should have been mutually conflicting and managed by \
@@ -40,7 +40,7 @@ pub fn run(config: &Config, ui: &Ui<'_>, args: ResolveArgs) -> i32 {
     };
 
     if let Some((_, workspace)) =
-        match resolve(config, ui, &repo_tree, args.repo_id, filter) {
+        match resolve(ui, config, &repo_tree, args.repo_id, filter) {
             Ok(r) => r,
             Err(err) => {
                 eprintln!("{err}");

@@ -54,8 +54,8 @@ fn get_candidates<'repo_tree>(
 }
 
 /// Execute the `rt resolve-url` command.
-pub fn run(config: &Config, ui: &Ui<'_>, args: ResolveUrlArgs) -> i32 {
-    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
+pub fn run(ui: &Ui<'_>, config: &Config, args: ResolveUrlArgs) -> i32 {
+    let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
     let candidates = get_candidates(ui, &repo_tree, args.tree.as_ref());
     if let Some(repo) = candidates.get(&args.repo_id) {
         println!("{}", repo.display());
@@ -109,7 +109,7 @@ fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
     };
     let ui = Ui::new(&config);
 
-    let repo_tree = RepoTree::load_silent(&config, &ui, false);
+    let repo_tree = RepoTree::load_silent(&ui, &config, false);
     let candidates = get_candidates(&ui, &repo_tree, None);
     let matcher = SkimMatcherV2::default();
 
