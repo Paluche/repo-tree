@@ -7,6 +7,7 @@ use itertools::join;
 use crate::config::Config;
 use crate::repository::Repository;
 use crate::repository::Workspace;
+use crate::ui::Ui;
 
 /// Context to build the prompt line.
 pub struct Prompt<'repo> {
@@ -43,27 +44,30 @@ impl<'repo> Prompt<'repo> {
     }
 
     /// Obtain a displayable struct representing the Prompt.
-    pub fn display<'prompt, 'config>(
+    pub fn display<'prompt, 'ui, 'ui_config, 'config>(
         &'prompt self,
+        ui: &'ui Ui<'ui_config>,
         config: &'config Config,
-    ) -> PromptDisplay<'prompt, 'repo, 'config> {
+    ) -> PromptDisplay<'prompt, 'ui, 'ui_config, 'repo, 'config> {
         PromptDisplay {
             prompt: self,
+            ui,
             config,
         }
     }
 }
 
 /// Displayable struct representing the Prompt.
-pub struct PromptDisplay<'prompt, 'repo, 'config> {
+pub struct PromptDisplay<'prompt, 'ui, 'ui_config, 'repo, 'config> {
     /// Prompt we are displaying.
     prompt: &'prompt Prompt<'repo>,
+    ui: &'ui Ui<'ui_config>,
     /// Configuration customizing the prompt.
     config: &'config Config,
 }
 
-impl<'prompt, 'repo, 'config> Display
-    for PromptDisplay<'prompt, 'repo, 'config>
+impl<'prompt, 'ui, 'ui_config, 'repo, 'config> Display
+    for PromptDisplay<'prompt, 'ui, 'ui_config, 'repo, 'config>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -106,7 +110,7 @@ impl<'prompt, 'repo, 'config> Display
             .prompt
             .repository
             .get_vcs_repo(self.prompt.workspace)
-            .get_workspace()
+            .get_workspace(self.ui, self.config)
         {
             write!(
                 f,
