@@ -23,14 +23,14 @@ pub struct RemoteArgs {
 }
 
 /// Execute the `rt repo remote` command.
-pub async fn run(config: &Config, ui: &mut Ui<'_>, args: RemoteArgs) -> i32 {
+pub async fn run(ui: &mut Ui<'_>, config: &Config, args: RemoteArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, ui, true);
+        RepoTree::load(ui, config, true);
     }
 
     let repository = match Repository::discover(
-        config,
         ui,
+        config,
         &cwd_default_path(ui, args.repository),
         ExpectedTreeStrategy::Lazy,
     )

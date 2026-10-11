@@ -38,9 +38,9 @@ pub struct ListArgs {
 }
 
 /// Execute the `rt list` command.
-pub fn run(config: &Config, ui: &Ui<'_>, args: ListArgs) -> i32 {
-    for (_, workspace) in RepoTree::load(config, ui, args.refresh_cache)
-        .filtered(config, ui, &args.hosts, &args.names, &args.trees)
+pub fn run(ui: &Ui<'_>, config: &Config, args: ListArgs) -> i32 {
+    for (_, workspace) in RepoTree::load(ui, config, args.refresh_cache)
+        .filtered(ui, config, &args.hosts, &args.names, &args.trees)
         .iter()
     {
         println!("{}", workspace.path().display());

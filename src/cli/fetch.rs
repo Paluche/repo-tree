@@ -22,8 +22,8 @@ pub struct FetchArgs {
 
 /// Fetch one repository.
 pub fn fetch_repo(
-    config: &Config,
     ui: &Ui<'_>,
+    config: &Config,
     quiet: bool,
     repository: &Repository,
     is_submodule: bool,
@@ -46,7 +46,7 @@ pub fn fetch_repo(
         let root = submodule.abs_path();
         let repository = Repository::try_new(config, &root)?;
 
-        let (_ok, _total) = fetch_repo(config, ui, quiet, &repository, true)?;
+        let (_ok, _total) = fetch_repo(ui, config, quiet, &repository, true)?;
         ok += _ok;
         total += _total;
     }
@@ -71,13 +71,13 @@ pub fn fetch_repo(
 }
 
 /// Execute `rt fetch` command.
-pub fn run(config: &Config, ui: &Ui<'_>, args: FetchArgs) -> i32 {
-    let repo_tree = RepoTree::load(config, ui, args.refresh_cache);
+pub fn run(ui: &Ui<'_>, config: &Config, args: FetchArgs) -> i32 {
+    let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
 
     let (ok, total) = repo_tree
         .repo_iter()
         .map(|repo| {
-            fetch_repo(config, ui, args.quiet, repo, false).unwrap_or((0, 1))
+            fetch_repo(ui, config, args.quiet, repo, false).unwrap_or((0, 1))
         })
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
         .unwrap_or((0, 0));

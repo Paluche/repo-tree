@@ -99,8 +99,8 @@ fn get_workspace<'repo_tree>(
 /// Reduce the name of the repositories to the shortest path that identifies
 /// each repositories individually.
 fn reduce_repo_names<'repo_tree>(
-    config: &Config,
     ui: &Ui<'_>,
+    config: &Config,
     repo_tree: &'repo_tree RepoTree,
     filter: &ResolveFilter,
 ) -> BTreeMap<String, &'repo_tree Repository> {
@@ -155,12 +155,12 @@ fn reduce_repo_names<'repo_tree>(
 /// Get the map associating valid repository identifiers to the associated
 /// repository present in the repo tree.
 fn get_candidates<'repo_tree>(
-    config: &Config,
     ui: &Ui<'_>,
+    config: &Config,
     repo_tree: &'repo_tree RepoTree,
     filter: &ResolveFilter,
 ) -> BTreeMap<String, &'repo_tree Repository> {
-    let mut ret = reduce_repo_names(config, ui, repo_tree, filter);
+    let mut ret = reduce_repo_names(ui, config, repo_tree, filter);
 
     for (alias, repo_name) in config.command.resolve.aliases.iter() {
         if let Some(repo) = ret.get(repo_name) {
@@ -221,8 +221,8 @@ where
 /// Get the text that describe the associated repository ID completion
 /// candidate.
 fn repository_candidate_help(
-    config: &Config,
     ui: &Ui<'_>,
+    config: &Config,
     repository: &Repository,
 ) -> Option<StyledStr> {
     repository.id.remote.as_ref().map(|r| {
@@ -243,13 +243,13 @@ fn repository_candidate_help(
 
 /// Resolve a repository identifier into a local repository.
 pub fn resolve_repo<'repo_tree>(
-    config: &Config,
     ui: &Ui<'_>,
+    config: &Config,
     repo_tree: &'repo_tree RepoTree,
     repo_id: Option<String>,
     filter: &ResolveFilter,
 ) -> Result<Option<&'repo_tree Repository>, Box<dyn Error>> {
-    let mut candidates = get_candidates(config, ui, repo_tree, filter);
+    let mut candidates = get_candidates(ui, config, repo_tree, filter);
 
     if candidates.is_empty() {
         ui.error(format!(
@@ -328,7 +328,7 @@ pub fn resolve_repo<'repo_tree>(
 
         for (name, repo) in matches.by_ref().take(8) {
             ui.hint(format!("- {name}"));
-            if let Some(help) = repository_candidate_help(config, ui, repo) {
+            if let Some(help) = repository_candidate_help(ui, config, repo) {
                 ui.hint(format!(" -> {}", help));
             }
         }
@@ -350,8 +350,8 @@ pub fn resolve_repo<'repo_tree>(
 
 /// Resolve a repository identifier into a local repository.
 pub fn resolve<'repo_tree>(
-    config: &Config,
     ui: &Ui<'_>,
+    config: &Config,
     repo_tree: &'repo_tree RepoTree,
     repo_id: Option<String>,
     filter: ResolveFilter,
@@ -359,7 +359,7 @@ pub fn resolve<'repo_tree>(
     Option<(&'repo_tree Repository, &'repo_tree Workspace)>,
     Box<dyn Error>,
 > {
-    if let Some(repo) = resolve_repo(config, ui, repo_tree, repo_id, &filter)? {
+    if let Some(repo) = resolve_repo(ui, config, repo_tree, repo_id, &filter)? {
         let workspace = if filter.is_all() && repo.workspaces.len() != 1 {
             if let Some(tree_space) = fzf_ask(
                 repo.workspaces
@@ -395,9 +395,9 @@ pub fn resolve_completer() -> ArgValueCompleter {
             return vec![];
         };
         let ui = Ui::new(&config);
-        let repo_tree = RepoTree::load_silent(&config, &ui, false);
+        let repo_tree = RepoTree::load_silent(&ui, &config, false);
         let candidates =
-            get_candidates(&config, &ui, &repo_tree, &ResolveFilter::All);
+            get_candidates(&ui, &config, &repo_tree, &ResolveFilter::All);
         let matcher = SkimMatcherV2::default();
 
         candidates
@@ -420,7 +420,7 @@ pub fn resolve_completer() -> ArgValueCompleter {
                                 }),
                         )
                         .help(repository_candidate_help(
-                            &config, &ui, repository,
+                            &ui, &config, repository,
                         ))
                 })
             })

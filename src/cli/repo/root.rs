@@ -26,9 +26,9 @@ pub struct RootArgs {
 }
 
 /// Execute the `rt repo root` command.
-pub fn run(config: &Config, ui: &Ui<'_>, args: RootArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: RootArgs) -> i32 {
     if args.refresh_cache {
-        RepoTree::load(config, ui, true);
+        RepoTree::load(ui, config, true);
     }
 
     let mut cwd = get_cwd(ui);

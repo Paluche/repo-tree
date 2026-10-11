@@ -68,7 +68,7 @@ fn _search(
 }
 
 /// Search repositories in the repo tree.
-fn search(config: &Config, ui: &Ui<'_>) -> (Vec<Repository>, Vec<PathBuf>) {
+fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
     let mut repositories = Vec::new();
     let mut empty_dirs = Vec::new();
 
@@ -136,11 +136,11 @@ impl RepoTree {
 
     /// Load all the repositories present in the repo tree.
     pub fn load_silent(
-        config: &Config,
         ui: &Ui<'_>,
+        config: &Config,
         refresh_cache: bool,
     ) -> Self {
-        Self::load_silent_with_empty_dirs(config, ui, refresh_cache).0
+        Self::load_silent_with_empty_dirs(ui, config, refresh_cache).0
     }
 
     /// Load all the repositories present in the repo tree with a list of
@@ -149,8 +149,8 @@ impl RepoTree {
     /// cache exists to avoids us searching the repo tree, we should not do it
     /// anyway for getting the empty directories.
     pub fn load_silent_with_empty_dirs(
-        config: &Config,
         ui: &Ui<'_>,
+        config: &Config,
         refresh_cache: bool,
     ) -> (Self, Option<Vec<PathBuf>>) {
         if !refresh_cache {
@@ -174,7 +174,7 @@ impl RepoTree {
 
         ui.hint("Refreshing repositories cache...");
 
-        let (repositories, empty_dirs) = search(config, ui);
+        let (repositories, empty_dirs) = search(ui, config);
 
         (Self { repositories }, Some(empty_dirs))
     }
@@ -182,9 +182,9 @@ impl RepoTree {
     /// Load the repo tree.
     /// Print a warning message if empty directories outside any repository are
     /// found in the repo tree.
-    pub fn load(config: &Config, ui: &Ui<'_>, refresh_cache: bool) -> Self {
+    pub fn load(ui: &Ui<'_>, config: &Config, refresh_cache: bool) -> Self {
         let (repositories, empty_dirs) =
-            Self::load_silent_with_empty_dirs(config, ui, refresh_cache);
+            Self::load_silent_with_empty_dirs(ui, config, refresh_cache);
 
         if let Some(empty_dirs) = empty_dirs {
             for empty_dir in empty_dirs {
@@ -201,8 +201,8 @@ impl RepoTree {
     /// Load some of the repositories based on the provided filters.
     pub fn filtered<'repo_tree>(
         &'repo_tree self,
-        config: &Config,
         ui: &Ui<'_>,
+        config: &Config,
         filter_hosts: &[Glob],
         filter_names: &[Glob],
         filter_trees: &[Glob],
