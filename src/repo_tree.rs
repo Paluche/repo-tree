@@ -161,6 +161,7 @@ impl RepoTree {
                 Ok(repo_tree) => {
                     if repo_tree.repo_iter().all(|r| {
                         !r.remote_config.has_been_modified().unwrap_or(true)
+                            && r.workspaces.iter().all(|w| w.exists())
                     }) {
                         return (repo_tree, None);
                     }

@@ -20,6 +20,7 @@ use crate::error::NotImplementedError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
 use crate::repository::Workspace;
+use crate::ui::Ui;
 
 /// Get the remote URL of the repository to use to organize the repository
 /// within the repo tree. This would be either the origin remote or the first
@@ -125,7 +126,11 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
         )))
     }
 
-    fn get_workspace(&self) -> Result<Option<VcsWorkspace>, Box<dyn Error>> {
+    fn get_workspace(
+        &self,
+        _ui: &Ui<'_>,
+        _config: &Config,
+    ) -> Result<Option<VcsWorkspace>, Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Workspace / worktree interaction not for Git Version Control \
              System"
@@ -145,7 +150,11 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
         )))
     }
 
-    fn remove_workspace(&self) -> Result<(), Box<dyn Error>> {
+    fn remove_workspace(
+        &self,
+        _ui: &Ui<'_>,
+        _config: &Config,
+    ) -> Result<(), Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Workspace / worktree interaction not for Git Version Control \
              System"

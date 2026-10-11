@@ -22,6 +22,7 @@ use crate::error::NotARepositoryError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
 use crate::repository::Workspace;
+use crate::ui::Ui;
 
 /// Get the path to the jj directory from the repository root path.
 pub fn get_jj_dir(repo_path: &Path) -> PathBuf {
@@ -99,8 +100,13 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         repo_state::get_repo_state(self.workspace.path())
     }
 
-    fn get_workspace(&self) -> Result<Option<VcsWorkspace>, Box<dyn Error>> {
-        let workspaces = workspace::list_workspaces(self.workspace.path())?;
+    fn get_workspace(
+        &self,
+        ui: &Ui<'_>,
+        config: &Config,
+    ) -> Result<Option<VcsWorkspace>, Box<dyn Error>> {
+        let workspaces =
+            workspace::list_workspaces(ui, config, self.workspace.path())?;
 
         if workspaces.len() <= 1 {
             return Ok(None);
@@ -119,8 +125,12 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         workspace::add_workspace(self.workspace.path(), name, destination)
     }
 
-    fn remove_workspace(&self) -> Result<(), Box<dyn Error>> {
-        let Some(workspace) = self.get_workspace()? else {
+    fn remove_workspace(
+        &self,
+        ui: &Ui<'_>,
+        config: &Config,
+    ) -> Result<(), Box<dyn Error>> {
+        let Some(workspace) = self.get_workspace(ui, config)? else {
             eprintln!("No workspace to remove");
             return Ok(()); // TODO Return an Err
         };
