@@ -33,6 +33,7 @@ use crate::resolve::ResolveFilter;
 use crate::resolve::resolve;
 use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
+use crate::ui_error;
 
 /// Control of the colored output.
 #[derive(Default, Clone, ValueEnum)]
@@ -97,7 +98,7 @@ fn cwd_default_path(ui: &Ui, path: Option<String>) -> PathBuf {
     let ret = path.map_or_else(|| get_cwd(ui), PathBuf::from);
 
     if !ret.exists() {
-        ui.error(format!("No such directory {}", ret.display()));
+        ui_error!(ui, "No such directory {}", ret.display());
         exit(1);
     }
 

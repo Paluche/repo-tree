@@ -17,6 +17,7 @@ use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
 use crate::ui::Ui;
+use crate::ui_error;
 use crate::version_control_system::git::GitStatus;
 use crate::version_control_system::git::SubmoduleStatus;
 use crate::version_control_system::git::{self};
@@ -158,7 +159,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: StatusArgs) -> i32 {
     let root = repository.get_latest_workspace().path();
 
     if !repository.vcs.is_git() {
-        ui.error(format!("Status not implemented for {}", repository.vcs));
+        ui_error!(ui, "Status not implemented for {}", repository.vcs);
         return 1;
     }
 
