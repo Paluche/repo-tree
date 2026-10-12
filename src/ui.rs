@@ -81,3 +81,58 @@ impl<'config> Ui<'config> {
         }
     }
 }
+
+/// Print a formatted error message through a [`Ui`] instance.
+///
+/// The first argument is the [`Ui`] instance; the remaining arguments follow
+/// the [`format!`] syntax.
+#[macro_export]
+macro_rules! ui_error {
+    ($ui:expr, $($arg:tt)*) => {
+        $ui.error(::std::format!($($arg)*))
+    };
+}
+
+/// Print a formatted hint message through a [`Ui`] instance.
+///
+/// The first argument is the [`Ui`] instance; the remaining arguments follow
+/// the [`format!`] syntax.
+#[macro_export]
+macro_rules! ui_hint {
+    ($ui:expr, $($arg:tt)*) => {
+        $ui.hint(::std::format!($($arg)*))
+    };
+}
+
+/// Print a formatted warning message through a [`Ui`] instance.
+///
+/// The first argument is the [`Ui`] instance; the remaining arguments follow
+/// the [`format!`] syntax.
+#[macro_export]
+macro_rules! ui_warning {
+    ($ui:expr, $($arg:tt)*) => {
+        $ui.warning(::std::format!($($arg)*))
+    };
+}
+
+/// Print a formatted information message through a [`Ui`] instance.
+///
+/// The first argument is the [`Ui`] instance; the remaining arguments follow
+/// the [`format!`] syntax.
+#[macro_export]
+macro_rules! ui_info {
+    ($ui:expr, $($arg:tt)*) => {
+        $ui.info(::std::format!($($arg)*))
+    };
+}
+
+/// Print a formatted hint message once per execution through a [`Ui`] instance.
+///
+/// The first argument is the [`Ui`] instance; the remaining arguments follow
+/// the [`format!`] syntax.
+#[macro_export]
+macro_rules! ui_hint_once {
+    ($ui:expr, $($arg:tt)*) => {
+        $ui.hint_once(::std::format!($($arg)*))
+    };
+}
