@@ -9,6 +9,7 @@ use crate::repo_tree::RepoTree;
 use crate::repository::Workspace;
 use crate::tree_space::ForceTreeSpace;
 use crate::ui::Ui;
+use crate::ui_hint;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::jujutsu;
 
@@ -41,27 +42,30 @@ async fn do_clone(
         if let Some((current_vcs, _)) = VersionControlSystem::try_new(&location)
         {
             if &current_vcs == vcs {
-                ui.hint(format!(
+                ui_hint!(
+                    ui,
                     "{} repository already cloned",
                     repo_id.display(config)
-                ));
+                );
             } else if matches!(current_vcs, VersionControlSystem::Git)
                 && matches!(vcs, VersionControlSystem::JujutsuGit)
             {
                 ui.hint("Repository already cloned, initializing JJ into");
                 jujutsu::init_colocate(&location)?;
             } else {
-                ui.hint(format!(
+                ui_hint!(
+                    ui,
                     "{} repository already cloned but is a {current_vcs} \
                      repository instead of a {vcs} repository",
                     repo_id.display(config)
-                ));
+                );
             }
         } else {
-            ui.hint(format!(
+            ui_hint!(
+                ui,
                 "Clone location {} already exists",
                 location.display()
-            ));
+            );
             return Ok(());
         }
     } else {

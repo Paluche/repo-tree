@@ -8,6 +8,7 @@ use crate::resolve::resolve_completer;
 use crate::tree_space::TreeSpace;
 use crate::tree_space::WorkspaceTreeSpace;
 use crate::ui::Ui;
+use crate::ui_error;
 
 /// Create a workspace for a specified repository into a specified tree-space
 /// workspace.
@@ -52,11 +53,12 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceRmArgs) -> i32 {
     let tree_space: TreeSpace = args.workspace.into();
 
     let Some(workspace) = repository.get_tree_workspace(ui, &tree_space) else {
-        ui.error(format!(
+        ui_error!(
+            ui,
             "The repository {} does not have a workspace in the tree-space {}",
             repository.id.display(config),
             tree_space.display(config),
-        ));
+        );
         return 2;
     };
 

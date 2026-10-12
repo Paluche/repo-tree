@@ -20,6 +20,8 @@ use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
 use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
+use crate::ui_error;
+use crate::ui_warning;
 
 /// Search recursively repositories in a directory.
 fn _search(
@@ -93,10 +95,11 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
                 &dir_path,
             );
         } else {
-            ui.warning(format!(
+            ui_warning!(
+                ui,
                 "Unexpected tree-space directory: {}",
                 dir_path.display(),
-            ));
+            );
         }
     }
 
@@ -161,11 +164,12 @@ impl RepoTree {
                     }
                 }
                 Err(err) => {
-                    ui.error(format!(
+                    ui_error!(
+                        ui,
                         "Failure to load cache {} {}",
                         cache_file().display(),
                         err
-                    ));
+                    );
                 }
             }
         }
@@ -186,10 +190,11 @@ impl RepoTree {
 
         if let Some(empty_dirs) = empty_dirs {
             for empty_dir in empty_dirs {
-                ui.warning(format!(
+                ui_warning!(
+                    ui,
                     "Empty directory in repo tree: {}",
                     empty_dir.display()
-                ));
+                );
             }
         }
 

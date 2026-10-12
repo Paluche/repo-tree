@@ -16,6 +16,7 @@ use crate::repo_id::RepoId;
 use crate::tree_space::TreeSpace;
 use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
+use crate::ui_warning;
 use crate::utils::get_last_modified;
 use crate::version_control_system::VcsRepository;
 use crate::version_control_system::VersionControlSystem;
@@ -176,7 +177,8 @@ impl Repository {
             let root = workspace.path();
 
             if root != &expected_root && !config.should_be_ignored(root) {
-                ui.warning(format!(
+                ui_warning!(
+                    ui,
                     "⚠️Unexpected location for the repository {}. Currently \
                      in \"{}\" should be in \"{}\". Run `{}` to fix it.",
                     repository.id.name,
@@ -187,7 +189,7 @@ impl Repository {
                     } else {
                         format!("rt insert \"{}\"", root.display())
                     }
-                ));
+                );
             }
         }
         Ok(repository)

@@ -22,6 +22,9 @@ use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
 use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
+use crate::ui_error;
+use crate::ui_hint;
+use crate::ui_warning;
 
 /// All potential filter options for the resolve() function.
 #[derive(Default)]
@@ -99,7 +102,8 @@ fn get_workspace<'repo_tree>(
 /// Reduce the name of the repositories to the shortest path that identifies
 /// each repositories individually.
 fn reduce_repo_names<'repo_tree>(
-    ui: &Ui<'_>, config: &Config,
+    ui: &Ui<'_>,
+    config: &Config,
     repo_tree: &'repo_tree RepoTree,
     filter: &ResolveFilter,
 ) -> BTreeMap<String, &'repo_tree Repository> {
@@ -120,12 +124,13 @@ fn reduce_repo_names<'repo_tree>(
                 let conflict_workspace =
                     get_workspace(ui, conflict_repository, filter).unwrap();
 
-                ui.warning(format!(
+                ui_warning!(
+                    ui,
                     "Duplicated repository with name {name}: {0} and {1}\n
                     {1} is ignored!",
                     conflict_workspace.path().display(),
                     workspace.path().display(),
-                ));
+                );
                 continue;
             }
             ret.insert(full_name, repository);
@@ -251,7 +256,8 @@ pub fn resolve_repo<'repo_tree>(
     let mut candidates = get_candidates(ui, config, repo_tree, filter);
 
     if candidates.is_empty() {
-        ui.error(format!(
+        ui_error!(
+            ui,
             "No repository in {}",
             match filter {
                 ResolveFilter::All => "repo-tree".to_string(),
@@ -260,7 +266,7 @@ pub fn resolve_repo<'repo_tree>(
                 ResolveFilter::TreeSpaceKind(tree_space_kind) =>
                     format!("tree spaces of kind {}", tree_space_kind),
             }
-        ));
+        );
         return Ok(None);
     }
 
@@ -293,7 +299,7 @@ pub fn resolve_repo<'repo_tree>(
         .collect();
 
     if matches.is_empty() {
-        ui.error("No match for {repo_id}");
+        ui_error!(ui, "No match for {repo_id}");
         return Ok(None);
     }
 
@@ -318,7 +324,7 @@ pub fn resolve_repo<'repo_tree>(
 
     if matches.len() == 1 {
         let (name, repo) = matches[0];
-        ui.hint(format!("Considering you meant {name}"));
+        ui_hint!(ui, "Considering you meant {name}");
         Ok(Some(repo))
     } else {
         ui.hint("Several possible match:");
@@ -326,9 +332,9 @@ pub fn resolve_repo<'repo_tree>(
         let mut matches = matches.iter();
 
         for (name, repo) in matches.by_ref().take(8) {
-            ui.hint(format!("- {name}"));
+            ui_hint!(ui, "- {name}");
             if let Some(help) = repository_candidate_help(ui, config, repo) {
-                ui.hint(format!(" -> {}", help));
+                ui_hint!(ui, " -> {}", help);
             }
         }
 
@@ -336,11 +342,12 @@ pub fn resolve_repo<'repo_tree>(
 
         if remains != 0 {
             ui.hint("...");
-            ui.hint(format!(
+            ui_hint!(
+                ui,
                 "{} more possibilit{}.",
                 remains,
                 if remains == 1 { "y" } else { "ies" }
-            ));
+            );
         }
 
         Ok(None)
