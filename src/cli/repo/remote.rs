@@ -10,8 +10,7 @@ use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
 use crate::ui::Ui;
 
-/// Get the root and type of the repository the working directory or its
-/// parent is into.
+/// Get the remote associated with the repository.
 #[derive(Args)]
 pub struct RemoteArgs {
     /// Path to within the git repository to work with.
