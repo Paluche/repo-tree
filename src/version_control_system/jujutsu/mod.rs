@@ -66,6 +66,10 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         git::get_remote_url(self.workspace.path())
     }
 
+    fn get_remotes(&self) -> Result<Vec<(String, String)>, Box<dyn Error>> {
+        git::get_remotes(self.workspace.path())
+    }
+
     fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
         git::clone(remote_url, self.workspace.path(), self.colocated)
     }

@@ -52,17 +52,36 @@ impl<'repo_tree> GitVcs<'repo_tree> {
     pub fn new(workspace: &'repo_tree Workspace) -> Self {
         Self { workspace }
     }
+
+    fn get_repository(&self) -> Result<git2::Repository, Box<dyn Error>> {
+        Ok(git2::Repository::discover(self.workspace.path())?)
+    }
 }
 
 impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
     fn get_remote_url(
         &self,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {
-        let (remote_config, remote_url) =
-            git2::Repository::discover(self.workspace.path())
-                .and_then(|r| get_remote_url_repo(&r))?;
+        Ok(get_remote_url_repo(&self.get_repository()?)?)
+    }
 
-        Ok((remote_config, remote_url))
+    fn get_remotes(&self) -> Result<Vec<(String, String)>, Box<dyn Error>> {
+        let repo = self.get_repository()?;
+        Ok(repo
+            .remotes()?
+            .iter()
+            .filter_map(|name| {
+                let Ok(Some(name)) = name else {
+                    return None;
+                };
+                let remote = repo
+                    .find_remote(name)
+                    .ok()
+                    .and_then(|r| r.url().ok().map(String::from));
+
+                remote.map(|r| (name.to_string(), r))
+            })
+            .collect())
     }
 
     fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {

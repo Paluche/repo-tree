@@ -216,6 +216,9 @@ pub trait VcsRepository {
         &self,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>>;
 
+    /// Get the configured remotes of the repository.
+    fn get_remotes(&self) -> Result<Vec<(String, String)>, Box<dyn Error>>;
+
     /// Clone a repository.
     fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>>;
 
