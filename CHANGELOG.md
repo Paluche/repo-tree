@@ -36,6 +36,9 @@ and this project adheres to
   matching on names starting with the provided pattern. The behavior for the
   _name_ filter is now fully changed you need to edit your script to add a `*`
   at the end of your name filter to obtain the previous behavior.
+- Command `rt repo remote` changed behavior. This command now is a user
+  interface to get a remote of the repository, if there is several choices, then
+  we ask the user for which one they want.
 
 ### Deprecations
 
