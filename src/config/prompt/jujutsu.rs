@@ -12,6 +12,26 @@ pub fn default_vcs_prompt() -> ColoredText {
     ColoredText::new("", Color::blue())
 }
 
+/// Configuration on how to format a reference with a remote.
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct RemoteReferenceConfig {
+    /// Which color to use for the name of the reference.
+    name: Color,
+    /// Which color to use for the name of the remote.
+    remote: Color,
+}
+
+impl RemoteReferenceConfig {
+    pub fn colorize(&self, name: &str, remote: &str) -> String {
+        format!(
+            "{}{}{}",
+            self.name.colorize(name),
+            self.remote.colorize("@"),
+            self.remote.colorize(remote)
+        )
+    }
+}
+
 /// Configuration for the Jujutsu bookmarks prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct JujutsuBookmarkConfig {
@@ -19,8 +39,8 @@ pub struct JujutsuBookmarkConfig {
     #[serde(default = "JujutsuBookmarkConfig::default_local")]
     pub local: Color,
     /// How to color non-tracked remote bookmarks
-    #[serde(default = "JujutsuBookmarkConfig::default_remote")]
-    pub remote: Color,
+    #[serde(default = "JujutsuBookmarkConfig::default_untracked")]
+    pub untracked: RemoteReferenceConfig,
     /// How to color tracked bookmarks
     #[serde(default = "JujutsuBookmarkConfig::default_tracked")]
     pub tracked: Color,
@@ -49,11 +69,14 @@ pub struct JujutsuBookmarkConfig {
 #[allow(clippy::missing_docs_in_private_items)]
 impl JujutsuBookmarkConfig {
     fn default_local() -> Color {
-        Color::bright_green()
+        Color::from(57)
     }
 
-    fn default_remote() -> Color {
-        Color::magenta()
+    fn default_untracked() -> RemoteReferenceConfig {
+        RemoteReferenceConfig {
+            name: Color::magenta(),
+            remote: Color::from(125),
+        }
     }
 
     fn default_tracked() -> Color {
@@ -85,7 +108,7 @@ impl Default for JujutsuBookmarkConfig {
     fn default() -> Self {
         Self {
             local: Self::default_local(),
-            remote: Self::default_remote(),
+            untracked: Self::default_untracked(),
             tracked: Self::default_tracked(),
             parent: Self::default_parent(),
             current: Self::default_current(),
