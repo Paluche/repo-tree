@@ -13,6 +13,7 @@ pub use status::SubmoduleStatus;
 pub use status::status;
 pub use submodules::SubmoduleInfo;
 
+use super::VcsRemote;
 use super::VcsRepository;
 use super::VcsWorkspace;
 use crate::config::Config;
@@ -66,7 +67,7 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
         Ok(get_remote_url_repo(&self.get_repository()?)?)
     }
 
-    fn get_remotes(&self) -> Result<Vec<(String, String)>, Box<dyn Error>> {
+    fn get_remotes(&self) -> Result<Vec<VcsRemote>, Box<dyn Error>> {
         let repo = self.get_repository()?;
         Ok(repo
             .remotes()?
@@ -80,7 +81,10 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
                     .ok()
                     .and_then(|r| r.url().ok().map(String::from));
 
-                remote.map(|r| (name.to_string(), r))
+                remote.map(|r| VcsRemote {
+                    name: name.to_string(),
+                    url: r,
+                })
             })
             .collect())
     }

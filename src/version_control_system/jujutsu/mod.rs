@@ -15,6 +15,7 @@ use std::path::PathBuf;
 
 pub use git::init_colocate;
 
+use super::VcsRemote;
 use super::VcsRepository;
 use super::VcsWorkspace;
 use crate::config::Config;
@@ -66,7 +67,7 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         git::get_remote_url(self.workspace.path())
     }
 
-    fn get_remotes(&self) -> Result<Vec<(String, String)>, Box<dyn Error>> {
+    fn get_remotes(&self) -> Result<Vec<VcsRemote>, Box<dyn Error>> {
         git::get_remotes(self.workspace.path())
     }
 

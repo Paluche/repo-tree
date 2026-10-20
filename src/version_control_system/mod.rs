@@ -207,6 +207,14 @@ impl<'vcs_workspace, 'config> Display
     }
 }
 
+/// Representation of a repository remote.
+pub struct VcsRemote {
+    /// Name of the remote.
+    pub name: String,
+    /// URL of the remote.
+    pub url: String,
+}
+
 /// Functions to interact with a supported Version Control System.
 pub trait VcsRepository {
     /// Get the remote URL of the repository to use to organize the repository
@@ -217,7 +225,7 @@ pub trait VcsRepository {
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>>;
 
     /// Get the configured remotes of the repository.
-    fn get_remotes(&self) -> Result<Vec<(String, String)>, Box<dyn Error>>;
+    fn get_remotes(&self) -> Result<Vec<VcsRemote>, Box<dyn Error>>;
 
     /// Clone a repository.
     fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>>;
