@@ -22,7 +22,7 @@ pub struct RemoteArgs {
     refresh_cache: bool,
 }
 
-/// Select amongst the available remotes. The remotes vector must have more than
+/// Select among the available remotes. The remotes vector must have more than
 /// one element.
 fn choose_remote(remotes: &[(String, String)]) -> &String {
     let default = remotes
