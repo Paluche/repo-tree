@@ -51,11 +51,9 @@ impl Bookmark {
             self.remotes
                 .iter()
                 .map(|remote| {
-                    bookmark_config.remote.colorize(format!(
-                        "{}@{}",
-                        self.name.as_str(),
-                        remote
-                    ))
+                    bookmark_config
+                        .untracked
+                        .colorize(self.name.as_str(), remote)
                 })
                 .collect()
         } else if self.is_local_only() {
