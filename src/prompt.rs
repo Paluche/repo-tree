@@ -147,11 +147,6 @@ impl PromptListField {
             self.list.push(string);
         }
     }
-
-    /// Is the list empty?
-    pub fn is_empty(&self) -> bool {
-        self.list.is_empty()
-    }
 }
 
 impl Display for PromptListField {

@@ -190,22 +190,38 @@ fn default_config() -> Result<(), Box<dyn Error>> {
     separator = "🞍"
     color = "bright blue"
 
-    [prompt.jj.bookmark.none]
-    text = "󰫌"
-    color = "bright black"
-
     [prompt.jj.bookmark.deleted]
     prefix = "󰠙"
     separator = "🞍"
     color = 166
 
-    [prompt.jj.tags]
-    name = "yellow"
+    [prompt.jj.tag]
+    local = "bright yellow"
+    tracked = "yellow"
 
-    [prompt.jj.tags.repr]
+    [prompt.jj.tag.untracked]
+    name = "yellow"
+    remote = 94
+
+    [prompt.jj.tag.parent]
     prefix = ""
     separator = "🞍"
     color = "yellow"
+
+    [prompt.jj.tag.current]
+    prefix = ""
+    separator = "🞍"
+    color = "bright blue"
+
+    [prompt.jj.tag.descendants]
+    prefix = ""
+    separator = "🞍"
+    color = "bright blue"
+
+    [prompt.jj.tag.deleted]
+    prefix = "󱈠"
+    separator = "🞍"
+    color = 166
 
     [prompt.jj.wc_conflict]
     text = "󰝧"

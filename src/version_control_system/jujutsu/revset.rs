@@ -55,18 +55,3 @@ pub fn revset_has_match(
 ) -> Result<bool, Box<dyn Error>> {
     Ok(!list_commits_id(repo_path, revset, RevSetOrder::default())?.is_empty())
 }
-
-/// List the name of the tags which commit there are attached to matches the
-/// provided revset.
-pub fn list_tags(
-    repo_path: &Path,
-    revset: &str,
-    order: RevSetOrder,
-) -> Result<Vec<String>, Box<dyn Error>> {
-    run_revset(
-        repo_path,
-        revset,
-        r#"tags.map(|b| b.name()).join("\n")"#,
-        order,
-    )
-}

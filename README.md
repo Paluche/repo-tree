@@ -293,8 +293,7 @@ The prompt has the following fields:
 - If the repository is a Jujutsu repository:
   - List of bookmarks, from the following categories. Each bookmark will be
     suffixed a `*` if there are some changes to that bookmark that must be
-    pushed to the remote. If there is no Bookmarks to display the character
-    `none` from the configuration below will be displayed.
+    pushed to the remote.
     - Bookmarks set the `parent` of the current commit you are editing (`@-` in
       revset language).
     - Bookmarks set on the `current` commit you are editing (`@` in revset
@@ -306,7 +305,12 @@ The prompt has the following fields:
     local one and then they are pending on an action, either you push and then
     delete the branch on the remote to, or you forget about this deleted
     bookmark.
-  - List the tags which are set to the parent commit you are editing.
+  - List of tags, from the same `parent`, `current` and `descendants`
+    categories as the bookmarks. Local tags, tags tracking a remote one
+    (suffixed with a `*` when they differ) and remote only tags are colored
+    differently.
+  - List of `deleted` tags, pending to be pushed or forgotten, as for the
+    bookmarks.
   - Show if there is any commits with conflicts to resolve.
 
 Each of this fields are display in the order as listed above, if there is
@@ -351,8 +355,16 @@ stash = { text = "", color = "white" }
 parent = { prefix = "󰫍", separator = "🞍", color = "yellow" }
 current = { prefix = "󰫍", separator = "🞍", color = "bright blue" }
 descendants = { prefix = "󰫎", separator = "🞍", color = "bright blue" }
-none = { text = "󰫌", color = "bright black" }
 deleted = { prefix = "󰠙", separator = "🞍", color = 166 }
+
+[prompt.jj.tag]
+local = "bright yellow"
+tracked = "yellow"
+untracked = { name = "yellow", remote = 94 }
+parent = { prefix = "", separator = "🞍", color = "yellow" }
+current = { prefix = "", separator = "🞍", color = "bright blue" }
+descendants = { prefix = "", separator = "🞍", color = "bright blue" }
+deleted = { prefix = "󱈠", separator = "🞍", color = 166 }
 
 [prompt.jj]
 conflict = { text = "󰝧", color = "bright red" }

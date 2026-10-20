@@ -42,6 +42,10 @@ and this project adheres to
 - **jj prompt**: The `prompt.jj.bookmark.remote` color is replaced by the
   `prompt.jj.bookmark.untracked` table, with a `name` and a `remote` color to
   color the bookmark name and its remote separately.
+- **jj prompt**: The `prompt.jj.tags` configuration is replaced by
+  `prompt.jj.tag`, with the same structure as `prompt.jj.bookmark`. The
+  `prompt.jj.bookmark.none` configuration is removed: nothing is displayed
+  anymore when there is no bookmark nor tag to show.
 
 ### Deprecations
 
@@ -55,6 +59,9 @@ None
   pushed and deleted from the remote too or to be forgotten locally about.
 - **jj prompt**: Make the bookmark and tags prompt even more configurable. Might
   break local configuration.
+- **jj prompt**: Display the tags with the same logic as the bookmarks: tags
+  on the parent, current and descendant commits, local, tracked and remote only
+  tags, and locally deleted tags pending some action.
 - Add new command `rt workspace add` and `rt workspace rm` to manage our
   repositories workspace in the different workspace tree-space.
 
