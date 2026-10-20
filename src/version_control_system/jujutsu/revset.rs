@@ -17,7 +17,7 @@ pub enum RevSetOrder {
 
 /// Execute a revset and get information on the matching commits following the
 /// provided template.
-fn run_revset(
+pub fn run_revset(
     repo_path: &Path,
     revset: &str,
     template: &str,
@@ -54,25 +54,6 @@ pub fn revset_has_match(
     revset: &str,
 ) -> Result<bool, Box<dyn Error>> {
     Ok(!list_commits_id(repo_path, revset, RevSetOrder::default())?.is_empty())
-}
-
-/// List the local bookmarks which commit there are attached to matches the
-/// provided revset.
-pub fn list_bookmarks(
-    repo_path: &Path,
-    revset: &str,
-    order: RevSetOrder,
-) -> Result<Vec<String>, Box<dyn Error>> {
-    // Using filter in the template. Keep remote branches only when there is a
-    // no local Bookmark tracking it.
-    run_revset(
-        repo_path,
-        revset,
-        r#"bookmarks
-        .filter(|b| !b.remote() || !b.tracking_present())
-        .map(|b| b.name()).join("\n")"#,
-        order,
-    )
 }
 
 /// List the name of the tags which commit there are attached to matches the

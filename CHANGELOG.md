@@ -39,6 +39,9 @@ and this project adheres to
 - Command `rt repo remote` changed behavior. This command now is a user
   interface to get a remote of the repository, if there is several choices, then
   we ask the user for which one they want.
+- **jj prompt**: The `prompt.jj.bookmark.remote` color is replaced by the
+  `prompt.jj.bookmark.untracked` table, with a `name` and a `remote` color to
+  color the bookmark name and its remote separately.
 
 ### Deprecations
 
@@ -65,6 +68,9 @@ None
   the default fetch configuration. Using `rt fetch` we did not fetch the tags.
 - **resolve**: Fix computation of the short repository identifiers when there
   was a conflict.
+- **jj prompt**: Display the untracked remote bookmarks of a local bookmark
+  apart from it, instead of merging them in the local bookmark as if they were
+  tracked.
 
 ## [0.2.0] - 2026-06-21
 

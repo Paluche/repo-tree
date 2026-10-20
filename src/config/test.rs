@@ -169,8 +169,11 @@ fn default_config() -> Result<(), Box<dyn Error>> {
 
     [prompt.jj.bookmark]
     local = "bright green"
-    remote = "magenta"
     tracked = "bright magenta"
+
+    [prompt.jj.bookmark.untracked]
+    name = "magenta"
+    remote = 125
 
     [prompt.jj.bookmark.parent]
     prefix = "󰫍"
