@@ -6,6 +6,7 @@ use std::fs::read_to_string;
 use std::path::Path;
 use std::path::PathBuf;
 
+use super::super::VcsRemote;
 use super::command::JujutsuCommand;
 use super::get_jj_dir;
 use super::get_repo_dir;
@@ -28,16 +29,14 @@ pub fn get_remote_url(
         get_git_dir(repo_path)?.join("config"),
         remotes
             .iter()
-            .find(|(n, _)| n == "origin")
+            .find(|r| r.name == "origin")
             .or_else(|| remotes.first())
-            .map(|(_, u)| u.to_string()),
+            .map(|r| r.url.to_string()),
     ))
 }
 
 /// Get the configured remotes of the repository.
-pub fn get_remotes(
-    repo_path: &Path,
-) -> Result<Vec<(String, String)>, Box<dyn Error>> {
+pub fn get_remotes(repo_path: &Path) -> Result<Vec<VcsRemote>, Box<dyn Error>> {
     Ok(JujutsuCommand::repo(repo_path)?
         .arg("git")
         .arg("remote")
@@ -46,10 +45,10 @@ pub fn get_remotes(
         .iter()
         .map(|l| {
             let mut parts = l.split(' ');
-            (
-                parts.next().unwrap().to_string(),
-                parts.next().unwrap().to_string(),
-            )
+            VcsRemote {
+                name: parts.next().unwrap().to_string(),
+                url: parts.next().unwrap().to_string(),
+            }
         })
         .collect())
 }

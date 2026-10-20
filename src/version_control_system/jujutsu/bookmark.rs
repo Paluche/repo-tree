@@ -21,7 +21,7 @@ pub struct Bookmark {
     /// If the bookmark has been modified compared to one of its known remote
     /// state.
     modified: bool,
-    /// If the bookmark is a remotely, you will find here the commit ID where
+    /// If the bookmark is a remote one, you will find here the commit ID where
     /// it is at and the name of the remote for each remote.
     remotes: Vec<String>,
 }

@@ -5,6 +5,7 @@ mod git;
 mod prompt;
 mod repo_state;
 mod revset;
+mod tag;
 mod workspace;
 
 use std::error::Error;
