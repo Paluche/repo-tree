@@ -4,6 +4,7 @@ use std::path::Path;
 
 use super::bookmark::Bookmark;
 use super::bookmark::Bookmarks;
+use super::bookmark::get_all_bookmarks;
 use super::bookmark::get_bookmarks;
 use super::repo_state::has_conflicts;
 use super::repo_state::wc_has_conflicts;
@@ -40,10 +41,7 @@ impl BookmarkCategory {
             Self::Descendants => ("@+::", RevSetOrder::ChildrenFirst),
         };
 
-        Ok(revset::list_bookmarks(repo_path, revset, order)?
-            .iter()
-            .map(|name| bookmarks.get(name).unwrap())
-            .collect())
+        get_bookmarks(repo_path, bookmarks, revset, order)
     }
 
     /// Get short representation logo to represent this category of bookmarks.
@@ -87,12 +85,7 @@ fn list_deleted_bookmarks(
 ) -> Result<(), Box<dyn Error>> {
     prompt.push(
         config.deleted.display(
-            &bookmarks
-                .iter()
-                .filter_map(|(name, bookmark)| {
-                    bookmark.deleted.then_some(name.clone())
-                })
-                .collect::<Vec<String>>(),
+            &bookmarks.get_deleted().iter().map(|b| b.name.clone()).collect::<Vec<String>>(),
         ),
     );
     Ok(())
@@ -125,7 +118,7 @@ pub fn prompt(
     let prompt_config = &config.prompt.jj;
     {
         let mut field = PromptListField::new(" ");
-        let bookmarks = get_bookmarks(repo_path)?;
+        let bookmarks = get_all_bookmarks(repo_path)?;
 
         list_bookmarks(
             &prompt_config.bookmark,

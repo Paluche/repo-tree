@@ -1,29 +1,30 @@
 //! Get the bookmarks status for a repository.
 
-use std::collections::HashMap;
 use std::error::Error;
 use std::path::Path;
 
 use super::command::JujutsuCommand;
+use super::revset::RevSetOrder;
+use super::revset::run_revset;
 use crate::config::JujutsuBookmarkConfig;
 
 /// Representation of a bookmark.
 pub struct Bookmark {
     /// Name of the Bookmark.
-    name: String,
+    pub name: String,
     /// The local tracked bookmark is conflicted.
     conflicted: bool,
     /// Target of the local bookmark.
     local_target: Option<String>,
     /// The bookmark is deleted locally and pending to be deleted remotely with
     /// a push operation or to be forgotten about.
-    pub deleted: bool,
+    deleted: bool,
     /// If the bookmark has been modified compared to one of its known remote
     /// state.
     modified: bool,
     /// If the bookmark is a remote one, you will find here the commit ID where
     /// it is at and the name of the remote for each remote.
-    remotes: Vec<String>,
+    remotes: Vec<(String, Option<String>)>,
 }
 
 impl Bookmark {
@@ -51,11 +52,9 @@ impl Bookmark {
             self.remotes
                 .iter()
                 .map(|remote| {
-                    bookmark_config.remote.colorize(format!(
-                        "{}@{}",
-                        self.name.as_str(),
-                        remote
-                    ))
+                    bookmark_config
+                        .untracked
+                        .colorize(self.name.as_str(), &remote.0)
                 })
                 .collect()
         } else if self.is_local_only() {
@@ -71,117 +70,188 @@ impl Bookmark {
 }
 
 /// How we return the bookmarks of a repository.
-pub type Bookmarks = HashMap<String, Bookmark>;
+pub struct Bookmarks {
+    bookmarks: Vec<Bookmark>,
+}
+
+impl Bookmarks {
+    fn push(&mut self, bookmark: Bookmark) {
+        self.bookmarks.push(bookmark);
+    }
+
+    fn get_mut(&mut self, name: &String) -> Option<&mut Bookmark> {
+        self.bookmarks.iter_mut().find(|b| &b.name == name)
+    }
+
+    fn get(&self, bookmark: BookmarkRaw) -> Option<&Bookmark> {
+        let local = bookmark.remote.is_none();
+
+        self.bookmarks.iter().find(|b| {
+            (b.name == bookmark.name)
+                && ((local && b.local_target == bookmark.target)
+                    || (!local
+                        && b.remotes
+                            .iter()
+                            .any(|(_, t)| t == &bookmark.target)))
+        })
+    }
+
+    pub fn get_deleted(&self) -> Vec<&Bookmark> {
+        self.bookmarks.iter().filter(|b| b.deleted).collect()
+    }
+}
+
+struct BookmarkRaw {
+    name: String,
+    remote: Option<String>,
+    target: Option<String>,
+    synced: bool,
+    tracked: bool,
+    conflict: bool,
+}
+
+impl BookmarkRaw {
+    fn template_fields(prefix: &str, suffix: &str) -> [String; 6] {
+        [
+            format!("{prefix}name{suffix}"),
+            format!("{prefix}remote{suffix}"),
+            format!(
+                r#"if({prefix}normal_target{suffix}, {prefix}normal_target{suffix}.change_id(), "")"#
+            ),
+            format!("{prefix}synced{suffix}"),
+            format!("{prefix}tracked{suffix}"),
+            format!("{prefix}conflict{suffix}"),
+        ]
+    }
+
+    fn bookmark_template() -> String {
+        Self::template_fields("", "").join(r#"++ "|" ++ "#) + r#"++ "\n""#
+    }
+
+    fn log_template() -> String {
+        // Using filter in the template. Keep remote branches only when there is
+        // no local Bookmark tracking it.
+        format!(
+            r#"bookmarks.filter(|b| !b.remote() || !b.tracking_present()).map(|b| {}).join("\n")"#,
+            Self::template_fields("b.", "()").join(r#"++ "|" ++ "#)
+        )
+    }
+
+    fn from_line(line: &str) -> Self {
+        fn string_part(part: &str) -> String {
+            part.to_string()
+        }
+
+        fn option_string_part(part: &str) -> Option<String> {
+            match part {
+                "" => None,
+                value => Some(value.to_string()),
+            }
+        }
+
+        fn bool_part(part: &str) -> bool {
+            match part {
+                "true" => true,
+                "false" => false,
+                _ => panic!("Should not happen"),
+            }
+        }
+
+        let mut parts = line.split("|");
+
+        let name = string_part(parts.next().unwrap());
+        let remote = option_string_part(parts.next().unwrap());
+        let target = option_string_part(parts.next().unwrap());
+        let synced = bool_part(parts.next().unwrap());
+        let tracked = bool_part(parts.next().unwrap());
+        let conflict = bool_part(parts.next().unwrap());
+
+        Self {
+            name,
+            remote,
+            target,
+            synced,
+            tracked,
+            conflict,
+        }
+    }
+
+    fn into_bookmark(self) -> Bookmark {
+        Bookmark {
+            name: self.name,
+            deleted: if self.remote.is_none() && !self.conflict {
+                self.target.is_none()
+            } else {
+                false
+            },
+            conflicted: self.conflict,
+            local_target: if self.remote.is_none() {
+                self.target.clone()
+            } else {
+                None
+            },
+            modified: !self.synced,
+            remotes: if let Some(remote) = self.remote {
+                Vec::from([(remote, self.target)])
+            } else {
+                Vec::new()
+            },
+        }
+    }
+
+    fn merge_with_bookmark(self, bookmark: &mut Bookmark) {
+        if let Some(remote) = &self.remote {
+            bookmark.remotes.push((remote.clone(), self.target.clone()));
+        } else {
+            bookmark.local_target = self.target;
+        }
+        bookmark.modified |= !self.synced;
+    }
+}
 
 /// Get the bookmarks the repository currently have.
-pub fn get_bookmarks(repo_path: &Path) -> Result<Bookmarks, Box<dyn Error>> {
-    let template = [
-        "name",
-        "remote",
-        r#"if(normal_target, normal_target.change_id(), "")"#,
-        "synced",
-        "conflict",
-    ]
-    .join(r#"++ "|" ++ "#)
-        + r#"++ "\n""#;
-
-    struct Line {
-        name: String,
-        remote: Option<String>,
-        target: Option<String>,
-        synced: bool,
-        conflict: bool,
-    }
-
-    impl Line {
-        fn from_line(line: &str) -> Self {
-            fn string_part(part: &str) -> String {
-                part.to_string()
-            }
-
-            fn option_string_part(part: &str) -> Option<String> {
-                match part {
-                    "" => None,
-                    value => Some(value.to_string()),
-                }
-            }
-
-            fn bool_part(part: &str) -> bool {
-                match part {
-                    "true" => true,
-                    "false" => false,
-                    _ => panic!("Should not happen"),
-                }
-            }
-
-            let mut parts = line.split("|");
-
-            let name = string_part(parts.next().unwrap());
-            let remote = option_string_part(parts.next().unwrap());
-            let target = option_string_part(parts.next().unwrap());
-            let synced = bool_part(parts.next().unwrap());
-            let conflict = bool_part(parts.next().unwrap());
-
-            Self {
-                name,
-                remote,
-                target,
-                synced,
-                conflict,
-            }
-        }
-
-        fn into_bookmark(self) -> Bookmark {
-            Bookmark {
-                name: self.name,
-                deleted: if self.remote.is_none() && !self.conflict {
-                    self.target.is_none()
-                } else {
-                    false
-                },
-                conflicted: self.conflict,
-                local_target: if self.remote.is_none() {
-                    self.target
-                } else {
-                    None
-                },
-                modified: !self.synced,
-                remotes: if let Some(remote) = self.remote {
-                    Vec::from([remote])
-                } else {
-                    Vec::new()
-                },
-            }
-        }
-
-        fn merge_with_bookmark(&self, bookmark: &mut Bookmark) {
-            if let Some(remote) = &self.remote {
-                bookmark.remotes.push(remote.clone());
-            } else {
-                bookmark.local_target = self.target.clone();
-            }
-            bookmark.modified |= !self.synced;
-        }
-    }
-
-    let lines: Vec<Line> = JujutsuCommand::repo(repo_path)?
+pub fn get_all_bookmarks(
+    repo_path: &Path,
+) -> Result<Bookmarks, Box<dyn Error>> {
+    let lines: Vec<BookmarkRaw> = JujutsuCommand::repo(repo_path)?
         .arg("bookmark")
         .arg("list")
         .arg("--all")
         .arg("--template")
-        .arg(template)
+        .arg(BookmarkRaw::bookmark_template())
         .output_lines()?
         .iter()
-        .map(|l| Line::from_line(l))
+        .map(|l| BookmarkRaw::from_line(l))
         .collect();
 
-    let mut ret = HashMap::new();
+    let mut ret = Bookmarks {
+        bookmarks: Vec::new(),
+    };
 
     for line in lines {
-        ret.entry(line.name.clone())
-            .and_modify(|b| line.merge_with_bookmark(b))
-            .or_insert(line.into_bookmark());
+        if line.remote.is_some()
+            && line.tracked
+            && let Some(bookmark) = ret.get_mut(&line.name)
+        {
+            line.merge_with_bookmark(bookmark);
+        } else {
+            ret.push(line.into_bookmark());
+        }
     }
 
     Ok(ret)
+}
+
+pub fn get_bookmarks<'bookmarks>(
+    repo_path: &Path,
+    bookmarks: &'bookmarks Bookmarks,
+    revset: &str,
+    order: RevSetOrder,
+) -> Result<Vec<&'bookmarks Bookmark>, Box<dyn Error>> {
+    Ok(
+        run_revset(repo_path, revset, &BookmarkRaw::log_template(), order)?
+            .iter()
+            .filter_map(|l| bookmarks.get(BookmarkRaw::from_line(l)))
+            .collect(),
+    )
 }
