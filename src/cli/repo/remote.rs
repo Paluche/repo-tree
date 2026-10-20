@@ -4,6 +4,7 @@ use clap_complete::PathCompleter;
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
 
+use crate::version_control_system::VcsRemote;
 use crate::cli::cwd_default_path;
 use crate::config::Config;
 use crate::repo_id::ExpectedTreeStrategy;
@@ -24,22 +25,22 @@ pub struct RemoteArgs {
 
 /// Select among the available remotes. The remotes vector must have more than
 /// one element.
-fn choose_remote(remotes: &[(String, String)]) -> &String {
+fn choose_remote(remotes: &[VcsRemote]) -> &String {
     let default = remotes
         .iter()
-        .find(|(n, _)| n == "origin")
+        .find(|r| r.name == "origin")
         .unwrap_or(remotes.first().unwrap());
-    let mut choices: Vec<&(String, String)> =
-        remotes.iter().filter(|(n, _)| n != &default.0).collect();
+    let mut choices: Vec<&VcsRemote> =
+        remotes.iter().filter(|r| r.name != default.name).collect();
 
     choices.insert(0, default);
 
-    for (i, (name, url)) in choices.iter().enumerate() {
+    for (i, remote) in choices.iter().enumerate() {
         eprintln!(
             " {}: {} {}{}",
             i,
-            name.bold(),
-            url.bold().cyan(),
+            remote.name.bold(),
+            remote.url.bold().cyan(),
             if i == 0 { " (default)" } else { "" }
         );
     }
@@ -49,9 +50,9 @@ fn choose_remote(remotes: &[(String, String)]) -> &String {
     if let Ok(choice) = input.trim().parse::<usize>()
         && choice < choices.len()
     {
-        &choices[choice].1
+        &choices[choice].url
     } else {
-        &default.1
+        &default.url
     }
 }
 
@@ -81,7 +82,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: RemoteArgs) -> i32 {
         eprintln!("No remote URL found for the repository");
         1
     } else if remotes.len() == 1 {
-        println!("{}", remotes[0].1);
+        println!("{}", remotes[0].url);
         0
     } else {
         println!("{}", choose_remote(&remotes));
