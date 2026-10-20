@@ -16,9 +16,9 @@ pub fn default_vcs_prompt() -> ColoredText {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct RemoteReferenceConfig {
     /// Which color to use for the name of the reference.
-    name: Color,
+    pub name: Color,
     /// Which color to use for the name of the remote.
-    remote: Color,
+    pub remote: Color,
 }
 
 impl RemoteReferenceConfig {
@@ -57,10 +57,6 @@ pub struct JujutsuBookmarkConfig {
     /// current commit we are editing.
     #[serde(default = "JujutsuBookmarkConfig::default_descendants")]
     pub descendants: ColoredList,
-    /// How to display that there is no bookmarks to show (none on parent,
-    /// current or descendants commits).
-    #[serde(default = "JujutsuBookmarkConfig::default_none")]
-    pub none: ColoredText,
     /// How to display deleted pending bookmarks to be either pushed to be
     /// fully deleted or locally forget.
     #[serde(default = "JujutsuBookmarkConfig::default_deleted")]
@@ -96,10 +92,6 @@ impl JujutsuBookmarkConfig {
         ColoredList::new("󰫎", "🞍", Color::bright_blue())
     }
 
-    fn default_none() -> ColoredText {
-        ColoredText::new("󰫌", Color::bright_black())
-    }
-
     fn default_deleted() -> ColoredList {
         ColoredList::new("󰠙", "🞍", Color::ansi_color(166))
     }
@@ -114,7 +106,6 @@ impl Default for JujutsuBookmarkConfig {
             parent: Self::default_parent(),
             current: Self::default_current(),
             descendants: Self::default_descendants(),
-            none: Self::default_none(),
             deleted: Self::default_deleted(),
         }
     }
@@ -123,30 +114,68 @@ impl Default for JujutsuBookmarkConfig {
 /// Configuration for the Jujutsu tags prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct JujutsuTagConfig {
-    /// Representation for the list of tags.
-    #[serde(default = "JujutsuTagConfig::default_repr")]
-    pub repr: ColoredList,
-    /// Color to use to color the tag name
-    #[serde(default = "JujutsuTagConfig::default_name")]
-    pub name: Color,
+    /// How to display list of tags set on the parent commit of the current one
+    /// we are editing.
+    #[serde(default = "JujutsuTagConfig::default_parent")]
+    pub parent: ColoredList,
+    /// How to display list of tags set on the current commit we are editing.
+    #[serde(default = "JujutsuTagConfig::default_current")]
+    pub current: ColoredList,
+    /// How to display list of tags set on any of the descendants of the current
+    /// commit we are editing.
+    #[serde(default = "JujutsuTagConfig::default_descendants")]
+    pub descendants: ColoredList,
+    /// How to display deleted pending tags to be either pushed to be
+    /// fully deleted or locally forget.
+    #[serde(default = "JujutsuTagConfig::default_deleted")]
+    pub deleted: ColoredList,
+    /// Color to use to color the name of tags which exist remotely.
+    #[serde(default = "JujutsuTagConfig::default_remote")]
+    pub remote: RemoteReferenceConfig,
+    /// Color to use to color the name of tags which exist only locally.
+    #[serde(default = "JujutsuTagConfig::default_local")]
+    pub local: Color,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
 impl JujutsuTagConfig {
-    fn default_repr() -> ColoredList {
+    fn default_parent() -> ColoredList {
         ColoredList::new("", "🞍", Color::yellow())
     }
 
-    fn default_name() -> Color {
-        Color::yellow()
+    fn default_current() -> ColoredList {
+        ColoredList::new("", "🞍", Color::bright_blue())
+    }
+
+    fn default_descendants() -> ColoredList {
+        ColoredList::new("", "🞍", Color::bright_blue())
+    }
+
+    fn default_deleted() -> ColoredList {
+        ColoredList::new("󱈠", "🞍", Color::ansi_color(166))
+    }
+
+    fn default_remote() -> RemoteReferenceConfig {
+        RemoteReferenceConfig {
+            name: Color::yellow(),
+            remote: Color::from(94),
+        }
+    }
+
+    fn default_local() -> Color {
+        Color::bright_yellow()
     }
 }
 
 impl Default for JujutsuTagConfig {
     fn default() -> Self {
         Self {
-            repr: Self::default_repr(),
-            name: Self::default_name(),
+            parent: Self::default_parent(),
+            current: Self::default_current(),
+            descendants: Self::default_descendants(),
+            deleted: Self::default_deleted(),
+            remote: Self::default_remote(),
+            local: Self::default_local(),
         }
     }
 }
@@ -160,7 +189,7 @@ pub struct JujutsuPromptConfig {
     pub bookmark: JujutsuBookmarkConfig,
     /// How to display the list of tags you are at.
     #[serde(default)]
-    pub tags: JujutsuTagConfig,
+    pub tag: JujutsuTagConfig,
     /// Representation to display when the working copy (current commit) has
     /// conflicts.
     #[serde(default = "JujutsuPromptConfig::default_wc_conflict")]
@@ -186,7 +215,7 @@ impl Default for JujutsuPromptConfig {
     fn default() -> Self {
         Self {
             bookmark: JujutsuBookmarkConfig::default(),
-            tags: JujutsuTagConfig::default(),
+            tag: JujutsuTagConfig::default(),
             wc_conflict: Self::default_wc_conflict(),
             conflict: Self::default_conflict(),
         }

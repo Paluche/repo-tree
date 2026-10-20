@@ -149,6 +149,7 @@ impl PromptListField {
     }
 
     /// Is the list empty?
+    #[expect(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.list.is_empty()
     }

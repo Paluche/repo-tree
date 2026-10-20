@@ -5,6 +5,7 @@ mod git;
 mod prompt;
 mod repo_state;
 mod revset;
+mod tag;
 mod workspace;
 
 use std::error::Error;
@@ -93,6 +94,7 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         {
             return Err(err);
         }
+
         prompt::prompt(config, prompt, self.workspace.path())
     }
 

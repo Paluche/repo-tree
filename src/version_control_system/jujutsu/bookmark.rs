@@ -124,7 +124,7 @@ impl BookmarkRaw {
         ]
     }
 
-    fn bookmark_template() -> String {
+    fn bookmark_list_template() -> String {
         Self::template_fields("", "").join(r#"++ "|" ++ "#) + r#"++ "\n""#
     }
 
@@ -218,7 +218,7 @@ pub fn get_all_bookmarks(
         .arg("list")
         .arg("--all")
         .arg("--template")
-        .arg(BookmarkRaw::bookmark_template())
+        .arg(BookmarkRaw::bookmark_list_template())
         .output_lines()?
         .iter()
         .map(|l| BookmarkRaw::from_line(l))
