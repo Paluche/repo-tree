@@ -16,9 +16,9 @@ pub fn default_vcs_prompt() -> ColoredText {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct RemoteReferenceConfig {
     /// Which color to use for the name of the reference.
-    name: Color,
+    pub name: Color,
     /// Which color to use for the name of the remote.
-    remote: Color,
+    pub remote: Color,
 }
 
 impl RemoteReferenceConfig {
@@ -126,9 +126,12 @@ pub struct JujutsuTagConfig {
     /// Representation for the list of tags.
     #[serde(default = "JujutsuTagConfig::default_repr")]
     pub repr: ColoredList,
-    /// Color to use to color the tag name
-    #[serde(default = "JujutsuTagConfig::default_name")]
-    pub name: Color,
+    /// Color to use to color the name of tags which exist remotely.
+    #[serde(default = "JujutsuTagConfig::default_remote")]
+    pub remote: RemoteReferenceConfig,
+    /// Color to use to color the name of tags which exist only locally.
+    #[serde(default = "JujutsuTagConfig::default_local")]
+    pub local: Color,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
@@ -136,9 +139,15 @@ impl JujutsuTagConfig {
     fn default_repr() -> ColoredList {
         ColoredList::new("", "🞍", Color::yellow())
     }
+    fn default_remote() -> RemoteReferenceConfig {
+        RemoteReferenceConfig {
+            name: Color::yellow(),
+            remote: Color::from(94),
+        }
+    }
 
-    fn default_name() -> Color {
-        Color::yellow()
+    fn default_local() -> Color {
+        Color::bright_yellow()
     }
 }
 
@@ -146,7 +155,8 @@ impl Default for JujutsuTagConfig {
     fn default() -> Self {
         Self {
             repr: Self::default_repr(),
-            name: Self::default_name(),
+            local: Self::default_local(),
+            remote: Self::default_remote(),
         }
     }
 }

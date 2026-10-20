@@ -108,7 +108,7 @@ fn list_tags(
         tag_config.repr.display(
             &revset::list_tags(repo_path, "@-", RevSetOrder::default())?
                 .iter()
-                .map(|tag| tag_config.name.colorize(tag))
+                .map(|tag| tag_config.remote.name.colorize(tag))
                 .collect::<Vec<String>>(),
         ),
     );
