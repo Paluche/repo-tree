@@ -179,8 +179,18 @@ impl RepoTree {
         ui.hint("Refreshing repositories cache...");
 
         let (repositories, empty_dirs) = search(ui, config);
+        let repo_tree = Self { repositories };
 
-        (Self { repositories }, Some(empty_dirs))
+        if let Err(err) = repo_tree.save() {
+            ui_error!(
+                ui,
+                "Unable to write the cache {}: {}",
+                cache_file().display(),
+                err
+            );
+        }
+
+        (repo_tree, Some(empty_dirs))
     }
 
     /// Load the repo tree.
@@ -285,24 +295,18 @@ fn cache_file() -> PathBuf {
         .join("repo-tree.toml")
 }
 
-impl Drop for RepoTree {
-    fn drop(&mut self) {
+impl RepoTree {
+    /// Write the repository tree into the cache file.
+    fn save(&self) -> Result<(), Box<dyn Error>> {
         let cache_file = cache_file();
 
-        if let Some(parent) = cache_file.parent()
-            && !parent.exists()
-            && let Err(err) = create_dir_all(parent)
-        {
-            eprintln!(
-                "Unable to create cache directory \"{}\": {err}",
-                parent.display()
-            );
+        if let Some(parent) = cache_file.parent() {
+            create_dir_all(parent)?;
         }
 
-        if let Err(err) = File::create(cache_file)
-            .map(|mut f| f.write_all(toml::to_string(self).unwrap().as_bytes()))
-        {
-            eprintln!("Unable to create cache file: {err}");
-        }
+        File::create(&cache_file)?
+            .write_all(toml::to_string(self)?.as_bytes())?;
+
+        Ok(())
     }
 }

@@ -78,6 +78,8 @@ None
 - **jj prompt**: Display the untracked remote bookmarks of a local bookmark
   apart from it, instead of merging them in the local bookmark as if they were
   tracked.
+- **workspace**: Fix the repositories cache sometimes still listing the
+  previous workspaces after `rt workspace add` or `rt workspace rm`.
 
 ## [0.2.0] - 2026-06-21
 
