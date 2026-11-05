@@ -162,9 +162,7 @@ impl RepoTree {
         if !refresh_cache {
             match Self::from_cache() {
                 Ok(repo_tree) => {
-                    if repo_tree.repo_iter().all(|r| {
-                        !r.remote_config.has_been_modified().unwrap_or(true)
-                    }) {
+                    if !repo_tree.repo_iter().any(|r| r.has_been_modified()) {
                         return (repo_tree, None);
                     }
                 }
@@ -183,7 +181,7 @@ impl RepoTree {
 
         let (repositories, empty_dirs) = search(ui, config);
 
-        (Self { repositories }, Some(empty_dirs))
+        (Self { to_cache: true, repositories }, Some(empty_dirs))
     }
 
     /// Load the repo tree.
@@ -310,5 +308,6 @@ impl Drop for RepoTree {
         {
             eprintln!("Unable to create cache file: {err}");
         }
+        eprintln!("Cache file updated");
     }
 }

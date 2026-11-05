@@ -132,7 +132,7 @@ pub struct Repository {
     /// Boolean indicating if the repository is a git submodule or not.
     pub is_submodule: bool,
     /// Path to the file containing the remote information.
-    pub remote_config: RemoteConfig,
+    remote_config: RemoteConfig,
 }
 
 impl Repository {
@@ -222,6 +222,12 @@ impl Repository {
 }
 
 impl Repository {
+    /// Find out if the repository or any of its workspace as changed.
+    pub fn has_been_modified(&self) -> bool {
+        self.remote_config.has_been_modified().unwrap_or(true)
+            || self.workspaces.iter().any(|w| !w.path().exists())
+    }
+
     /// Add a workspace to the repository.
     pub fn add_workspace(&mut self, other: Self) {
         self.workspaces.extend(other.workspaces);
