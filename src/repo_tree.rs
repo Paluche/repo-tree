@@ -122,6 +122,9 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
 /// Representation of the repository tree.
 #[derive(Serialize, Deserialize)]
 pub struct RepoTree {
+    /// Marker to indicate the struct must be written in the cache file.
+    #[serde(skip)]
+    to_cache: bool,
     /// List of repositories.
     repositories: Vec<Repository>,
 }
@@ -287,6 +290,9 @@ fn cache_file() -> PathBuf {
 
 impl Drop for RepoTree {
     fn drop(&mut self) {
+        if !self.to_cache {
+            return;
+        }
         let cache_file = cache_file();
 
         if let Some(parent) = cache_file.parent()
