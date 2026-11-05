@@ -159,9 +159,7 @@ impl RepoTree {
         if !refresh_cache {
             match Self::from_cache() {
                 Ok(repo_tree) => {
-                    if repo_tree.repo_iter().all(|r| {
-                        !r.remote_config.has_been_modified().unwrap_or(true)
-                    }) {
+                    if !repo_tree.repo_iter().any(|r| r.has_been_modified()) {
                         return (repo_tree, None);
                     }
                 }
