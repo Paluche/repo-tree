@@ -67,6 +67,10 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
         Ok(get_remote_url_repo(&self.get_repository()?)?)
     }
 
+    fn get_workspace_store(&self) -> Result<Option<PathBuf>, Box<dyn Error>> {
+        Ok(None)
+    }
+
     fn get_remotes(&self) -> Result<Vec<VcsRemote>, Box<dyn Error>> {
         let repo = self.get_repository()?;
         Ok(repo

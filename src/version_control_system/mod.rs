@@ -224,6 +224,10 @@ pub trait VcsRepository {
         &self,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>>;
 
+    /// Get the path to the file the version control system updates when a
+    /// workspace is added, if there is one.
+    fn get_workspace_store(&self) -> Result<Option<PathBuf>, Box<dyn Error>>;
+
     /// Get the configured remotes of the repository.
     fn get_remotes(&self) -> Result<Vec<VcsRemote>, Box<dyn Error>>;
 

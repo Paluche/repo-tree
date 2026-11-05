@@ -80,6 +80,8 @@ None
   tracked.
 - **workspace**: Fix the repositories cache sometimes still listing the
   previous workspaces after `rt workspace add` or `rt workspace rm`.
+- **workspace**: Refresh the repositories cache automatically when a workspace
+  is added or removed outside of `rt`.
 
 ## [0.2.0] - 2026-06-21
 

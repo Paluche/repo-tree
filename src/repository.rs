@@ -23,17 +23,18 @@ use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::git::SubmoduleInfo;
 use crate::version_control_system::git::{self};
 
-/// Metadata about the file containing the repository remote(s).
+/// Metadata about a file which, when modified, invalidates the cached
+/// information about the repository.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RemoteConfig {
-    /// Path to the file containing the remote information.
+pub struct TrackedFile {
+    /// Path to the file.
     file: PathBuf,
     /// Last time the file was modified.
     last_modified: DateTime<Utc>,
 }
 
-impl RemoteConfig {
-    /// Create a new RemoteConfig structure.
+impl TrackedFile {
+    /// Create a new `TrackedFile` structure.
     fn new(file: PathBuf) -> Result<Self, Box<dyn Error>> {
         let last_modified = get_last_modified(&file)?;
 
@@ -131,8 +132,11 @@ pub struct Repository {
     pub vcs: VersionControlSystem,
     /// Boolean indicating if the repository is a git submodule or not.
     pub is_submodule: bool,
-    /// Path to the file containing the remote information.
-    pub remote_config: RemoteConfig,
+    /// File containing the remote information.
+    remote_config: TrackedFile,
+    /// File the version control system updates when a workspace is added, if
+    /// it has one.
+    workspace_store: Option<TrackedFile>,
 }
 
 impl Repository {
@@ -207,13 +211,19 @@ impl Repository {
             let (remote_config, remote_url) =
                 vcs.get_repo(&workspace).get_remote_url()?;
             let id = RepoId::from_repo(&root, remote_url.as_ref())?;
+            let workspace_store = vcs
+                .get_repo(&workspace)
+                .get_workspace_store()?
+                .map(TrackedFile::new)
+                .transpose()?;
 
             Ok(Self {
                 workspaces: Vec::from([workspace]),
                 id,
                 vcs,
                 is_submodule,
-                remote_config: RemoteConfig::new(remote_config)?,
+                remote_config: TrackedFile::new(remote_config)?,
+                workspace_store,
             })
         } else {
             Err(Box::new(NoRepositoryError(root.to_path_buf())))
@@ -222,6 +232,17 @@ impl Repository {
 }
 
 impl Repository {
+    /// Find out if the remote configuration of the repository changed, or if
+    /// a workspace has been added or removed since the repository was loaded.
+    pub fn has_been_modified(&self) -> bool {
+        self.remote_config.has_been_modified().unwrap_or(true)
+            || self
+                .workspace_store
+                .as_ref()
+                .is_some_and(|f| f.has_been_modified().unwrap_or(true))
+            || self.workspaces.iter().any(|w| !w.path().exists())
+    }
+
     /// Add a workspace to the repository.
     pub fn add_workspace(&mut self, other: Self) {
         self.workspaces.extend(other.workspaces);

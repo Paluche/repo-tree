@@ -68,6 +68,14 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         git::get_remote_url(self.workspace.path())
     }
 
+    fn get_workspace_store(&self) -> Result<Option<PathBuf>, Box<dyn Error>> {
+        let index = get_repo_dir(&get_jj_dir(self.workspace.path()))?
+            .join("workspace_store")
+            .join("index");
+
+        Ok(index.is_file().then_some(index))
+    }
+
     fn get_remotes(&self) -> Result<Vec<VcsRemote>, Box<dyn Error>> {
         git::get_remotes(self.workspace.path())
     }
