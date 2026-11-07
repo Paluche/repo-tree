@@ -18,7 +18,12 @@ pub struct WorkspaceAddArgs {
     repo_id: Option<String>,
 
     /// Specify in which workspace tree-space to create the workspace.
-    #[arg(long, short, default_value_t=WorkspaceTreeSpace::Agent, add=WorkspaceTreeSpace::completer())]
+    #[arg(
+        long,
+        short,
+        default_value_t=WorkspaceTreeSpace::Agent,
+        add=WorkspaceTreeSpace::completer(),
+    )]
     workspace: WorkspaceTreeSpace,
 
     /// Force recreating the cache.
@@ -30,24 +35,21 @@ pub struct WorkspaceAddArgs {
 pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceAddArgs) -> i32 {
     let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
 
-    let repository = match get_current_repo_or_main(
-        ui,
-        config,
-        &repo_tree,
-        args.repo_id,
-    ) {
-        Ok(Some((r, _w))) => r,
-        Ok(None) => {
-            ui.error(
-                "Current directory is not a repository or one within the repo-tree."
-            );
-            return 2;
-        }
-        Err(err) => {
-            eprintln!("{err}");
-            return 1;
-        }
-    };
+    let repository =
+        match get_current_repo_or_main(ui, config, &repo_tree, args.repo_id) {
+            Ok(Some((r, _w))) => r,
+            Ok(None) => {
+                ui.error(
+                    "Current directory is not a repository or one within the \
+                     repo-tree.",
+                );
+                return 2;
+            }
+            Err(err) => {
+                eprintln!("{err}");
+                return 1;
+            }
+        };
 
     match repository.add_workspace_in_tree(ui, config, &args.workspace.into()) {
         Ok(_) => (),

@@ -18,7 +18,12 @@ pub struct WorkspaceRmArgs {
     #[arg(add=resolve_completer())]
     repo_id: Option<String>,
     /// Specify in which workspace tree-space the workspace to remove is.
-    #[arg(long, short, default_value_t=WorkspaceTreeSpace::Agent, add=WorkspaceTreeSpace::completer())]
+    #[arg(
+        long,
+        short,
+        default_value_t=WorkspaceTreeSpace::Agent,
+        add=WorkspaceTreeSpace::completer(),
+    )]
     workspace: WorkspaceTreeSpace,
     /// Force the removal of the workspace.
     #[arg(short, long)]
@@ -31,24 +36,21 @@ pub struct WorkspaceRmArgs {
 /// Execute the `rt workspace rm` action.
 pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceRmArgs) -> i32 {
     let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
-    let repository = match get_current_repo_or_main(
-        ui,
-        config,
-        &repo_tree,
-        args.repo_id,
-    ) {
-        Ok(Some((r, _w))) => r,
-        Ok(None) => {
-            ui.error(
-                "Current directory is not a repository or one within the repo-tree."
-            );
-            return 2;
-        }
-        Err(err) => {
-            eprintln!("{err}");
-            return 1;
-        }
-    };
+    let repository =
+        match get_current_repo_or_main(ui, config, &repo_tree, args.repo_id) {
+            Ok(Some((r, _w))) => r,
+            Ok(None) => {
+                ui.error(
+                    "Current directory is not a repository or one within the \
+                     repo-tree.",
+                );
+                return 2;
+            }
+            Err(err) => {
+                eprintln!("{err}");
+                return 1;
+            }
+        };
 
     let tree_space: TreeSpace = args.workspace.into();
 
