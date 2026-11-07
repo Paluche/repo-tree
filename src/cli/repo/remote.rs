@@ -24,7 +24,7 @@ pub struct RemoteArgs {
 
 /// Select amongst the available remotes. The remotes vector must have more than
 /// one element.
-fn choose_remote(remotes: &Vec<(String, String)>) -> &String {
+fn choose_remote(remotes: &[(String, String)]) -> &String {
     let default = remotes
         .iter()
         .find(|(n, _)| n == "origin")
