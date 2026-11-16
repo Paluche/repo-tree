@@ -242,16 +242,15 @@ pub fn get_all_bookmarks(
     Ok(ret)
 }
 
-pub fn get_bookmarks<'bookmarks>(
+pub fn get_bookmarks(
     repo_path: &Path,
-    bookmarks: &'bookmarks Bookmarks,
     revset: &str,
     order: RevSetOrder,
-) -> Result<Vec<&'bookmarks Bookmark>, Box<dyn Error>> {
+) -> Result<Vec<Bookmark>, Box<dyn Error>> {
     Ok(
         run_revset(repo_path, revset, &BookmarkRaw::log_template(), order)?
             .iter()
-            .filter_map(|l| bookmarks.get(BookmarkRaw::from_line(l)))
+            .map(|l| BookmarkRaw::from_line(l).into_bookmark())
             .collect(),
     )
 }

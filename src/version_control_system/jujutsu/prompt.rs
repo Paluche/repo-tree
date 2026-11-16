@@ -33,15 +33,14 @@ impl BookmarkCategory {
     fn get_bookmarks<'bookmarks>(
         &self,
         repo_path: &Path,
-        bookmarks: &'bookmarks Bookmarks,
-    ) -> Result<Vec<&'bookmarks Bookmark>, Box<dyn Error>> {
+    ) -> Result<Vec<Bookmark>, Box<dyn Error>> {
         let (revset, order) = match self {
             Self::Current => ("@", RevSetOrder::default()),
             Self::Parent => ("@-", RevSetOrder::ParentFirst),
             Self::Descendants => ("@+::", RevSetOrder::ChildrenFirst),
         };
 
-        get_bookmarks(repo_path, bookmarks, revset, order)
+        get_bookmarks(repo_path, revset, order)
     }
 
     /// Get short representation logo to represent this category of bookmarks.
@@ -63,12 +62,11 @@ fn list_bookmarks(
     field: &mut PromptListField,
     category: BookmarkCategory,
     repo_path: &Path,
-    bookmarks: &Bookmarks,
 ) -> Result<(), Box<dyn Error>> {
     field.push(
         category.get_repr(bookmark_config).display(
             &category
-                .get_bookmarks(repo_path, bookmarks)?
+                .get_bookmarks(repo_path)?
                 .iter()
                 .flat_map(|b| b.get_repr(bookmark_config))
                 .collect::<Vec<String>>(),
@@ -85,7 +83,11 @@ fn list_deleted_bookmarks(
 ) -> Result<(), Box<dyn Error>> {
     prompt.push(
         config.deleted.display(
-            &bookmarks.get_deleted().iter().map(|b| b.name.clone()).collect::<Vec<String>>(),
+            &bookmarks
+                .get_deleted()
+                .iter()
+                .map(|b| b.name.clone())
+                .collect::<Vec<String>>(),
         ),
     );
     Ok(())
@@ -118,28 +120,24 @@ pub fn prompt(
     let prompt_config = &config.prompt.jj;
     {
         let mut field = PromptListField::new(" ");
-        let bookmarks = get_all_bookmarks(repo_path)?;
 
         list_bookmarks(
             &prompt_config.bookmark,
             &mut field,
             BookmarkCategory::Parent,
             repo_path,
-            &bookmarks,
         )?;
         list_bookmarks(
             &prompt_config.bookmark,
             &mut field,
             BookmarkCategory::Current,
             repo_path,
-            &bookmarks,
         )?;
         list_bookmarks(
             &prompt_config.bookmark,
             &mut field,
             BookmarkCategory::Descendants,
             repo_path,
-            &bookmarks,
         )?;
         list_tags(&prompt_config.tags, &mut field, repo_path)?;
 
@@ -149,7 +147,11 @@ pub fn prompt(
             prompt.push(field)
         }
 
-        list_deleted_bookmarks(&prompt_config.bookmark, prompt, &bookmarks)?;
+        list_deleted_bookmarks(
+            &prompt_config.bookmark,
+            prompt,
+            &get_all_bookmarks(repo_path)?,
+        )?;
     }
 
     if wc_has_conflicts(repo_path)? {
