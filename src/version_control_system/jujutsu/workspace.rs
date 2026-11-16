@@ -44,10 +44,10 @@ pub fn add_workspace(
     // Create the parent directory where to put the workspace.
     if let Some(parent) = destination.parent() {
         if parent.exists() {
-            if !parent.is_file() {
+            if parent.is_file() {
                 panic!(
                     "Destination parent directory {} is actually a file",
-                    destination.display()
+                    parent.display()
                 ); // XXX Use of panic -> Return Err
             }
         } else {
