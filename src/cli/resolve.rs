@@ -21,7 +21,7 @@ pub struct ResolveArgs {
     /// Precise the tree-space from which you want the repository.
     #[arg(short, long, conflicts_with="kind", add=TreeSpace::completer())]
     tree: Option<TreeSpace>,
-    /// Precise the tree-space from which you want the repository.
+    /// Precise the kind of tree-space from which you want the repository.
     #[arg(short, long, conflicts_with="tree", add=TreeSpaceKind::completer())]
     kind: Option<TreeSpaceKind>,
     /// Force recreating the cache.
