@@ -67,8 +67,9 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceRmArgs) -> i32 {
     if !args.force {
         // Ask the user for confirmation before removing the repository.
         println!(
-            "Are you sure you want to remove the repository {} from the
-            repo-tree? [y/N]",
+            "Are you sure you want to remove the workspace {} of the \
+             repository {} from the repo-tree? [y/N]",
+            workspace.path().display(),
             repository.id.display(config),
         );
         let mut input = String::new();

@@ -82,6 +82,8 @@ None
   previous workspaces after `rt workspace add` or `rt workspace rm`.
 - **workspace**: Refresh the repositories cache automatically when a workspace
   is added or removed outside of `rt`.
+- **rm**: Fix the confirmation messages of `rt rm` and `rt workspace rm`, which
+  were broken over two lines, and name the workspace `rt workspace rm` removes.
 
 ## [0.2.0] - 2026-06-21
 

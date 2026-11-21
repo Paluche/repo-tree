@@ -69,8 +69,8 @@ pub async fn run(ui: &Ui<'_>, config: &Config, args: RmArgs) -> i32 {
     if !args.force {
         // Ask the user for confirmation before removing the repository.
         println!(
-            "Are you sure you want to remove the repository {} from the
-            repo-tree? [y/N]",
+            "Are you sure you want to remove the repository {} from the \
+             repo-tree? [y/N]",
             repository.id.display(config),
         );
         let mut input = String::new();
