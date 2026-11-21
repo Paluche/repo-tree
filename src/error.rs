@@ -166,4 +166,23 @@ mod tests {
 
         assert_eq!(error.1, 1);
     }
+
+    #[test]
+    fn unexpected_tree_space_error_names_the_tree_space() {
+        let error =
+            UnexpectedTreeSpaceError("owner/repo".into(), "local".into());
+
+        assert_eq!(
+            error.to_string(),
+            "Repository owner/repo should not be in the local tree-space"
+        );
+    }
+
+    #[test]
+    fn not_a_repository_error_names_the_directory() {
+        let error =
+            NotARepositoryError(VersionControlSystem::Git, "/some/dir".into());
+
+        assert_eq!(error.to_string(), "No git repository in: /some/dir");
+    }
 }
