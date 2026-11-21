@@ -522,4 +522,184 @@ mod tests {
             assert_eq!(TreeSpace::from(force_tree_space), tree_space);
         }
     }
+
+    #[test]
+    fn invalid_tree_space_conversions_fail() {
+        for tree_space in [TreeSpace::Local, TreeSpace::Agent] {
+            let error = ForceTreeSpace::try_from(tree_space.clone())
+                .expect_err("not a force tree-space");
+            assert_eq!(
+                error.to_string(),
+                format!(
+                    "TreeSpace::{tree_space:?} cannot be converted into a \
+                     ForceTreeSpace"
+                )
+            );
+        }
+        for tree_space in TreeSpace::iter().filter(|t| t.kind().is_main()) {
+            assert!(WorkspaceTreeSpace::try_from(tree_space).is_err());
+        }
+    }
+
+    #[test]
+    fn force_tree_space_into_expected_tree_strategy() {
+        let strategy: ExpectedTreeStrategy = None.into();
+        assert!(matches!(strategy, ExpectedTreeStrategy::Exact));
+        let strategy: ExpectedTreeStrategy = Some(ForceTreeSpace::Dev).into();
+        assert!(matches!(strategy, ExpectedTreeStrategy::ForceDev));
+        let strategy: ExpectedTreeStrategy =
+            Some(ForceTreeSpace::Archive).into();
+        assert!(matches!(strategy, ExpectedTreeStrategy::ForceArchive));
+    }
+
+    #[test]
+    fn tree_space_from_path_agent() {
+        let config = Config::test_default();
+
+        check_tree_space_from_path(
+            &config,
+            &config.tree.agent.category,
+            Some(TreeSpace::Agent),
+        );
+    }
+
+    #[test]
+    fn tree_space_from_path_outside_tree_spaces() {
+        let config = Config::test_default();
+
+        for path in ["/home/user/work", "/home/user/work/other/repo", "/"] {
+            assert_eq!(TreeSpace::from_path(&config, Path::new(path)), None);
+        }
+    }
+
+    #[test]
+    fn tree_space_with_configured_names() {
+        let mut config = Config::test_default();
+        config.tree.archive.category = TreeCategory::new(
+            "old".into(),
+            Some("attic".into()),
+            ColoredText::default(),
+        );
+
+        assert_eq!(
+            TreeSpace::from_name(&config, "old"),
+            Some(TreeSpace::Archive)
+        );
+        assert_eq!(TreeSpace::from_name(&config, "archive"), None);
+        assert_eq!(TreeSpace::from_name(&config, "dev"), Some(TreeSpace::Dev));
+        assert_eq!(
+            TreeSpace::from_path(&config, Path::new("/home/user/work/attic/x")),
+            Some(TreeSpace::Archive)
+        );
+        assert_eq!(
+            TreeSpace::from_path(&config, Path::new("/home/user/work/old/x")),
+            None
+        );
+    }
+
+    /// Location of `repo_id` in `tree_space`.
+    fn location(
+        tree_space: &TreeSpace,
+        repo_id: &RepoId,
+    ) -> Result<PathBuf, Box<dyn Error>> {
+        tree_space.repo_location(&Config::test_default(), repo_id)
+    }
+
+    #[test]
+    fn repo_location_of_repository_with_remote() {
+        let id = RepoId::from_remote_url("git@test.com:foo/bar.git")
+            .expect("valid URL");
+
+        for (tree_space, expected) in [
+            (TreeSpace::Dev, "/home/user/work/dev/test/foo/bar"),
+            (TreeSpace::Archive, "/home/user/work/archive/test/foo/bar"),
+            (TreeSpace::Agent, "/home/user/work/agent/test/foo/bar"),
+        ] {
+            assert_eq!(
+                location(&tree_space, &id).expect("valid location"),
+                PathBuf::from(expected)
+            );
+        }
+    }
+
+    #[test]
+    fn repo_location_of_repository_with_remote_in_local_fails() {
+        let id = RepoId::from_remote_url("git@test.com:foo/bar.git")
+            .expect("valid URL");
+
+        let error = location(&TreeSpace::Local, &id).expect_err("has a remote");
+
+        assert_eq!(
+            error.to_string(),
+            "Repository foo/bar should not be in the local tree-space"
+        );
+    }
+
+    #[test]
+    fn repo_location_of_local_repository() {
+        let id = RepoId::from_repo(&PathBuf::from("/somewhere/project"), None)
+            .expect("valid directory name");
+
+        assert_eq!(
+            location(&TreeSpace::Local, &id).expect("valid location"),
+            PathBuf::from("/home/user/work/local/project")
+        );
+        for tree_space in [TreeSpace::Dev, TreeSpace::Archive, TreeSpace::Agent]
+        {
+            assert!(
+                location(&tree_space, &id)
+                    .expect_err("no remote")
+                    .downcast_ref::<UnexpectedTreeSpaceError>()
+                    .is_some()
+            );
+        }
+    }
+
+    #[test]
+    fn repo_location_of_unknown_host_fails() {
+        let id = RepoId::from_remote_url("https://nowhere.org/foo/bar")
+            .expect("valid URL");
+
+        assert!(
+            location(&TreeSpace::Dev, &id)
+                .expect_err("unknown host")
+                .downcast_ref::<UnknownRemoteHostError>()
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn repo_location_uses_the_host_directory_name() {
+        let mut config = Config::test_default();
+        if let Some(host) = config.remote_hosts.get_mut("test.com") {
+            host.category = TreeCategory::new(
+                "test".into(),
+                Some("t".into()),
+                ColoredText::default(),
+            );
+        }
+        let id = RepoId::from_remote_url("https://test.com/foo/bar")
+            .expect("valid URL");
+
+        assert_eq!(
+            TreeSpace::Dev
+                .repo_location(&config, &id)
+                .expect("valid location"),
+            PathBuf::from("/home/user/work/dev/t/foo/bar")
+        );
+    }
+
+    #[test]
+    fn tree_space_docs_come_from_doc_comments() {
+        assert_eq!(
+            TreeSpace::Archive.doc(),
+            "Where archived / read-only repositories are stored."
+        );
+        // Multi-line doc comments are joined with spaces.
+        assert_eq!(
+            TreeSpace::Agent.doc(),
+            "Tree containing repositories workspaces where agents, which \
+             brings modification to your repositories, evolves."
+        );
+    }
 }
