@@ -101,3 +101,69 @@ pub struct InvalidWorkspaceTreeSpace(pub TreeSpace);
 #[error("TreeSpace::{0:?} cannot be converted into a ForceTreeSpace")]
 /// Error during the parsing of the configuration.
 pub struct InvalidForceTreeSpace(pub TreeSpace);
+
+#[cfg(test)]
+mod tests {
+    use std::os::unix::process::ExitStatusExt;
+
+    use super::*;
+
+    /// Build the command `git status --short` without running it.
+    fn command() -> Command {
+        let mut command = Command::new("git");
+        command.args(["status", "--short"]);
+        command
+    }
+
+    #[test]
+    fn command_error_quotes_each_argument() {
+        let error =
+            CommandError::new(&command(), ExitStatus::from_raw(2 << 8), None);
+
+        assert_eq!(error.0, "git 'status' '--short' ");
+        assert_eq!(error.1, 2);
+        assert_eq!(error.2, "");
+    }
+
+    #[test]
+    fn command_error_keeps_stderr() {
+        let output = Output {
+            status: ExitStatus::from_raw(128 << 8),
+            stdout: b"ignored".to_vec(),
+            stderr: b"fatal: not a git repository\n".to_vec(),
+        };
+
+        let error =
+            CommandError::new(&command(), output.status, Some(output.clone()));
+
+        assert_eq!(error.1, 128);
+        assert_eq!(error.2, "fatal: not a git repository\n");
+        assert_eq!(
+            error.to_string(),
+            "Command git 'status' '--short'  failed with error 128:\nfatal: \
+             not a git repository\n"
+        );
+    }
+
+    #[test]
+    fn command_error_ignores_non_utf8_stderr() {
+        let output = Output {
+            status: ExitStatus::from_raw(1 << 8),
+            stdout: vec![],
+            stderr: vec![0xff, 0xfe],
+        };
+
+        let error = CommandError::new(&command(), output.status, Some(output));
+
+        assert_eq!(error.2, "");
+    }
+
+    #[test]
+    fn command_error_killed_by_signal_reports_code_1() {
+        // Raw wait status of a process killed by SIGKILL.
+        let error =
+            CommandError::new(&command(), ExitStatus::from_raw(9), None);
+
+        assert_eq!(error.1, 1);
+    }
+}
