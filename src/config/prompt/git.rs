@@ -336,3 +336,32 @@ impl Default for GitPromptConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::no_colors;
+
+    #[test]
+    fn upstream_symbols_are_distinct() {
+        let _colors = no_colors();
+        let config: GitUpstreamConfig = toml::from_str(
+            "gone = 'g'\nup_to_date = 'u'\nahead = 'a'\nbehind = \
+             'b'\ndiverged = 'd'\nlocal = 'l'\ndetached = 'h'\n",
+        )
+        .expect("valid upstream configuration");
+
+        assert_eq!(
+            [
+                config.gone(),
+                config.up_to_date(),
+                config.ahead(),
+                config.behind(),
+                config.diverged(),
+                config.local(),
+                config.detached(),
+            ],
+            ["g", "u", "a", "b", "d", "l", "h"]
+        );
+    }
+}
