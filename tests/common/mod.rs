@@ -291,6 +291,52 @@ impl Env {
         self.dev_path(name)
     }
 
+    /// Change ID of the revision `revision` of the jj repository `repo`.
+    pub fn jj_change_id(&self, repo: &Path, revision: &str) -> String {
+        self.jj(
+            repo,
+            &["log", "--no-graph", "-r", revision, "-T", "change_id"],
+        )
+    }
+
+    /// Create in the jj repository `repo` a commit writing `content` in
+    /// `file`, on top of the working copy.
+    pub fn jj_commit(&self, repo: &Path, file: &str, content: &str) {
+        write(&repo.join(file), content);
+        self.jj(repo, &["commit", "-m", &format!("Write {file}")]);
+    }
+
+    /// Make the working copy of the jj repository `repo` a conflicted merge
+    /// of two commits on top of `trunk()`.
+    pub fn jj_conflict(&self, repo: &Path) {
+        self.jj(repo, &["new", "trunk()"]);
+        self.jj_commit(repo, "conflict", "a\n");
+        let a = self.jj_change_id(repo, "@-");
+        self.jj(repo, &["new", "trunk()"]);
+        self.jj_commit(repo, "conflict", "b\n");
+        let b = self.jj_change_id(repo, "@-");
+        self.jj(repo, &["new", &a, &b]);
+    }
+
+    /// Add the agent workspace of the jj repository `main` of the dev
+    /// tree-space named `name`, returning its path.
+    pub fn jj_agent_workspace(&self, main: &Path, name: &str) -> PathBuf {
+        let agent = self.root.join("agent/example").join(name);
+        fs::create_dir_all(agent.parent().expect("has a parent"))
+            .expect("cannot create directory");
+        self.jj(
+            main,
+            &[
+                "workspace",
+                "add",
+                "--name",
+                "agent",
+                agent.to_str().expect("UTF-8 path"),
+            ],
+        );
+        agent
+    }
+
     /// Install a fake executable `name` running the shell `script`.
     pub fn fake_bin(&self, name: &str, script: &str) {
         use std::os::unix::fs::PermissionsExt;
