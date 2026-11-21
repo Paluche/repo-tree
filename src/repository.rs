@@ -391,3 +391,25 @@ impl Repository {
         Ok(())
     }
 }
+
+#[cfg(test)]
+impl Repository {
+    /// Create a repository for tests, without reading anything on disk.
+    pub fn for_test(
+        id: RepoId,
+        vcs: VersionControlSystem,
+        workspaces: Vec<Workspace>,
+    ) -> Self {
+        Self {
+            workspaces,
+            id,
+            vcs,
+            is_submodule: false,
+            remote_config: TrackedFile {
+                file: PathBuf::from("/nonexistent/config"),
+                last_modified: DateTime::<Utc>::UNIX_EPOCH,
+            },
+            workspace_store: None,
+        }
+    }
+}

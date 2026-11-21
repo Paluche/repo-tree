@@ -442,3 +442,265 @@ pub fn resolve_completer() -> ArgValueCompleter {
             .collect::<Vec<CompletionCandidate>>()
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+    use crate::repo_id::RepoId;
+    use crate::version_control_system::VersionControlSystem;
+
+    /// Repository cloned from `url`, with a workspace in `tree_space`.
+    fn repo(url: &str, tree_space: TreeSpace) -> Repository {
+        let id = RepoId::from_remote_url(url).expect("valid URL");
+        let path = PathBuf::from("/home/user/work")
+            .join(format!("{tree_space:?}").to_lowercase())
+            .join(&id.name);
+        Repository::for_test(
+            id,
+            VersionControlSystem::Git,
+            vec![Workspace::Tree(tree_space, path)],
+        )
+    }
+
+    /// Local repository named `name`.
+    fn local(name: &str) -> Repository {
+        let path = PathBuf::from("/home/user/work/local").join(name);
+        let id = RepoId::from_repo(&path, None).expect("valid name");
+        Repository::for_test(
+            id,
+            VersionControlSystem::Git,
+            vec![Workspace::Tree(TreeSpace::Local, path)],
+        )
+    }
+
+    /// Identifiers of each repository of the tree, as `identifier =>
+    /// repository name`.
+    fn identifiers(
+        config: &Config,
+        repositories: Vec<Repository>,
+    ) -> Vec<String> {
+        let ui = Ui::new(config);
+        let tree = RepoTree::from_repositories(repositories);
+        get_candidates(&ui, config, &tree, &ResolveFilter::All)
+            .into_iter()
+            .map(|(key, repo)| format!("{key} => {}", repo.id.name))
+            .collect()
+    }
+
+    #[test]
+    fn identifiers_of_unique_repositories() {
+        assert_eq!(
+            identifiers(
+                &Config::test_default(),
+                vec![
+                    repo("https://test.com/foo/bar", TreeSpace::Dev),
+                    local("project"),
+                ]
+            ),
+            [
+                "bar => foo/bar",
+                "foo/bar => foo/bar",
+                "project => project",
+                "test/foo/bar => foo/bar",
+            ]
+        );
+    }
+
+    #[test]
+    fn identifiers_of_repositories_with_same_short_name() {
+        assert_eq!(
+            identifiers(
+                &Config::test_default(),
+                vec![
+                    repo("https://test.com/a/x/repo", TreeSpace::Dev),
+                    repo("https://test.com/b/x/repo", TreeSpace::Dev),
+                    repo("https://test.com/c/repo", TreeSpace::Dev),
+                ]
+            ),
+            [
+                "a/x/repo => a/x/repo",
+                "b/x/repo => b/x/repo",
+                "c/repo => c/repo",
+                "test/a/x/repo => a/x/repo",
+                "test/b/x/repo => b/x/repo",
+                "test/c/repo => c/repo",
+            ]
+        );
+    }
+
+    #[test]
+    fn identifiers_of_local_repository_named_as_another_one() {
+        assert_eq!(
+            identifiers(
+                &Config::test_default(),
+                vec![
+                    repo("https://test.com/foo/repo", TreeSpace::Dev),
+                    local("repo"),
+                ]
+            ),
+            [
+                "foo/repo => foo/repo",
+                "repo => repo",
+                "test/foo/repo => foo/repo",
+            ]
+        );
+    }
+
+    #[test]
+    fn identifiers_of_same_repository_on_two_hosts() {
+        assert_eq!(
+            identifiers(
+                &Config::test_default(),
+                vec![
+                    repo("https://test.com/foo/bar", TreeSpace::Dev),
+                    repo("https://github.com/foo/bar", TreeSpace::Dev),
+                ]
+            ),
+            ["github/foo/bar => foo/bar", "test/foo/bar => foo/bar"]
+        );
+    }
+
+    #[test]
+    fn duplicated_repository_keeps_the_first() {
+        let config = Config::test_default();
+        let ui = Ui::new(&config);
+        let first = repo("https://test.com/foo/bar", TreeSpace::Dev);
+        let second = repo("https://test.com/foo/bar", TreeSpace::Archive);
+        let tree = RepoTree::from_repositories(vec![first.clone(), second]);
+
+        let candidates =
+            get_candidates(&ui, &config, &tree, &ResolveFilter::All);
+
+        assert!(candidates.values().all(|r| **r == first));
+        assert_eq!(candidates.len(), 3);
+    }
+
+    #[test]
+    fn aliases_point_to_existing_identifiers() {
+        let mut config = Config::test_default();
+        config
+            .command
+            .resolve
+            .aliases
+            .insert("b".into(), "foo/bar".into());
+        config
+            .command
+            .resolve
+            .aliases
+            .insert("missing".into(), "nothing".into());
+
+        assert_eq!(
+            identifiers(
+                &config,
+                vec![repo("https://test.com/foo/bar", TreeSpace::Dev)]
+            ),
+            [
+                "b => foo/bar",
+                "bar => foo/bar",
+                "foo/bar => foo/bar",
+                "test/foo/bar => foo/bar",
+            ]
+        );
+    }
+
+    #[test]
+    fn filter_on_tree_space() {
+        let config = Config::test_default();
+        let ui = Ui::new(&config);
+        let tree = RepoTree::from_repositories(vec![
+            repo("https://test.com/foo/bar", TreeSpace::Dev),
+            repo("https://test.com/foo/old", TreeSpace::Archive),
+        ]);
+
+        let names: Vec<String> = get_candidates(
+            &ui,
+            &config,
+            &tree,
+            &ResolveFilter::TreeSpace(TreeSpace::Archive),
+        )
+        .into_values()
+        .map(|r| r.id.name.clone())
+        .collect();
+
+        assert_eq!(names, ["foo/old"; 3]);
+    }
+
+    #[test]
+    fn resolve_filter_from_cli_args() {
+        assert!(matches!(
+            ResolveFilter::from_cli_args(None, None),
+            Ok(ResolveFilter::All)
+        ));
+        assert!(matches!(
+            ResolveFilter::from_cli_args(Some(TreeSpace::Dev), None),
+            Ok(ResolveFilter::TreeSpace(TreeSpace::Dev))
+        ));
+        assert!(matches!(
+            ResolveFilter::from_cli_args(None, Some(TreeSpaceKind::Main)),
+            Ok(ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main))
+        ));
+        assert!(
+            ResolveFilter::from_cli_args(
+                Some(TreeSpace::Dev),
+                Some(TreeSpaceKind::Main)
+            )
+            .is_err()
+        );
+    }
+
+    /// Resolve `id` in a tree made of a few repositories.
+    fn resolve_id(id: &str) -> Option<String> {
+        let config = Config::test_default();
+        let ui = Ui::new(&config);
+        let tree = RepoTree::from_repositories(vec![
+            repo("https://test.com/owner/rocket", TreeSpace::Dev),
+            repo("https://test.com/owner/pocket", TreeSpace::Dev),
+            repo("https://test.com/other/tools", TreeSpace::Dev),
+        ]);
+
+        resolve_repo(&ui, &config, &tree, Some(id.into()), &ResolveFilter::All)
+            .expect("no error")
+            .map(|r| r.id.name.clone())
+    }
+
+    #[test]
+    fn resolve_exact_identifier() {
+        assert_eq!(resolve_id("rocket").as_deref(), Some("owner/rocket"));
+        assert_eq!(
+            resolve_id("test/other/tools").as_deref(),
+            Some("other/tools")
+        );
+    }
+
+    #[test]
+    fn resolve_single_fuzzy_match() {
+        assert_eq!(resolve_id("tls").as_deref(), Some("other/tools"));
+    }
+
+    #[test]
+    fn resolve_ambiguous_or_unknown_identifier() {
+        assert_eq!(resolve_id("ocket"), None);
+        assert_eq!(resolve_id("zzz"), None);
+    }
+
+    #[test]
+    fn resolve_in_empty_tree() {
+        let config = Config::test_default();
+        let ui = Ui::new(&config);
+        let tree = RepoTree::from_repositories(vec![]);
+
+        assert!(
+            resolve_repo(
+                &ui,
+                &config,
+                &tree,
+                Some("x".into()),
+                &ResolveFilter::All
+            )
+            .expect("no error")
+            .is_none()
+        );
+    }
+}

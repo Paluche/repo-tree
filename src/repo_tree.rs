@@ -352,3 +352,11 @@ impl RepoTree {
         Ok(())
     }
 }
+
+#[cfg(test)]
+impl RepoTree {
+    /// Create a repository tree for tests from its repositories.
+    pub fn from_repositories(repositories: Vec<Repository>) -> Self {
+        Self { repositories }
+    }
+}
