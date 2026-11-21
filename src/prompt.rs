@@ -130,7 +130,7 @@ pub struct PromptListField {
 }
 
 impl PromptListField {
-    /// Create a new PromptListField.
+    /// Create a new `PromptListField`.
     pub fn new(separator: &'static str) -> Self {
         Self {
             list: Vec::new(),

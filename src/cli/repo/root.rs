@@ -16,8 +16,9 @@ pub struct RootArgs {
     #[arg(long, short)]
     parent: bool,
 
-    /// Also display repository types. The output will then have 3 lines:
-    /// <Root of the repository> <is_git> <is_jj>.
+    /// Also display repository types. The output will then have 3 lines: the
+    /// root of the repository, then whether it is a Git repository and
+    /// whether it is a Jujutsu repository (true or false).
     #[arg(long)]
     print_type: bool,
     /// Force recreating the cache.

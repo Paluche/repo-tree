@@ -47,8 +47,8 @@ impl TrackedFile {
         })
     }
 
-    /// Does the file have been modified compared to the last_modified value we
-    /// have.
+    /// Does the file have been modified compared to the `last_modified` value
+    /// we have.
     pub fn has_been_modified(&self) -> Result<bool, Box<dyn Error>> {
         Ok(self.last_modified != get_last_modified(&self.file)?)
     }

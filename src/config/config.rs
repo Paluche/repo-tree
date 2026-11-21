@@ -154,7 +154,7 @@ impl Config {
             .collect()
     }
 
-    /// Get the specified RemoteHost struct for a given host.
+    /// Get the specified `RemoteHost` struct for a given host.
     pub fn get_remote_host(&self, host: &str) -> Option<&RemoteHost> {
         self.remote_hosts.get(host)
     }

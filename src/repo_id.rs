@@ -182,7 +182,7 @@ impl RepoId {
 
     /// Get the host representation associated with that repository. This method
     /// is deterministic compared to getting the category using
-    /// host_category().
+    /// `host_category()`.
     pub fn remote_host_repr<'config>(
         &self,
         config: &'config Config,
@@ -195,7 +195,7 @@ impl RepoId {
 
     /// Get the host name associated with that repository. This method is
     /// deterministic compared to getting the category using
-    /// host_category().
+    /// `host_category()`.
     pub fn remote_host_name<'config>(
         &self,
         config: &'config Config,
@@ -313,7 +313,7 @@ impl RepoId {
         }
     }
 
-    /// Obtain a struct implementing the display for the RepoId.
+    /// Obtain a struct implementing the display for the `RepoId`.
     pub fn display<'repo_id, 'config>(
         &'repo_id self,
         config: &'config Config,
@@ -325,11 +325,11 @@ impl RepoId {
     }
 }
 
-/// Struct to display a RepoId.
+/// Struct to display a `RepoId`.
 pub struct RepoIdDisplay<'repo_id, 'config> {
-    /// RepoId to display.
+    /// `RepoId` to display.
     repo_id: &'repo_id RepoId,
-    /// Host category data of the RepoId.
+    /// Host category data of the `RepoId`.
     remote_host_name: Option<&'config str>,
 }
 

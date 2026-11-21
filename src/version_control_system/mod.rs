@@ -55,8 +55,8 @@ impl VersionControlSystem {
 
     /// Try to load the current version control system used by the current
     /// repository. The path must correspond to the root of the repository.
-    /// Return a new instance of VersionControlSystem and a boolean to indicate
-    /// if the repository is a submodule or not.
+    /// Return a new instance of `VersionControlSystem` and a boolean to
+    /// indicate if the repository is a submodule or not.
     pub fn try_new(dir: &Path) -> Option<(Self, bool)> {
         fn exists(search_dir: &Path, dir: &str) -> (bool, bool) {
             let search_dir = search_dir.join(dir);
@@ -132,9 +132,9 @@ impl Display for VersionControlSystem {
 }
 
 /// Struct providing a display for a short representation of the
-/// VersionControlSystem struct.
+/// `VersionControlSystem` struct.
 pub struct ShortDisplay<'vcs, 'config> {
-    /// VersionControlSystem to display as a short representation.
+    /// `VersionControlSystem` to display as a short representation.
     vcs: &'vcs VersionControlSystem,
     /// Configuration of the rt tool.
     config: &'config Config,
@@ -184,10 +184,10 @@ impl VcsWorkspace {
     }
 }
 
-/// Implement the Display trait for VcsWorkspace, displaying the name of the
+/// Implement the Display trait for `VcsWorkspace`, displaying the name of the
 /// workspace.
 pub struct VcsWorkspaceDisplayName<'vcs_workspace, 'config> {
-    /// The VcsWorkspace struct to display.
+    /// The `VcsWorkspace` struct to display.
     vcs_workspace: &'vcs_workspace VcsWorkspace,
     /// The configuration dictating how to display.
     config: &'config Config,

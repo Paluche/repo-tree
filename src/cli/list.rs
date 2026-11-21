@@ -7,7 +7,7 @@ use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::ui::Ui;
 
-/// List all repositories in the repo_tree.
+/// List all repositories in the repo tree.
 #[derive(Args)]
 pub struct ListArgs {
     /// Filter the repositories to list by their host. For example, "github" or

@@ -14,7 +14,7 @@ use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
 use crate::ui::Ui;
 
-/// Display a tree of your repo_tree.
+/// Display a tree of your repo tree.
 #[derive(Args)]
 pub struct TreeArgs {
     /// Filter the tree view based on a specific tree.
@@ -300,7 +300,7 @@ struct RootDirectory<'config, 'repo_tree> {
 }
 
 impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
-    /// Instantiate a RootDirectory.
+    /// Instantiate a `RootDirectory`.
     fn new(
         config: &'config Config,
         repo_tree: &'repo_tree RepoTree,

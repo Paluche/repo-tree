@@ -41,7 +41,7 @@ pub fn wc_has_conflicts(repo_path: &Path) -> Result<bool, Box<dyn Error>> {
     revset::revset_has_match(repo_path, "@ & conflicts()")
 }
 
-/// Get the repository state as RepoState struct.
+/// Get the repository state as `RepoState` struct.
 pub fn get_repo_state(repo_path: &Path) -> Result<RepoState, Box<dyn Error>> {
     Ok(RepoState::new(
         has_unpushed_commits(repo_path)?,

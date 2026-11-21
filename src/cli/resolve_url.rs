@@ -18,7 +18,7 @@ use crate::ui::Ui;
 #[derive(Args)]
 pub struct ResolveUrlArgs {
     /// Repository identifier to resolve into the actual path within the
-    /// repo_tree.
+    /// repo tree.
     #[arg(add=ArgValueCompleter::new(resolve_completer))]
     repo_id: String,
     /// Precise the tree-space from which you want the repository.

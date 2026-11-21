@@ -25,7 +25,7 @@ use crate::ui_error;
 use crate::ui_hint;
 use crate::ui_warning;
 
-/// All potential filter options for the resolve() function.
+/// All potential filter options for the `resolve()` function.
 #[derive(Default)]
 pub enum ResolveFilter {
     /// No filter.

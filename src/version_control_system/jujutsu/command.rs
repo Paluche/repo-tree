@@ -61,7 +61,7 @@ impl JujutsuCommand {
         which("jj").map(Command::new)
     }
 
-    /// See [Command::arg()]
+    /// See [`Command::arg()`]
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
         self.command.arg(arg);
         self

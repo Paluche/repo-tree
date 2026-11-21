@@ -47,7 +47,7 @@ impl GitCommand {
         which("git").map(Command::new)
     }
 
-    /// See [Command::arg()]
+    /// See [`Command::arg()`]
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
         self.command.arg(arg.as_ref());
         self

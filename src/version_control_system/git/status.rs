@@ -61,7 +61,7 @@ impl EntryStatus {
         })
     }
 
-    /// Obtain a struct which implements the Display trait for EntryStatus.
+    /// Obtain a struct which implements the Display trait for `EntryStatus`.
     pub fn display<'entry_status, 'config>(
         &'entry_status self,
         git_status_config: &'config GitStatusCommandConfig,
@@ -75,9 +75,9 @@ impl EntryStatus {
     }
 }
 
-/// Implement the Display for the EntryStatus struct.
+/// Implement the Display for the `EntryStatus` struct.
 pub struct EntryStatusDisplay<'entry_status, 'config> {
-    /// EntryStatus to display.
+    /// `EntryStatus` to display.
     entry_status: &'entry_status EntryStatus,
     /// Configuration dictating how to display the content of the entry status.
     git_status_config: &'config GitStatusCommandConfig,
@@ -170,7 +170,8 @@ impl SubmoduleStatus {
         }
     }
 
-    /// Obtain a struct which implements the Display trait for SubmoduleStatus.
+    /// Obtain a struct which implements the Display trait for
+    /// `SubmoduleStatus`.
     pub fn display<'submodule_status, 'config>(
         &'submodule_status self,
         git_status_config: &'config GitStatusCommandConfig,
@@ -182,9 +183,9 @@ impl SubmoduleStatus {
     }
 }
 
-/// Implement the Display for the SubmoduleStatus struct.
+/// Implement the Display for the `SubmoduleStatus` struct.
 pub struct SubmoduleStatusDisplay<'submodule_status, 'config> {
-    /// SubmoduleStatus to display.
+    /// `SubmoduleStatus` to display.
     submodule_status: &'submodule_status SubmoduleStatus,
     /// Configuration dictating how to display the content of the submodule
     /// status.
@@ -254,7 +255,7 @@ impl SummarizeSubmoduleStatus {
     }
 
     /// Obtain a struct which implements the Display trait for
-    /// SummarizeSubmoduleStatus.
+    /// `SummarizeSubmoduleStatus`.
     pub fn display<'submodule_status, 'config>(
         &'submodule_status self,
         config: &'config GitSummarizeSubmoduleStatusConfig,
@@ -266,9 +267,9 @@ impl SummarizeSubmoduleStatus {
     }
 }
 
-/// Implement the Display for the SummarizeSubmoduleStatus struct.
+/// Implement the Display for the `SummarizeSubmoduleStatus` struct.
 pub struct SummarizeSubmoduleStatusDisplay<'submodule_status, 'config> {
-    /// SummarizeSubmoduleStatus to display.
+    /// `SummarizeSubmoduleStatus` to display.
     summarize_submodule_status: &'submodule_status SummarizeSubmoduleStatus,
     /// Configuration dictating how to display the content of the submodule
     /// status.
@@ -311,7 +312,7 @@ pub struct ItemStatus {
 }
 
 impl ItemStatus {
-    /// Obtain a struct which implements the Display trait for ItemStatus.
+    /// Obtain a struct which implements the Display trait for `ItemStatus`.
     pub fn display<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>(
         &'item_status self,
         git_status_config: &'config GitStatusCommandConfig,
@@ -330,10 +331,10 @@ impl ItemStatus {
     }
 }
 
-/// Implement the Display for the ItemStatus struct.
+/// Implement the Display for the `ItemStatus` struct.
 pub struct ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
 {
-    /// ItemStatus to display.
+    /// `ItemStatus` to display.
     item_status: &'item_status ItemStatus,
     /// Configuration dictating how to display the content of the item status.
     git_status_config: &'config GitStatusCommandConfig,
@@ -514,7 +515,7 @@ pub struct SummarizeStatus {
 }
 
 impl SummarizeStatus {
-    /// Initialize a new SummarizeStatus struct.
+    /// Initialize a new `SummarizeStatus` struct.
     fn new() -> Self {
         let mut map = HashMap::new();
         EntryStatus::iter().for_each(|status| {
@@ -523,12 +524,14 @@ impl SummarizeStatus {
         Self { map }
     }
 
-    /// Increment the internal counters based on the provided EntryStatus value.
+    /// Increment the internal counters based on the provided `EntryStatus`
+    /// value.
     fn increment(&mut self, entry_status: &EntryStatus) {
         *self.map.get_mut(entry_status).unwrap() += 1;
     }
 
-    /// Obtain a struct which implements the Display trait for SummarizeStatus.
+    /// Obtain a struct which implements the Display trait for
+    /// `SummarizeStatus`.
     pub fn display<'summarize_status, 'config>(
         &'summarize_status self,
         config: &'config GitSummarizeStatusConfig,
@@ -540,9 +543,9 @@ impl SummarizeStatus {
     }
 }
 
-/// Implement the Display trait for SummarizeStatus.
+/// Implement the Display trait for `SummarizeStatus`.
 pub struct SummarizeStatusDisplay<'summarize_status, 'config> {
-    /// SummarizeStatus to display.
+    /// `SummarizeStatus` to display.
     summarize_status: &'summarize_status SummarizeStatus,
     /// Configuration dictating how to display the content of the item status.
     config: &'config GitSummarizeStatusConfig,
@@ -603,7 +606,8 @@ pub struct UpstreamInfo {
 }
 
 impl UpstreamInfo {
-    /// Obtain a struct which implements the Display trait for SubmoduleStatus.
+    /// Obtain a struct which implements the Display trait for
+    /// `SubmoduleStatus`.
     pub fn display<'upstream_info, 'config>(
         &'upstream_info self,
         git_status_config: &'config GitStatusCommandConfig,
@@ -615,9 +619,9 @@ impl UpstreamInfo {
     }
 }
 
-/// Implement the Display for the UpstreamInfo struct.
+/// Implement the Display for the `UpstreamInfo` struct.
 pub struct UpstreamInfoDisplay<'upstream_info, 'config> {
-    /// UpstreamInfo to display.
+    /// `UpstreamInfo` to display.
     upstream_info: &'upstream_info UpstreamInfo,
     /// Configuration dictating how to display the content of the item status.
     git_status_config: &'config GitStatusCommandConfig,

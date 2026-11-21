@@ -1,4 +1,4 @@
-//! Fetch and update the whole repo_tree.
+//! Fetch and update the whole `repo_tree`.
 
 use std::error::Error;
 
@@ -10,7 +10,7 @@ use crate::repository::Repository;
 use crate::ui::Ui;
 use crate::ui_error;
 
-/// Fetch all the repositories within the repo_tree.
+/// Fetch all the repositories within the repo tree.
 #[derive(Args)]
 pub struct FetchArgs {
     /// Suppress output to the minimum, only the final summary will be printed.

@@ -169,13 +169,13 @@ pub enum TreeSpace {
 }
 
 impl TreeSpace {
-    /// Obtain the TreeSpace value based on its name, as defined by the
+    /// Obtain the `TreeSpace` value based on its name, as defined by the
     /// configuration.
     pub fn from_name(config: &Config, name: &str) -> Option<Self> {
         Self::iter().find(|tree_space| name == tree_space.name(config))
     }
 
-    /// Obtain the TreeSpace value based on a directory name, directory should
+    /// Obtain the `TreeSpace` value based on a directory name, directory should
     /// match a tree-category.
     pub fn from_dir_name(config: &Config, dir_name: &OsStr) -> Option<Self> {
         Self::iter().find(|tree_space| {
@@ -183,7 +183,7 @@ impl TreeSpace {
         })
     }
 
-    /// Obtain the TreeSpace value based on a path which should be inside a
+    /// Obtain the `TreeSpace` value based on a path which should be inside a
     /// tree-space.
     pub fn from_path(config: &Config, path: &Path) -> Option<Self> {
         Self::from_dir_name(
@@ -192,7 +192,7 @@ impl TreeSpace {
         )
     }
 
-    /// Obtain the TreeSpaceKind associated with the tree-space.
+    /// Obtain the `TreeSpaceKind` associated with the tree-space.
     pub fn kind(&self) -> TreeSpaceKind {
         match self {
             Self::Dev | Self::Local | Self::Archive => TreeSpaceKind::Main,
@@ -287,9 +287,9 @@ impl TreeSpace {
     }
 }
 
-/// Struct which knows how to display a TreeSpace.
+/// Struct which knows how to display a `TreeSpace`.
 pub struct TreeSpaceDisplay<'tree_space, 'config> {
-    /// TreeSpace instance to display.
+    /// `TreeSpace` instance to display.
     tree_space: &'tree_space TreeSpace,
     /// User configuration which dictates how to display the tree space.
     config: &'config Config,

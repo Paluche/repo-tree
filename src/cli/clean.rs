@@ -1,4 +1,4 @@
-//! Action to clean the repo_tree.
+//! Action to clean the `repo_tree`.
 //! Move the repositories where they belong to and delete empty directories.
 
 use std::fs::create_dir_all;
@@ -17,12 +17,12 @@ use crate::repository::Workspace;
 use crate::ui::Ui;
 use crate::ui_error;
 
-/// Clean the repo_tree. Move the repositories where they belong and remove
+/// Clean the repo tree. Move the repositories where they belong and remove
 /// empty directories.
 #[derive(Args)]
 pub struct CleanArgs {
-    /// Do not perform any change on the repo_tree. Simply print what would be
-    /// done.
+    /// Do not perform any change on the repo tree. Simply print what would
+    /// be done.
     #[arg(short, long)]
     dry_run: bool,
 }

@@ -20,7 +20,7 @@ pub struct RepositoryLocation {
 }
 
 impl RepositoryLocation {
-    /// Default value for the ignore value of the RepositoryLocation struct.
+    /// Default value for the ignore value of the `RepositoryLocation` struct.
     fn default_ignore() -> Vec<Glob> {
         ["/tmp/**", "**/.*/**"]
             .into_iter()

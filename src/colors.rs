@@ -301,7 +301,7 @@ pub struct ColoredText {
 }
 
 impl ColoredText {
-    /// Create a new ColoredText.
+    /// Create a new `ColoredText`.
     pub fn new<S, C>(text: S, color: C) -> Self
     where
         S: ToString,
@@ -337,7 +337,7 @@ pub struct ColoredList {
 }
 
 impl ColoredList {
-    /// Create a new ColoredList.
+    /// Create a new `ColoredList`.
     pub fn new<S, C>(prefix: S, separator: S, color: C) -> Self
     where
         S: ToString,
@@ -366,7 +366,7 @@ impl ColoredList {
     }
 }
 
-/// Displayable struct for ColoredList.
+/// Displayable struct for `ColoredList`.
 pub struct ColoredListDisplay<'config, 'list, T> {
     /// Configuration to use to display the list.
     colored_list: &'config ColoredList,

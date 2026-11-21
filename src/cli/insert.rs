@@ -31,7 +31,7 @@ pub struct InsertArgs {
     refresh_cache: bool,
 }
 
-/// Refresh the repo tree cache based on the refresh_cache boolean value.
+/// Refresh the repo tree cache based on the `refresh_cache` boolean value.
 fn refresh_cache(ui: &Ui<'_>, config: &Config, refresh_cache: bool) {
     if refresh_cache {
         RepoTree::load(ui, config, true);

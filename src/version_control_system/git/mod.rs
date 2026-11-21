@@ -52,12 +52,12 @@ pub struct GitVcs<'repo_tree> {
 }
 
 impl<'repo_tree> GitVcs<'repo_tree> {
-    /// Create a new GitVcs structure.
+    /// Create a new `GitVcs` structure.
     pub fn new(workspace: &'repo_tree Workspace) -> Self {
         Self { workspace }
     }
 
-    /// Get the git2::Repository structure associated with the repository.
+    /// Get the `git2::Repository` structure associated with the repository.
     fn get_repository(&self) -> Result<git2::Repository, Box<dyn Error>> {
         Ok(git2::Repository::discover(self.workspace.path())?)
     }

@@ -25,7 +25,7 @@ pub struct TreeCategory {
 }
 
 impl TreeCategory {
-    /// Create a new instance of TreeCategory.
+    /// Create a new instance of `TreeCategory`.
     pub fn new(
         name: String,
         dir_name: Option<String>,
