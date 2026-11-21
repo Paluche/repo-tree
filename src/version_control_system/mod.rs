@@ -263,3 +263,142 @@ pub trait VcsRepository {
         &self,
     ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>>;
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+    use crate::test_utils::no_colors;
+
+    /// Create a directory containing the given marker directories and files.
+    fn repo(dirs: &[&str], files: &[&str]) -> tempfile::TempDir {
+        let dir = tempfile::tempdir().expect("cannot create directory");
+        for name in dirs {
+            fs::create_dir(dir.path().join(name))
+                .expect("cannot create directory");
+        }
+        for name in files {
+            fs::write(dir.path().join(name), "gitdir: ../.git/modules/x\n")
+                .expect("cannot create file");
+        }
+        dir
+    }
+
+    #[test]
+    fn detect_version_control_system() {
+        use VersionControlSystem::*;
+
+        for (dirs, files, expected) in [
+            (&[".git"][..], &[][..], Some((Git, false))),
+            (&[], &[".git"], Some((Git, true))),
+            (&[".jj"], &[], Some((Jujutsu, false))),
+            (&[".jj", ".git"], &[], Some((JujutsuGit, false))),
+            (&[".jj"], &[".git"], Some((JujutsuGit, true))),
+            (&[], &[".jj"], None),
+            (&["git", "jj"], &[], None),
+            (&[], &[], None),
+        ] {
+            let dir = repo(dirs, files);
+
+            assert_eq!(
+                VersionControlSystem::try_new(dir.path()),
+                expected,
+                "{dirs:?} {files:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn discover_root_walks_up_to_the_repository() {
+        let dir = repo(&[".git"], &[]);
+        let sub = dir.path().join("a/b");
+        fs::create_dir_all(&sub).expect("cannot create directory");
+
+        assert_eq!(
+            VersionControlSystem::discover_root(sub),
+            Some((dir.path().to_path_buf(), VersionControlSystem::Git, false))
+        );
+    }
+
+    #[test]
+    fn discover_root_finds_the_closest_repository() {
+        let dir = repo(&[".git"], &[]);
+        let sub = dir.path().join("sub");
+        fs::create_dir_all(sub.join(".jj")).expect("cannot create directory");
+
+        assert_eq!(
+            VersionControlSystem::discover_root(sub.join("x")),
+            Some((sub, VersionControlSystem::Jujutsu, false))
+        );
+    }
+
+    #[test]
+    fn discover_root_outside_repository() {
+        let dir = repo(&[], &[]);
+
+        // The temporary directory itself is not inside a repository.
+        if let Some((root, _, _)) =
+            VersionControlSystem::discover_root(dir.path().to_path_buf())
+        {
+            assert!(!root.starts_with(dir.path()));
+        }
+        assert_eq!(
+            VersionControlSystem::discover_root(PathBuf::from("relative/x")),
+            None
+        );
+    }
+
+    #[test]
+    fn version_control_system_names() {
+        use VersionControlSystem::*;
+
+        assert_eq!(
+            [Git, Jujutsu, JujutsuGit].map(|v| v.to_string()),
+            ["git", "jj", "jj-git"]
+        );
+        assert_eq!(
+            [Git, Jujutsu, JujutsuGit].map(|v| {
+                toml::Value::try_from(v)
+                    .expect("serializable")
+                    .as_str()
+                    .expect("serialized as a string")
+                    .to_string()
+            }),
+            ["git", "jujutsu", "jujutsu-git"]
+        );
+        assert_eq!(
+            [Git, Jujutsu, JujutsuGit].map(|v| v.is_git()),
+            [true, false, true]
+        );
+        assert_eq!(
+            [Git, Jujutsu, JujutsuGit].map(|v| v.is_jujutsu()),
+            [false, true, true]
+        );
+    }
+
+    #[test]
+    fn version_control_system_short_display() {
+        let _colors = no_colors();
+        let config = Config::test_default();
+        let git = config.prompt.vcs.git.to_string();
+        let jj = config.prompt.vcs.jj.to_string();
+
+        assert_eq!(
+            VersionControlSystem::Git.short_display(&config).to_string(),
+            git
+        );
+        assert_eq!(
+            VersionControlSystem::Jujutsu
+                .short_display(&config)
+                .to_string(),
+            jj
+        );
+        assert_eq!(
+            VersionControlSystem::JujutsuGit
+                .short_display(&config)
+                .to_string(),
+            format!("{git}{jj}")
+        );
+    }
+}
