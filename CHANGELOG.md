@@ -88,6 +88,7 @@ None
   for the hosts with Git tokens.
 - **gh**: `rt gh` runs the GitHub CLI with the API token of the identity of the
   repository it works on.
+- **utils**: The generated shell utils run `gh` through `rt gh`.
 
 ### Fixed bugs
 

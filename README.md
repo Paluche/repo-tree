@@ -574,6 +574,8 @@ The completion will also generate some shell utils with their autocompletion:
   the current repository. If you are in a submodule, and already at the root
   it will jump to the root of the repository containing the submodule.
 - `repo-clone`: Clone a repository then `cd` to its root
+- `gh`: Run the [GitHub CLI](https://cli.github.com/) through `rt gh`, with the
+  API token of the identity of the repository. `command gh` runs it directly.
 
 To obtain the completion and utils, configure your shell based on the following
 command lines:
