@@ -1,0 +1,9 @@
+---
+source: tests/cli_repo.rs
+expression: "[clean, bookmarks, deleted, conflict, workspace].join(\"\\n\")"
+---
+┣━┫󰊢||owner/repo|󰫍main
+┣━┫󰊢||owner/repo|󰫍feature
+┣━┫󰊢||owner/repo|󰫍feature|󰠙main
+┣━┫󰊢||owner/repo|󰠙main|󰝧
+┣━┫󰊢|󰚩|owner/repo|󰠙main|󰝧|agent@

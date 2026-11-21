@@ -1,0 +1,8 @@
+---
+source: tests/cli_repo.rs
+expression: "[clean, changed, ahead, detached].join(\"\\n\")"
+---
+┣━┫󰊢||owner/repo|󰫍main 
+┣━┫󰊢||owner/repo|󰫍main |
+┣━┫󰊢||owner/repo|󰫍main ||
+┣━┫󰊢||owner/repo|󰫍main ||
