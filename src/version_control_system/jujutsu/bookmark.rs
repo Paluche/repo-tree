@@ -10,6 +10,7 @@ use super::revset::run_revset;
 use crate::config::JujutsuBookmarkConfig;
 
 /// Representation of a bookmark.
+#[derive(Debug, PartialEq)]
 pub struct Bookmark {
     /// Name of the Bookmark.
     pub name: String,
@@ -300,4 +301,184 @@ pub fn get_bookmarks<'bookmarks>(
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::colors;
+
+    /// Parse the lines of a `jj bookmark list` output.
+    fn bookmarks(lines: &[&str]) -> Bookmarks {
+        Bookmarks::from_raw(
+            lines
+                .iter()
+                .map(|line| BookmarkRaw::from_line(line).expect("valid line"))
+                .collect(),
+        )
+    }
+
+    /// Representation of every bookmark.
+    fn reprs(lines: &[&str]) -> Vec<String> {
+        let config = JujutsuBookmarkConfig::default();
+        bookmarks(lines)
+            .bookmarks
+            .iter()
+            .flat_map(|b| b.get_repr(&config))
+            .collect()
+    }
+
+    #[test]
+    fn parse_line() {
+        let raw = BookmarkRaw::from_line("main|origin|abc|false|true|false")
+            .expect("valid line");
+
+        assert_eq!(raw.name, "main");
+        assert_eq!(raw.remote.as_deref(), Some("origin"));
+        assert_eq!(raw.target.as_deref(), Some("abc"));
+        assert!(!raw.synced);
+        assert!(raw.tracked);
+        assert!(!raw.conflict);
+
+        let raw = BookmarkRaw::from_line("main|||true|false|true")
+            .expect("valid line");
+        assert_eq!(raw.remote, None);
+        assert_eq!(raw.target, None);
+        assert!(raw.conflict);
+    }
+
+    #[test]
+    fn parse_malformed_line_fails() {
+        for line in [
+            "",
+            "main|origin|abc|true|true",
+            "main|origin|abc|true|true|false|extra",
+            "main|origin|abc|yes|true|false",
+            "main|origin|abc|true|1|false",
+            "main|origin|abc|true|true|",
+        ] {
+            assert!(BookmarkRaw::from_line(line).is_err(), "{line:?}");
+        }
+    }
+
+    #[test]
+    fn local_only() {
+        let _colors = colors();
+        let config = JujutsuBookmarkConfig::default();
+
+        assert_eq!(
+            reprs(&["main||abc|true|false|false"]),
+            [config.local.colorize("main")]
+        );
+    }
+
+    #[test]
+    fn colocated_git_remote_is_ignored() {
+        let _colors = colors();
+        let config = JujutsuBookmarkConfig::default();
+
+        assert_eq!(
+            reprs(&[
+                "main||abc|true|false|false",
+                "main|git|abc|true|true|false"
+            ]),
+            [config.local.colorize("main")]
+        );
+    }
+
+    #[test]
+    fn tracked_remote_is_merged_into_local() {
+        let _colors = colors();
+        let config = JujutsuBookmarkConfig::default();
+
+        assert_eq!(
+            reprs(&[
+                "main||abc|true|false|false",
+                "main|origin|abc|true|true|false",
+            ]),
+            [config.tracked.colorize("main")]
+        );
+        assert_eq!(
+            reprs(&[
+                "main||abc|true|false|false",
+                "main|origin|def|false|true|false",
+            ]),
+            [config.tracked.colorize("main*")]
+        );
+    }
+
+    #[test]
+    fn untracked_remote_is_displayed_apart() {
+        let _colors = colors();
+        let config = JujutsuBookmarkConfig::default();
+
+        assert_eq!(
+            reprs(&[
+                "main||abc|true|false|false",
+                "main|upstream|def|true|false|false",
+            ]),
+            [
+                config.local.colorize("main"),
+                config.untracked.colorize("main", "upstream"),
+            ]
+        );
+        assert_eq!(
+            reprs(&["feature|origin|def|true|false|false"]),
+            [config.untracked.colorize("feature", "origin")]
+        );
+    }
+
+    #[test]
+    fn conflicted() {
+        let _colors = colors();
+        let config = JujutsuBookmarkConfig::default();
+
+        assert_eq!(
+            reprs(&["main|||false|false|true"]),
+            [config.tracked.colorize("main??")]
+        );
+        assert_eq!(
+            bookmarks(&["main|||false|false|true"]).get_deleted(),
+            Vec::<&Bookmark>::new()
+        );
+    }
+
+    #[test]
+    fn deleted() {
+        let all = bookmarks(&[
+            "gone|||false|false|false",
+            "gone|origin|abc|false|true|false",
+            "main||abc|true|false|false",
+        ]);
+
+        let deleted: Vec<&str> =
+            all.get_deleted().iter().map(|b| b.name.as_str()).collect();
+        assert_eq!(deleted, ["gone"]);
+    }
+
+    #[test]
+    fn get_matching_revset_output() {
+        let all = bookmarks(&[
+            "main||abc|true|false|false",
+            "main|origin|abc|true|true|false",
+            "feature|upstream|def|true|false|false",
+        ]);
+        let get = |line| {
+            all.get(&BookmarkRaw::from_line(line).expect("valid line"))
+                .map(|b| b.name.clone())
+        };
+
+        assert_eq!(get("main||abc|true|false|false").as_deref(), Some("main"));
+        assert_eq!(
+            get("main|origin|abc|true|true|false").as_deref(),
+            Some("main")
+        );
+        assert_eq!(
+            get("feature|upstream|def|true|false|false").as_deref(),
+            Some("feature")
+        );
+        assert_eq!(get("main||other|true|false|false"), None);
+        assert_eq!(get("feature|origin|def|true|false|false"), None);
+        assert_eq!(get("unknown||abc|true|false|false"), None);
+    }
 }

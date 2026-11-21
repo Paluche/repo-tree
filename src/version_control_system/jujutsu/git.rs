@@ -112,3 +112,43 @@ pub fn fetch<P: AsRef<Path>>(
 
     cmd.status()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Lines of a command output.
+    fn lines(lines: &[&str]) -> Vec<String> {
+        lines.iter().map(ToString::to_string).collect()
+    }
+
+    #[test]
+    fn parse_remotes() {
+        assert_eq!(
+            parse_remote_list(&lines(&[
+                "origin https://example.test/o/r.git",
+                "upstream git@example.test:u/r.git",
+            ]))
+            .expect("valid remotes"),
+            [
+                VcsRemote {
+                    name: "origin".into(),
+                    url: "https://example.test/o/r.git".into(),
+                },
+                VcsRemote {
+                    name: "upstream".into(),
+                    url: "git@example.test:u/r.git".into(),
+                },
+            ]
+        );
+        assert_eq!(parse_remote_list(&[]).expect("no remote"), []);
+    }
+
+    #[test]
+    fn parse_malformed_remote_fails() {
+        let error =
+            parse_remote_list(&lines(&["origin"])).expect_err("missing URL");
+
+        assert!(error.to_string().contains("\"origin\""), "{error}");
+    }
+}

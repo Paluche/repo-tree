@@ -158,6 +158,7 @@ impl<'vcs, 'config> Display for ShortDisplay<'vcs, 'config> {
 }
 
 /// Representation of a Repository workspace.
+#[derive(Debug, PartialEq)]
 pub struct VcsWorkspace {
     /// Name of the workspace.
     pub name: String,
@@ -205,6 +206,7 @@ impl<'vcs_workspace, 'config> Display
 }
 
 /// Representation of a repository remote.
+#[derive(Debug, PartialEq)]
 pub struct VcsRemote {
     /// Name of the remote.
     pub name: String,

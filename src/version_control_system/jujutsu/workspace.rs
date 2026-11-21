@@ -101,3 +101,51 @@ pub fn forget_workspace(
         .arg(name)
         .status()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_workspaces() {
+        assert_eq!(
+            parse_workspace_list(&[
+                "default\t/tree/dev/example/o/r".to_string(),
+                "agent\t/tree/agent/example/o/r with space".to_string(),
+            ])
+            .expect("valid workspaces"),
+            [
+                VcsWorkspace {
+                    name: "default".into(),
+                    path: PathBuf::from("/tree/dev/example/o/r"),
+                },
+                VcsWorkspace {
+                    name: "agent".into(),
+                    path: PathBuf::from("/tree/agent/example/o/r with space"),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_malformed_workspace_fails() {
+        assert!(parse_workspace_list(&["default /tree".to_string()]).is_err());
+    }
+
+    #[test]
+    fn add_workspace_to_existing_destination_fails() {
+        let dir = tempfile::tempdir().expect("cannot create directory");
+        let file = dir.path().join("file");
+        std::fs::write(&file, "").expect("cannot create file");
+
+        for destination in [dir.path().to_path_buf(), file.clone()] {
+            let error = add_workspace(dir.path(), "agent", &destination)
+                .expect_err("existing destination");
+            assert!(error.to_string().contains("already exists"), "{error}");
+        }
+
+        let error = add_workspace(dir.path(), "agent", &file.join("ws"))
+            .expect_err("parent is a file");
+        assert!(error.to_string().contains("not a directory"), "{error}");
+    }
+}

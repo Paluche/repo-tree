@@ -179,3 +179,49 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         Ok(missing)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+
+    #[test]
+    fn repo_dir_of_main_workspace() {
+        let dir = tempfile::tempdir().expect("cannot create directory");
+        let jj_dir = dir.path().join(".jj");
+        fs::create_dir_all(jj_dir.join("repo")).expect("cannot create dir");
+
+        assert_eq!(
+            get_repo_dir(&jj_dir).expect("main workspace"),
+            jj_dir.join("repo")
+        );
+    }
+
+    #[test]
+    fn repo_dir_of_secondary_workspace() {
+        let dir = tempfile::tempdir().expect("cannot create directory");
+        let main_repo = dir.path().join("main/.jj/repo");
+        fs::create_dir_all(&main_repo).expect("cannot create dir");
+        let jj_dir = dir.path().join("secondary/.jj");
+        fs::create_dir_all(&jj_dir).expect("cannot create dir");
+        // jj stores the path relative to the .jj directory.
+        fs::write(jj_dir.join("repo"), "../../main/.jj/repo\n")
+            .expect("cannot create file");
+
+        assert_eq!(
+            get_repo_dir(&jj_dir).expect("secondary workspace"),
+            main_repo.canonicalize().expect("canonical path")
+        );
+    }
+
+    #[test]
+    fn repo_dir_of_broken_secondary_workspace_fails() {
+        let dir = tempfile::tempdir().expect("cannot create directory");
+        let jj_dir = dir.path().join(".jj");
+        fs::create_dir_all(&jj_dir).expect("cannot create dir");
+        fs::write(jj_dir.join("repo"), "../missing").expect("cannot create");
+
+        assert!(get_repo_dir(&jj_dir).is_err());
+    }
+}
