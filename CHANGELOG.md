@@ -90,6 +90,9 @@ None
   instead of crashing.
 - Fix the repositories cache losing the Jujutsu repositories when refreshed
   from a directory which does not exist anymore, as after `rt workspace rm`.
+- **workspace**: `rt workspace rm` now forgets the workspace in Jujutsu before
+  deleting its directory, and fails when asked to remove the default or the
+  only workspace of a repository.
 
 ## [0.2.0] - 2026-06-21
 

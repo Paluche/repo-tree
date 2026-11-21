@@ -8,6 +8,9 @@ use std::path::PathBuf;
 use super::super::VcsWorkspace;
 use super::command::JujutsuCommand;
 
+/// Name of the workspace Jujutsu creates with the repository.
+pub const DEFAULT_WORKSPACE: &str = "default";
+
 /// List all workspaces associated with the specified repository.
 pub fn list_workspaces(
     repo_path: &Path,
@@ -72,6 +75,14 @@ pub fn forget_workspace(
     repo_path: &Path,
     name: &str,
 ) -> Result<(), Box<dyn Error>> {
+    if name == DEFAULT_WORKSPACE {
+        return Err(format!(
+            "Refusing to forget the default workspace of {}",
+            repo_path.display()
+        )
+        .into());
+    }
+
     JujutsuCommand::repo(repo_path)?
         .arg("workspace")
         .arg("forget")

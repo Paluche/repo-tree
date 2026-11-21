@@ -80,7 +80,9 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceRmArgs) -> i32 {
         }
     }
 
-    if let Err(err) = workspace.rm(config) {
+    if let Err(err) =
+        repository.get_vcs_repo(workspace).remove_workspace(config)
+    {
         ui_error!(
             ui,
             "Unable to remove the workspace {}: {}",

@@ -132,13 +132,19 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
 
     fn remove_workspace(&self, config: &Config) -> Result<(), Box<dyn Error>> {
         let Some(workspace) = self.get_workspace()? else {
-            eprintln!("No workspace to remove");
-            return Ok(()); // TODO Return an Err
+            return Err(format!(
+                "{} is the only workspace of the repository",
+                self.workspace.path().display()
+            )
+            .into());
         };
 
-        if workspace.name == "default" {
-            eprintln!("Cannot remove default workspace.");
-            return Ok(()); // TODO Return an Err
+        if workspace.name == workspace::DEFAULT_WORKSPACE {
+            return Err(format!(
+                "{} is the default workspace of the repository",
+                self.workspace.path().display()
+            )
+            .into());
         }
 
         workspace::forget_workspace(self.workspace.path(), &workspace.name)?;
