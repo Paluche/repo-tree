@@ -494,7 +494,9 @@ repositories. Only the configuration of the repository itself is written, so
 your user configuration stays the fallback for the repositories outside the repo
 tree.
 
-`rt clone` sets the identity of the repositories it clones.
+`rt clone` sets the identity of the repositories it clones, and refreshing the
+repositories cache (`rt refresh-cache`, `rt insert`, ...) sets it in the
+repositories whose configuration differs, with a hint listing the changes.
 
 ## Completion and utils
 

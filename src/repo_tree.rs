@@ -24,6 +24,7 @@ use crate::tree_space::TreeSpace;
 use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
 use crate::ui_error;
+use crate::ui_hint;
 use crate::ui_warning;
 
 /// Search recursively repositories in a directory.
@@ -155,8 +156,9 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
         );
     }
 
-    for repository in &repositories {
+    for repository in &mut repositories {
         forget_missing_workspaces(ui, config, repository);
+        apply_identity(ui, config, repository);
     }
 
     (repositories, empty_dirs)
@@ -197,6 +199,41 @@ fn forget_missing_workspaces(
                  {}: {}",
                 repository.id.display(config),
                 err
+            );
+        }
+    }
+}
+
+/// Set the identity of the repository in its configuration, telling the
+/// user what changed.
+fn apply_identity(ui: &Ui<'_>, config: &Config, repository: &mut Repository) {
+    match repository.apply_identity(config) {
+        Ok(changes) => {
+            if !changes.is_empty() {
+                if let Err(err) = repository.update_tracked_files() {
+                    ui_error!(
+                        ui,
+                        "Unable to track the files of the repository {}: {err}",
+                        repository.id.display(config),
+                    );
+                }
+                ui_hint!(
+                    ui,
+                    "Set the identity of the repository {}:\n  {}",
+                    repository.id.display(config),
+                    changes
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<String>>()
+                        .join("\n  ")
+                );
+            }
+        }
+        Err(err) => {
+            ui_error!(
+                ui,
+                "Unable to set the identity of the repository {}: {err}",
+                repository.id.display(config),
             );
         }
     }

@@ -229,3 +229,33 @@ fn clone_sets_the_identity() {
         "work@company.test\n"
     );
 }
+
+#[test]
+fn refresh_sets_the_identity_of_the_repositories() {
+    let (env, repo) = env_with_repo("company/project");
+
+    let assert = env.rt().arg("refresh-cache").assert().success();
+
+    assert!(
+        stderr(&assert).contains(
+            "Set the identity of the repository example company/project \
+             ssh://example.test/company/project.git:\n  git user.name: unset \
+             -> \"Default Name\"\n  git user.email: unset -> \
+             \"work@company.test\"\n"
+        ),
+        "{}",
+        stderr(&assert)
+    );
+    assert_eq!(
+        env.git(&repo, &["config", "--local", "user.email"]),
+        "work@company.test\n"
+    );
+
+    // Already set, nothing to tell.
+    let assert = env.rt().arg("refresh-cache").assert().success();
+    assert!(
+        !stderr(&assert).contains("Set the identity"),
+        "{}",
+        stderr(&assert)
+    );
+}

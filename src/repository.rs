@@ -441,6 +441,14 @@ impl Repository {
         Ok(Some(IdentityStatus { identity, changes }))
     }
 
+    /// Track again the files the repository depends on, after rt changed
+    /// them itself, so that its own changes do not make the cache look
+    /// outdated.
+    pub fn update_tracked_files(&mut self) -> Result<(), Box<dyn Error>> {
+        self.remote_config = TrackedFile::new(self.remote_config.file.clone())?;
+        Ok(())
+    }
+
     /// Set the identity the repository should use in its configuration.
     /// Return the changes made.
     pub fn apply_identity(

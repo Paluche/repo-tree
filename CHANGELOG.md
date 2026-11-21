@@ -75,6 +75,9 @@ None
 - **clone**: `rt clone` sets the identity of the cloned repository. Jujutsu
   repositories get it for the clone itself, so that the first working-copy
   commit already has the right author.
+- **identity**: Refreshing the repositories cache, which `rt insert` also does,
+  sets the identity of the repositories whose configuration differs from it,
+  with a hint listing the changes.
 
 ### Fixed bugs
 
