@@ -28,7 +28,7 @@ pub struct CleanArgs {
 }
 
 /// Execute the `rt clean` command.
-pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
+pub fn run(ui: &mut Ui<'_>, config: &Config, args: &CleanArgs) -> i32 {
     // Do not use the cache, assure we have an up-to-date list of repositories
     // before doing any action that will modify the directories.
     let repo_tree = RepoTree::load_silent(ui, config, true);

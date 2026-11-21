@@ -35,7 +35,7 @@ enum TodoAction {
 /// Execute the todo subcommand.
 pub async fn run(ui: &mut Ui<'_>, config: &Config, args: TodoArgs) -> i32 {
     match args.action {
-        TodoAction::List(args) => list::run(ui, config, args).await,
+        TodoAction::List(args) => list::run(ui, config, &args),
         TodoAction::Next(args) => next_prev::run(ui, config, args, false).await,
         TodoAction::Prev(args) => next_prev::run(ui, config, args, true).await,
     }

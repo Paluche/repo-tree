@@ -28,7 +28,7 @@ pub struct RmArgs {
 }
 
 /// Execute the `rt rm` command.
-pub async fn run(ui: &Ui<'_>, config: &Config, args: RmArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: RmArgs) -> i32 {
     let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
     let (repository, workspace) = match resolve(
         ui,
