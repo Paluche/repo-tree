@@ -1,6 +1,8 @@
 //! Representation of a repository.
 use std::error::Error;
+use std::fs::remove_dir;
 use std::fs::remove_dir_all;
+use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -103,21 +105,33 @@ impl Workspace {
         }
     }
 
-    /// Remove a workspace.
-    pub fn rm(&self) {
+    /// Remove the workspace directory, then its parent directories left empty,
+    /// up to the tree-space directory containing it (or the repo tree root for
+    /// a workspace outside any tree-space).
+    pub fn rm(&self, config: &Config) -> io::Result<()> {
         let root = self.path();
-        // Remove the repository from the repo tree.
-        remove_dir_all(root).expect("Failed to remove the repository");
+        remove_dir_all(root)?;
 
-        // Remove parent directories if they are empty.
-        let parent = &root;
-        while let Some(parent) = parent.parent() {
-            if parent.read_dir().unwrap().next().is_none() {
-                std::fs::remove_dir(parent).unwrap();
-            } else {
+        let stop = match self {
+            Self::Tree(tree_space, _) => {
+                config.root.join(tree_space.category(config).dir_name())
+            }
+            Self::Other(_) => config.root.clone(),
+        };
+
+        let mut dir = root.parent();
+        while let Some(current) = dir
+            && current.starts_with(&stop)
+            && current != stop
+        {
+            if current.read_dir()?.next().is_some() {
                 break;
             }
+            remove_dir(current)?;
+            dir = current.parent();
         }
+
+        Ok(())
     }
 }
 

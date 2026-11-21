@@ -258,5 +258,5 @@ pub trait VcsRepository {
     ) -> Result<(), Box<dyn Error>>;
 
     /// Remove the workspace.
-    fn remove_workspace(&self) -> Result<(), Box<dyn Error>>;
+    fn remove_workspace(&self, config: &Config) -> Result<(), Box<dyn Error>>;
 }

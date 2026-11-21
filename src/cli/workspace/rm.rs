@@ -80,7 +80,15 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceRmArgs) -> i32 {
         }
     }
 
-    workspace.rm();
+    if let Err(err) = workspace.rm(config) {
+        ui_error!(
+            ui,
+            "Unable to remove the workspace {}: {}",
+            workspace.path().display(),
+            err
+        );
+        return 1;
+    }
 
     // Refresh the cache.
     RepoTree::load(ui, config, true);

@@ -130,7 +130,7 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         workspace::add_workspace(self.workspace.path(), name, destination)
     }
 
-    fn remove_workspace(&self) -> Result<(), Box<dyn Error>> {
+    fn remove_workspace(&self, config: &Config) -> Result<(), Box<dyn Error>> {
         let Some(workspace) = self.get_workspace()? else {
             eprintln!("No workspace to remove");
             return Ok(()); // TODO Return an Err
@@ -143,7 +143,7 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
 
         workspace::forget_workspace(self.workspace.path(), &workspace.name)?;
 
-        self.workspace.rm();
+        self.workspace.rm(config)?;
 
         Ok(())
     }

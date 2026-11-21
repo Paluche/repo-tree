@@ -10,6 +10,7 @@ use crate::resolve::resolve;
 use crate::resolve::resolve_completer;
 use crate::tree_space::TreeSpaceKind;
 use crate::ui::Ui;
+use crate::ui_error;
 
 /// Remove a repository from the repo tree.
 #[derive(Args)]
@@ -81,8 +82,16 @@ pub async fn run(ui: &Ui<'_>, config: &Config, args: RmArgs) -> i32 {
         }
     }
 
-    for workspace in repository.workspaces.iter() {
-        workspace.rm()
+    for workspace in &repository.workspaces {
+        if let Err(err) = workspace.rm(config) {
+            ui_error!(
+                ui,
+                "Unable to remove the workspace {}: {}",
+                workspace.path().display(),
+                err
+            );
+            return 1;
+        }
     }
 
     // Refresh the cache.

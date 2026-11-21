@@ -154,7 +154,7 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
         )))
     }
 
-    fn remove_workspace(&self) -> Result<(), Box<dyn Error>> {
+    fn remove_workspace(&self, _config: &Config) -> Result<(), Box<dyn Error>> {
         Err(Box::new(NotImplementedError(
             "Workspace / worktree interaction not for Git Version Control \
              System"

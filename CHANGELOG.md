@@ -84,6 +84,10 @@ None
   is added or removed outside of `rt`.
 - **rm**: Fix the confirmation messages of `rt rm` and `rt workspace rm`, which
   were broken over two lines, and name the workspace `rt workspace rm` removes.
+- **rm**: Fix `rt rm` and `rt workspace rm` crashing after removing the
+  repository when its parent directory was left empty. Empty parent directories
+  are now removed up to the tree-space directory, and errors are reported
+  instead of crashing.
 
 ## [0.2.0] - 2026-06-21
 
