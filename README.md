@@ -496,7 +496,9 @@ tree.
 
 `rt clone` sets the identity of the repositories it clones, and refreshing the
 repositories cache (`rt refresh-cache`, `rt insert`, ...) sets it in the
-repositories whose configuration differs, with a hint listing the changes.
+repositories whose configuration differs, with a hint listing the changes. When
+you edit the configuration file, the next `rt` command using the repositories
+cache (`rcd`, `rt list`, ...) sets the new identities.
 
 ## Completion and utils
 

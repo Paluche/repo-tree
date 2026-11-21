@@ -75,3 +75,8 @@ fn config_dir_from(
 
     Ok(base.join("repo-tree"))
 }
+
+/// Path to the repo-tree configuration file.
+pub fn config_file() -> Result<PathBuf, Box<dyn Error>> {
+    Ok(config_dir()?.join("config.toml"))
+}

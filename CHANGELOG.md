@@ -78,6 +78,9 @@ None
 - **identity**: Refreshing the repositories cache, which `rt insert` also does,
   sets the identity of the repositories whose configuration differs from it,
   with a hint listing the changes.
+- **identity**: After a change of the configuration file, the next `rt`
+  command using the repositories cache sets the new identities in the
+  repositories.
 
 ### Fixed bugs
 

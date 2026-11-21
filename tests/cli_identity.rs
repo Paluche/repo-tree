@@ -259,3 +259,24 @@ fn refresh_sets_the_identity_of_the_repositories() {
         stderr(&assert)
     );
 }
+
+#[test]
+fn configuration_change_sets_the_new_identities() {
+    let (env, repo) = env_with_repo("company/project");
+    env.rt().arg("list").assert().success();
+
+    env.write_config(
+        &IDENTITIES.replace("work@company.test", "new@company.test"),
+    );
+    let assert = env.rt().arg("list").assert().success();
+
+    assert!(
+        !stderr(&assert).contains("Refreshing"),
+        "the cache is kept: {}",
+        stderr(&assert)
+    );
+    assert_eq!(
+        env.git(&repo, &["config", "--local", "user.email"]),
+        "new@company.test\n"
+    );
+}

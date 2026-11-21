@@ -38,7 +38,7 @@ pub struct TrackedFile {
 
 impl TrackedFile {
     /// Create a new `TrackedFile` structure.
-    fn new(file: PathBuf) -> Result<Self, Box<dyn Error>> {
+    pub fn new(file: PathBuf) -> Result<Self, Box<dyn Error>> {
         let last_modified = get_last_modified(&file)?;
 
         Ok(Self {

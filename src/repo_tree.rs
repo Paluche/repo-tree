@@ -16,9 +16,11 @@ use serde::Serialize;
 use strum::IntoEnumIterator;
 
 use crate::config::Config;
+use crate::config::config_file;
 use crate::error::NoCacheError;
 use crate::error::NoRepositoryError;
 use crate::repository::Repository;
+use crate::repository::TrackedFile;
 use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
 use crate::tree_space::TreeSpaceKind;
@@ -239,9 +241,19 @@ fn apply_identity(ui: &Ui<'_>, config: &Config, repository: &mut Repository) {
     }
 }
 
+/// Track the configuration file, `None` when there is none.
+fn track_config() -> Option<TrackedFile> {
+    config_file()
+        .ok()
+        .and_then(|path| TrackedFile::new(path).ok())
+}
+
 /// Representation of the repository tree.
 #[derive(Serialize, Deserialize)]
 pub struct RepoTree {
+    /// Configuration file the identities of the repositories were set from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    config: Option<TrackedFile>,
     /// List of repositories.
     repositories: Vec<Repository>,
 }
@@ -278,8 +290,17 @@ impl RepoTree {
     ) -> (Self, Option<Vec<PathBuf>>) {
         if !refresh_cache {
             match Self::from_cache() {
-                Ok(repo_tree) => {
+                Ok(mut repo_tree) => {
                     if !repo_tree.repo_iter().any(|r| r.has_been_modified()) {
+                        let config_file = track_config();
+
+                        // The identities may have changed.
+                        if repo_tree.config != config_file {
+                            repo_tree.apply_identities(ui, config);
+                            repo_tree.config = config_file;
+                            repo_tree.save_or_report(ui);
+                        }
+
                         return (repo_tree, None);
                     }
                 }
@@ -308,8 +329,12 @@ impl RepoTree {
     ) -> (Self, Vec<PathBuf>, Result<(), Box<dyn Error>>) {
         ui.hint("Refreshing repositories cache...");
 
+        let config_file = track_config();
         let (repositories, empty_dirs) = search(ui, config);
-        let repo_tree = Self { repositories };
+        let repo_tree = Self {
+            config: config_file,
+            repositories,
+        };
         let result = repo_tree.save();
 
         (repo_tree, empty_dirs, result)
@@ -459,6 +484,21 @@ fn cache_file_from(
 }
 
 impl RepoTree {
+    /// Set the identities of all the repositories in their configuration.
+    fn apply_identities(&mut self, ui: &Ui<'_>, config: &Config) {
+        for repository in &mut self.repositories {
+            apply_identity(ui, config, repository);
+        }
+    }
+
+    /// Write the repository tree into the cache file, reporting a failure to
+    /// the user.
+    fn save_or_report(&self, ui: &Ui<'_>) {
+        if let Err(err) = self.save() {
+            ui.error(err);
+        }
+    }
+
     /// Write the repository tree into the cache file.
     ///
     /// The cache is written to a temporary file which then replaces the
@@ -490,7 +530,10 @@ impl RepoTree {
 impl RepoTree {
     /// Create a repository tree for tests from its repositories.
     pub fn from_repositories(repositories: Vec<Repository>) -> Self {
-        Self { repositories }
+        Self {
+            config: None,
+            repositories,
+        }
     }
 }
 

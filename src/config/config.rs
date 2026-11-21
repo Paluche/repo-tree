@@ -15,7 +15,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use super::command::CommandConfig;
-use super::config_dir;
+use super::config_file;
 use super::host::RemoteHost;
 use super::host::RemoteHosts;
 use super::host::UnknownHost;
@@ -110,7 +110,7 @@ impl Config {
 
     /// Load the configuration.
     pub fn load() -> Result<Self, Box<dyn Error>> {
-        let config_path = config_dir()?.join("config.toml");
+        let config_path = config_file()?;
         let content = if config_path.is_file() {
             fs::read_to_string(&config_path).map_err(|e| {
                 ConfigError(format!(
