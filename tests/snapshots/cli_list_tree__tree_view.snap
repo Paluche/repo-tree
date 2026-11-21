@@ -1,0 +1,19 @@
+---
+source: tests/cli_list_tree.rs
+expression: out
+---
+<root>
+├── archive/example/owner/old
+│       ssh://example.test/owner/old.git 󰊢 󰌾
+├── dev
+│   ├── example
+│   │   ├── owner
+│   │   │   ├── pocket
+│   │   │   │       ssh://example.test/owner/pocket.git 󰊢
+│   │   │   └── rocket
+│   │   │           ssh://example.test/owner/rocket.git 󰊢
+│   │   └── solo/tools
+│   │           ssh://example.test/solo/tools.git 󰊢
+│   └── other/x/y
+│           ssh://other.test/x/y.git 󰊢
+└── local/notes

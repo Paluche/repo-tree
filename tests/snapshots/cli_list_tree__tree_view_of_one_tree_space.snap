@@ -1,0 +1,6 @@
+---
+source: tests/cli_list_tree.rs
+expression: out
+---
+<root>/archive/example/owner/old
+    ssh://example.test/owner/old.git 󰊢 󰌾
