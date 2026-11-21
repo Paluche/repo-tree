@@ -544,6 +544,16 @@ only `rt` answers. `useHttpPath` makes Git give the path of the repository to
 to Jujutsu, which runs Git to fetch and push. `rt` must be in the `PATH` of the
 programs running Git.
 
+#### GitHub CLI
+
+`rt gh` runs [`gh`](https://cli.github.com/) with the `api` token of the
+identity of the repository it works on, given through `GH_TOKEN` (or
+`GH_ENTERPRISE_TOKEN` and `GH_HOST` for other hosts), so that you do not need
+`gh auth login`. The repository is the one given with `-R/--repo`, or the
+repository of the current directory, or the default identity for `github.com`.
+All the arguments go to `gh` as they are. Without any identity configured, `gh`
+runs as it is, and `command gh` always runs it with its own accounts.
+
 ## Completion and utils
 
 We are using [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/index.html)

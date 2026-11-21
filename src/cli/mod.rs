@@ -1,6 +1,7 @@
 //! Definition of the rt CLI.
 use std::env;
 use std::error::Error;
+use std::ffi::OsString;
 use std::fs::canonicalize;
 use std::path::PathBuf;
 use std::process::exit;
@@ -14,6 +15,7 @@ mod clone;
 mod complete_env;
 mod credential;
 mod fetch;
+mod gh;
 mod git;
 mod identity;
 mod insert;
@@ -80,6 +82,7 @@ enum Action {
     Repo(repo::RepoArgs),
     Workspace(workspace::WorkspaceArgs),
     Git(git::GitArgs),
+    Gh(gh::GhArgs),
     Identity(identity::IdentityArgs),
     Rm(rm::RmArgs),
     RefreshCache(refresh_cache::RefreshCacheArgs),
@@ -151,6 +154,20 @@ fn get_current_repo_or_main<'repo_tree>(
 pub async fn run() -> i32 {
     complete_env::complete();
 
+    // `rt gh` hands all its arguments to gh: parsing them would take gh
+    // options for rt ones, such as `-R`.
+    let argv: Vec<OsString> = env::args_os().collect();
+    if argv.get(1).is_some_and(|arg| arg == "gh") {
+        let config = match Config::load() {
+            Ok(c) => c,
+            Err(err) => {
+                eprintln!("{err}");
+                return 1;
+            }
+        };
+        return gh::run(&Ui::new(&config), &config, &argv[2..]);
+    }
+
     let args = Args::parse();
     let config = match Config::load() {
         Ok(c) => c,
@@ -178,6 +195,7 @@ pub async fn run() -> i32 {
         Action::Repo(args) => repo::run(&mut ui, &config, args).await,
         Action::Workspace(args) => workspace::run(&ui, &config, args).await,
         Action::Git(args) => git::run(&mut ui, &config, args).await,
+        Action::Gh(args) => gh::run(&ui, &config, &args.args),
         Action::Identity(args) => identity::run(&mut ui, &config, args).await,
         Action::Clone(args) => clone::run(&mut ui, &config, args).await,
         Action::Rm(args) => rm::run(&ui, &config, args).await,

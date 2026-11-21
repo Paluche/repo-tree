@@ -134,6 +134,21 @@ impl Secrets {
             password: &secret.token,
         }))
     }
+
+    /// Get the token to access the API of the forge of the host with the
+    /// identity. `None` when the identity has no API token for the host.
+    pub fn api_token<'secrets>(
+        &'secrets self,
+        identity: &ResolvedIdentity,
+        host: &str,
+    ) -> Result<Option<&'secrets str>, Box<dyn Error>> {
+        let Some(id) = identity.tokens.get(host).and_then(|t| t.api.as_ref())
+        else {
+            return Ok(None);
+        };
+
+        Ok(Some(&self.get(id)?.token))
+    }
 }
 
 #[cfg(test)]
@@ -255,6 +270,30 @@ mod tests {
             result
                 .err()
                 .is_some_and(|err| err.to_string().contains("\"unknown\""))
+        );
+    }
+
+    #[test]
+    fn api_token() {
+        let secrets = secrets();
+        let mut identity = identity("github.com", "unknown");
+        identity
+            .tokens
+            .get_mut("github.com")
+            .expect("tokens for github.com")
+            .api = Some("github".to_string());
+
+        assert_eq!(
+            secrets
+                .api_token(&identity, "github.com")
+                .expect("secret exists"),
+            Some("github-token")
+        );
+        assert_eq!(
+            secrets
+                .api_token(&identity, "gitlab.com")
+                .expect("no secret needed"),
+            None
         );
     }
 

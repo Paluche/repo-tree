@@ -86,6 +86,8 @@ None
   the token of the identity of the repository.
 - **identity**: `rt identity setup-git` configures Git to use `rt credential`
   for the hosts with Git tokens.
+- **gh**: `rt gh` runs the GitHub CLI with the API token of the identity of the
+  repository it works on.
 
 ### Fixed bugs
 
