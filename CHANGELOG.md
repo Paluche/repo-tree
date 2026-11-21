@@ -93,6 +93,9 @@ None
 - **workspace**: `rt workspace rm` now forgets the workspace in Jujutsu before
   deleting its directory, and fails when asked to remove the default or the
   only workspace of a repository.
+- **workspace**: When refreshing the repositories cache, forget, with a
+  warning, the Jujutsu workspaces which directory has been deleted, so that
+  `rt` and `jj` agree on the list of workspaces.
 
 ## [0.2.0] - 2026-06-21
 

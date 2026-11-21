@@ -153,4 +153,22 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
 
         Ok(())
     }
+
+    fn forget_missing_workspaces(
+        &self,
+    ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
+        let missing: Vec<VcsWorkspace> =
+            workspace::list_workspaces(self.workspace.path())?
+                .into_iter()
+                .filter(|w| {
+                    w.name != workspace::DEFAULT_WORKSPACE && !w.path.exists()
+                })
+                .collect();
+
+        for w in &missing {
+            workspace::forget_workspace(self.workspace.path(), &w.name)?;
+        }
+
+        Ok(missing)
+    }
 }

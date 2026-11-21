@@ -116,7 +116,51 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
         );
     }
 
+    for repository in &repositories {
+        forget_missing_workspaces(ui, config, repository);
+    }
+
     (repositories, empty_dirs)
+}
+
+/// Forget the workspaces of the repository which directory has been deleted
+/// without telling the version control system, so that both agree on the list
+/// of workspaces.
+fn forget_missing_workspaces(
+    ui: &Ui<'_>,
+    config: &Config,
+    repository: &Repository,
+) {
+    let Some(workspace) = repository.workspaces.first() else {
+        return;
+    };
+
+    match repository
+        .get_vcs_repo(workspace)
+        .forget_missing_workspaces()
+    {
+        Ok(forgotten) => {
+            for w in forgotten {
+                ui_warning!(
+                    ui,
+                    "Forgot the workspace {} of the repository {}: its \
+                     directory {} does not exist anymore",
+                    w.name,
+                    repository.id.display(config),
+                    w.path.display()
+                );
+            }
+        }
+        Err(err) => {
+            ui_error!(
+                ui,
+                "Unable to forget the missing workspaces of the repository \
+                 {}: {}",
+                repository.id.display(config),
+                err
+            );
+        }
+    }
 }
 
 /// Representation of the repository tree.

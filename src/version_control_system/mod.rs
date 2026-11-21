@@ -259,4 +259,10 @@ pub trait VcsRepository {
 
     /// Remove the workspace.
     fn remove_workspace(&self, config: &Config) -> Result<(), Box<dyn Error>>;
+
+    /// Forget the workspaces of the repository which directory does not exist
+    /// anymore, and return them.
+    fn forget_missing_workspaces(
+        &self,
+    ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>>;
 }

@@ -161,4 +161,11 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
                 .to_string(),
         )))
     }
+
+    fn forget_missing_workspaces(
+        &self,
+    ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
+        // Workspaces are not supported, there is nothing to forget.
+        Ok(Vec::new())
+    }
 }
