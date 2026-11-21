@@ -85,7 +85,7 @@ pub fn init_colocate<P: AsRef<OsStr>>(
 }
 
 /// Fetch the repository.
-pub fn fetch<P: AsRef<OsStr>>(
+pub fn fetch<P: AsRef<Path>>(
     location: P,
     quiet: bool,
 ) -> Result<(), Box<dyn Error>> {

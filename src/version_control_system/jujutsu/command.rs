@@ -2,6 +2,7 @@
 
 use std::error::Error;
 use std::ffi::OsStr;
+use std::path::Path;
 use std::process::Command;
 use std::process::Output;
 
@@ -26,11 +27,16 @@ impl JujutsuCommand {
 
     /// Create a new Jujutsu command to run in a specific repository. The
     /// repository will not be snapshot.
-    pub fn repo<S: AsRef<OsStr>>(repository: S) -> Result<Self, which::Error> {
+    ///
+    /// Like all the repository commands, it runs from the repository directory
+    /// as jj fails when started from a directory which does not exist anymore,
+    /// such as a workspace we just removed.
+    pub fn repo<P: AsRef<Path>>(repository: P) -> Result<Self, which::Error> {
         Self::new_command().map(|mut command| {
             command
+                .current_dir(&repository)
                 .arg("--repository")
-                .arg(&repository)
+                .arg(repository.as_ref())
                 .arg("--ignore-working-copy");
             Self { command }
         })
@@ -38,11 +44,14 @@ impl JujutsuCommand {
 
     /// Create a new Jujutsu command to run in a specific repository. Where jj
     /// is allowed to snapshot the repository.
-    pub fn repo_with_snapshot<S: AsRef<OsStr>>(
-        repository: S,
+    pub fn repo_with_snapshot<P: AsRef<Path>>(
+        repository: P,
     ) -> Result<Self, which::Error> {
         Self::new_command().map(|mut command| {
-            command.arg("--repository").arg(&repository);
+            command
+                .current_dir(&repository)
+                .arg("--repository")
+                .arg(repository.as_ref());
             Self { command }
         })
     }

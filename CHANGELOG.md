@@ -88,6 +88,8 @@ None
   repository when its parent directory was left empty. Empty parent directories
   are now removed up to the tree-space directory, and errors are reported
   instead of crashing.
+- Fix the repositories cache losing the Jujutsu repositories when refreshed
+  from a directory which does not exist anymore, as after `rt workspace rm`.
 
 ## [0.2.0] - 2026-06-21
 
