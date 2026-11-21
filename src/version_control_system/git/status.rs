@@ -19,7 +19,7 @@ use crate::config::GitSummarizeSubmoduleStatusConfig;
 use crate::error::GitStatusParseError;
 use crate::utils::get_last_modified;
 
-#[derive(Hash, PartialEq, Eq, EnumIter)]
+#[derive(Debug, Hash, PartialEq, Eq, EnumIter)]
 /// All the different entry status you can have in the porcelain v2 output of
 /// git status.
 pub enum EntryStatus {
@@ -124,6 +124,7 @@ impl<'entry_status, 'config> Display
 
 /// Parsing result of the submodule status in the porcelain v2 output of git
 /// status. Which is initially a 4 character field.
+#[derive(Debug, PartialEq)]
 pub enum SubmoduleStatus {
     /// The entry is not a submodule "N...".
     NotASubmodule,
@@ -295,6 +296,7 @@ impl<'submodule_status, 'config> Display
 }
 
 /// Status of an item.
+#[derive(Debug, PartialEq)]
 pub struct ItemStatus {
     /// Staged entry status.
     pub staged: EntryStatus,
@@ -399,6 +401,7 @@ impl<'item_status, 'config, 'cwd, 'repo_root, 'rel_path> Display
 
 /// Enum representing the different parse result of a line from the porcelain v2
 /// output of git status.
+#[derive(Debug, PartialEq)]
 enum ParseOutput {
     /// The parsed line was representing branch information.
     BranchInfo(String, String),
@@ -588,6 +591,7 @@ impl<'summarize_status, 'config> Display
 }
 
 /// Information related to an upstream.
+#[derive(Debug, PartialEq)]
 pub struct UpstreamInfo {
     /// Name of the upstream branch.
     pub name: String,
@@ -777,7 +781,7 @@ fn get_last_fetched(git_dir: &Path) -> Option<DateTime<Utc>> {
     get_last_modified(&git_dir.join("FETCH_HEAD")).ok()
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 /// The different Git operation you might be stuck in a middle of its execution
 /// to resolve a conflict.
 pub enum GitOperation {
@@ -944,4 +948,457 @@ where
         last_fetched,
         ongoing_operations,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::colors::Color;
+    use crate::colors::ColoredText;
+    use crate::test_utils::no_colors;
+
+    /// Parse `line`, which must be an item status line.
+    fn item(line: &str) -> ItemStatus {
+        match parse_line(line) {
+            Ok(ParseOutput::ItemStatus(item)) => item,
+            other => panic!("{line}: unexpected {other:?}"),
+        }
+    }
+
+    /// Hash of an object, as found in the porcelain v2 output.
+    const H: &str = "0123456789abcdef0123456789abcdef01234567";
+
+    #[test]
+    fn parse_headers() {
+        for (line, expected) in [
+            (
+                format!("# branch.oid {H}"),
+                ParseOutput::BranchInfo("branch.oid".into(), H.into()),
+            ),
+            (
+                "# branch.oid (initial)".into(),
+                ParseOutput::BranchInfo(
+                    "branch.oid".into(),
+                    "(initial)".into(),
+                ),
+            ),
+            (
+                "# branch.head (detached)".into(),
+                ParseOutput::BranchInfo(
+                    "branch.head".into(),
+                    "(detached)".into(),
+                ),
+            ),
+            (
+                "# branch.upstream origin/main".into(),
+                ParseOutput::BranchInfo(
+                    "branch.upstream".into(),
+                    "origin/main".into(),
+                ),
+            ),
+            (
+                "# branch.ab +3 -0".into(),
+                ParseOutput::BranchInfo("branch.ab".into(), "+3 -0".into()),
+            ),
+            ("# stash 2".into(), ParseOutput::StashInfo(2)),
+            ("# future.header value".into(), ParseOutput::OtherHeader),
+        ] {
+            assert_eq!(parse_line(&line).expect("valid line"), expected);
+        }
+    }
+
+    #[test]
+    fn parse_untracked_and_ignored() {
+        let untracked = item("? new dir/file name");
+        assert_eq!(untracked.path, "new dir/file name");
+        assert_eq!(untracked.unstaged, EntryStatus::Untracked);
+        assert_eq!(untracked.submodule_status, SubmoduleStatus::Untracked);
+
+        let ignored = item("! target");
+        assert_eq!(ignored.path, "target");
+        assert_eq!(ignored.unstaged, EntryStatus::Ignored);
+        assert_eq!(ignored.submodule_status, SubmoduleStatus::Ignored);
+    }
+
+    #[test]
+    fn parse_ordinary_change() {
+        let entry = item(&format!(
+            "1 .M N... 100644 100644 100644 {H} {H} src/a b.rs"
+        ));
+
+        assert_eq!(
+            entry,
+            ItemStatus {
+                staged: EntryStatus::Unmodified,
+                unstaged: EntryStatus::Modified,
+                submodule_status: SubmoduleStatus::NotASubmodule,
+                orig_path: None,
+                path: "src/a b.rs".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn parse_every_entry_status() {
+        for (xy, staged, unstaged) in [
+            ("A.", EntryStatus::Added, EntryStatus::Unmodified),
+            ("MD", EntryStatus::Modified, EntryStatus::Deleted),
+            ("T.", EntryStatus::FileTypeChanged, EntryStatus::Unmodified),
+            ("D.", EntryStatus::Deleted, EntryStatus::Unmodified),
+        ] {
+            let entry =
+                item(&format!("1 {xy} N... 100644 100644 0 {H} {H} file"));
+
+            assert_eq!((entry.staged, entry.unstaged), (staged, unstaged));
+        }
+    }
+
+    #[test]
+    fn parse_submodule_change() {
+        let entry =
+            item(&format!("1 .M SCM. 160000 160000 160000 {H} {H} libs/sub"));
+
+        assert_eq!(
+            entry.submodule_status,
+            SubmoduleStatus::Submodule {
+                commit_changed: true,
+                tracked_changed: true,
+                has_untracked: false,
+            }
+        );
+        assert_eq!(entry.path, "libs/sub");
+    }
+
+    #[test]
+    fn parse_rename() {
+        let entry = item(&format!(
+            "2 R. N... 100644 100644 100644 {H} {H} R100 new name\told name"
+        ));
+
+        assert_eq!(entry.staged, EntryStatus::Renamed);
+        assert_eq!(entry.path, "new name");
+        assert_eq!(entry.orig_path.as_deref(), Some("old name"));
+    }
+
+    #[test]
+    fn parse_copy() {
+        let entry =
+            item(&format!("2 C. N... 100644 100644 100644 {H} {H} C75 b\ta"));
+
+        assert_eq!(entry.staged, EntryStatus::Copied);
+        assert_eq!(
+            (entry.path.as_str(), entry.orig_path.as_deref()),
+            ("b", Some("a"))
+        );
+    }
+
+    #[test]
+    fn parse_unmerged_path_with_spaces() {
+        let entry = item(&format!(
+            "u UU N... 100644 100644 100644 100644 {H} {H} {H} con flict.txt"
+        ));
+
+        assert_eq!(entry.staged, EntryStatus::Updated);
+        assert_eq!(entry.unstaged, EntryStatus::Updated);
+        assert_eq!(entry.path, "con flict.txt");
+    }
+
+    #[test]
+    fn parse_malformed_lines_fails() {
+        for line in [
+            String::new(),
+            "#".into(),
+            "x".into(),
+            "# stash many".into(),
+            "z something".into(),
+            "1 .M N... 100644".into(),
+            format!("1 .X N... 100644 100644 100644 {H} {H} file"),
+            format!("1 .MM N... 100644 100644 100644 {H} {H} file"),
+            format!("1 .M X... 100644 100644 100644 {H} {H} file"),
+            format!("1 .M SXM. 100644 100644 100644 {H} {H} file"),
+            format!("1 .M N.. 100644 100644 100644 {H} {H} file"),
+            format!("2 R. N... 100644 100644 100644 {H} {H} R100 no-tab"),
+            format!("1 .M N... 100644 100644 100644 {H} {H} "),
+        ] {
+            assert!(parse_line(&line).is_err(), "{line:?}");
+        }
+    }
+
+    #[test]
+    fn parse_error_tells_the_line() {
+        let error = parse_line("z something").expect_err("unknown type");
+
+        assert_eq!(
+            error.to_string(),
+            "Unexpected git status output, unknown entry type: \"z something\""
+        );
+    }
+
+    /// Branch headers from `(key, value)` pairs.
+    fn headers(pairs: &[(&str, &str)]) -> HashMap<String, String> {
+        pairs
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+            .collect()
+    }
+
+    #[test]
+    fn upstream_parsing() {
+        assert_eq!(UpstreamInfo::parse(&headers(&[])).expect("valid"), None);
+        assert_eq!(
+            UpstreamInfo::parse(&headers(&[
+                ("branch.upstream", "origin/main"),
+                ("branch.ab", "+3 -12"),
+            ]))
+            .expect("valid"),
+            Some(UpstreamInfo {
+                name: "origin/main".into(),
+                ahead: 3,
+                behind: 12,
+                gone: false,
+            })
+        );
+        assert_eq!(
+            UpstreamInfo::parse(&headers(&[("branch.upstream", "origin/x")]))
+                .expect("valid"),
+            Some(UpstreamInfo {
+                name: "origin/x".into(),
+                ahead: 0,
+                behind: 0,
+                gone: true,
+            })
+        );
+    }
+
+    #[test]
+    fn malformed_upstream_fails() {
+        for ab in ["3 -1", "+3", "+a -1", "+1 -b", ""] {
+            assert!(
+                UpstreamInfo::parse(&headers(&[
+                    ("branch.upstream", "origin/main"),
+                    ("branch.ab", ab),
+                ]))
+                .is_err(),
+                "{ab:?}"
+            );
+        }
+    }
+
+    /// Git status made of the items parsed from `lines`.
+    fn git_status(lines: &[String]) -> GitStatus {
+        GitStatus {
+            head: HeadInfo {
+                oid: H.into(),
+                branch: "main".into(),
+                upstream: None,
+                branches: vec![],
+                tags: vec![],
+            },
+            nb_stash: 0,
+            status: lines.iter().map(|line| item(line)).collect(),
+            last_fetched: None,
+            ongoing_operations: vec![],
+        }
+    }
+
+    /// Configuration of the summary with ASCII characters.
+    fn summary_config() -> GitSummarizeStatusConfig {
+        GitSummarizeStatusConfig {
+            added: 'A',
+            modified: 'M',
+            file_type_changed: 'T',
+            copied: 'C',
+            renamed: 'R',
+            deleted: 'D',
+            untracked: '?',
+            conflicted: '!',
+        }
+    }
+
+    #[test]
+    fn short_status_summarizes_staged_and_unstaged() {
+        let status = git_status(&[
+            format!("1 A. N... 0 100644 100644 {H} {H} added"),
+            format!("1 MD N... 100644 100644 0 {H} {H} both"),
+            format!("2 R. N... 100644 100644 100644 {H} {H} R90 b\ta"),
+            format!("1 .M SC.. 160000 160000 160000 {H} {H} sub"),
+            format!("u UU N... 100644 100644 100644 100644 {H} {H} {H} c"),
+            "? untracked".into(),
+        ]);
+
+        let (staged, unstaged, submodules) = status.short_status();
+        let config = summary_config();
+
+        assert_eq!(staged.display(&config).to_string(), "AMR!");
+        assert_eq!(unstaged.display(&config).to_string(), "MD?!");
+        let submodule_config = GitSummarizeSubmoduleStatusConfig::default();
+        let _colors = no_colors();
+        assert_eq!(
+            submodules.display(&submodule_config).to_string(),
+            submodule_config.commit_changed.to_string()
+        );
+    }
+
+    #[test]
+    fn short_status_of_clean_repository_is_empty() {
+        let (staged, unstaged, submodules) = git_status(&[]).short_status();
+        let _colors = no_colors();
+
+        assert_eq!(staged.display(&summary_config()).to_string(), "");
+        assert_eq!(unstaged.display(&summary_config()).to_string(), "");
+        assert_eq!(
+            submodules
+                .display(&GitSummarizeSubmoduleStatusConfig::default())
+                .to_string(),
+            ""
+        );
+    }
+
+    #[test]
+    fn item_status_display() {
+        let _colors = no_colors();
+        let config = GitStatusCommandConfig::default();
+        let root = Path::new("/repo");
+
+        let modified =
+            item(&format!("1 .M N... 100644 100644 100644 {H} {H} src/a.rs"));
+        assert_eq!(
+            modified.display(&config, root, root, None).to_string(),
+            " M      src/a.rs"
+        );
+        assert_eq!(
+            modified
+                .display(&config, Path::new("/repo/src"), root, None)
+                .to_string(),
+            " M      a.rs"
+        );
+
+        let renamed = item(&format!(
+            "2 R. N... 100644 100644 100644 {H} {H} R100 new\told"
+        ));
+        assert_eq!(
+            renamed
+                .display(&config, Path::new("/repo/doc"), root, Some("sub"))
+                .to_string(),
+            "R       ../sub/old -> ../sub/new"
+        );
+
+        let submodule =
+            item(&format!("1 .M S.MU 160000 160000 160000 {H} {H} sub"));
+        assert_eq!(
+            submodule.display(&config, root, root, None).to_string(),
+            " M S M? sub"
+        );
+
+        assert_eq!(
+            item("? new").display(&config, root, root, None).to_string(),
+            "?? ???? new"
+        );
+    }
+
+    #[test]
+    fn item_status_display_with_relative_cwd_keeps_path() {
+        let _colors = no_colors();
+        let config = GitStatusCommandConfig::default();
+        let entry =
+            item(&format!("1 .M N... 100644 100644 100644 {H} {H} a.rs"));
+
+        assert_eq!(
+            entry
+                .display(
+                    &config,
+                    Path::new("relative"),
+                    Path::new("/repo"),
+                    None
+                )
+                .to_string(),
+            " M      /repo/a.rs"
+        );
+    }
+
+    #[test]
+    fn upstream_display() {
+        let _colors = no_colors();
+        let mut config = GitStatusCommandConfig::default();
+        config.upstream.ahead = ColoredText::new("^", Color::none());
+        config.upstream.behind = ColoredText::new("v", Color::none());
+        let upstream = UpstreamInfo {
+            name: "origin/main".into(),
+            ahead: 2,
+            behind: 5,
+            gone: false,
+        };
+
+        assert_eq!(
+            upstream.display(&config).to_string(),
+            "2^  5v  origin/main"
+        );
+    }
+
+    /// Ongoing operations detected in a git directory containing `files`
+    /// and `dirs`.
+    fn ongoing_operations(files: &[&str], dirs: &[&str]) -> Vec<GitOperation> {
+        let git_dir = tempfile::tempdir().expect("cannot create directory");
+        for dir in dirs {
+            std::fs::create_dir_all(git_dir.path().join(dir))
+                .expect("cannot create directory");
+        }
+        for file in files {
+            std::fs::write(git_dir.path().join(file), "")
+                .expect("cannot create file");
+        }
+        get_ongoing_operations(git_dir.path())
+    }
+
+    #[test]
+    fn detect_ongoing_operations() {
+        use GitOperation::*;
+
+        assert_eq!(ongoing_operations(&[], &[]), vec![]);
+        assert_eq!(ongoing_operations(&[], &["rebase-merge"]), vec![Rebase]);
+        assert_eq!(
+            ongoing_operations(&["rebase-apply/rebasing"], &["rebase-apply"]),
+            vec![Rebase]
+        );
+        assert_eq!(ongoing_operations(&[], &["rebase-apply"]), vec![AM]);
+        assert_eq!(
+            ongoing_operations(&["CHERRY_PICK_HEAD"], &["sequencer"]),
+            vec![CherryPick]
+        );
+        assert_eq!(
+            ongoing_operations(&["CHERRY_PICK_HEAD"], &[]),
+            vec![CherryPick]
+        );
+        assert_eq!(ongoing_operations(&["BISECT_START"], &[]), vec![Bisect]);
+        assert_eq!(ongoing_operations(&["MERGE_HEAD"], &[]), vec![Merge]);
+        assert_eq!(ongoing_operations(&["REVERT_HEAD"], &[]), vec![Revert]);
+        // Directories named as the marker files are not markers.
+        assert_eq!(ongoing_operations(&[], &["MERGE_HEAD"]), vec![]);
+    }
+
+    #[test]
+    fn git_operation_display() {
+        assert_eq!(
+            [
+                GitOperation::Rebase,
+                GitOperation::AM,
+                GitOperation::CherryPick,
+                GitOperation::Bisect,
+                GitOperation::Merge,
+                GitOperation::Revert,
+            ]
+            .map(|operation| operation.to_string()),
+            ["rebase", "am", "cherry-pick", "bisect", "merge", "revert"]
+        );
+    }
+
+    #[test]
+    fn last_fetched_from_fetch_head() {
+        let git_dir = tempfile::tempdir().expect("cannot create directory");
+        assert_eq!(get_last_fetched(git_dir.path()), None);
+
+        std::fs::write(git_dir.path().join("FETCH_HEAD"), "")
+            .expect("cannot create file");
+        assert!(get_last_fetched(git_dir.path()).is_some());
+    }
 }
