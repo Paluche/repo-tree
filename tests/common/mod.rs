@@ -32,6 +32,8 @@ pub struct Env {
     pub home: PathBuf,
     /// Value of `XDG_CONFIG_HOME`.
     pub config_home: PathBuf,
+    /// Value of `XDG_CACHE_HOME`.
+    pub cache_home: PathBuf,
     /// Root of the repo-tree.
     pub root: PathBuf,
     /// Directory containing the bare remote repositories.
@@ -64,6 +66,7 @@ impl Env {
         let env = Self {
             home: base.join("home"),
             config_home: base.join("config"),
+            cache_home: base.join("cache"),
             root: base.join("tree"),
             remotes: base.join("remotes"),
             bin: base.join("bin"),
@@ -133,7 +136,7 @@ impl Env {
 
     /// Path of the rt cache file.
     pub fn cache_file(&self) -> PathBuf {
-        self.home.join(".cache/repo-tree/repo-tree.toml")
+        self.cache_home.join("repo-tree/repo-tree.toml")
     }
 
     /// Apply the isolated environment variables to `cmd`.
@@ -148,6 +151,7 @@ impl Env {
             )
             .env("HOME", &self.home)
             .env("XDG_CONFIG_HOME", &self.config_home)
+            .env("XDG_CACHE_HOME", &self.cache_home)
             .env("GIT_CONFIG_GLOBAL", &self.git_config)
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_SSH_COMMAND", self.bin.join("fake-ssh"))
