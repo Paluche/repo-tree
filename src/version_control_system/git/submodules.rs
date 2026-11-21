@@ -167,3 +167,118 @@ pub fn get<P: AsRef<Path>>(
 
     Ok(ret)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Resolve `url` against the main repository remote `remote` (if any),
+    /// the main repository being in `/work/main`.
+    fn resolve(remote: Option<&str>, url: &str) -> Option<String> {
+        resolve_url(
+            "/work/main",
+            &remote.map(|url| Remote {
+                url: url.to_string(),
+                host_url: String::new(),
+            }),
+            url,
+        )
+    }
+
+    #[test]
+    fn absolute_urls_are_unchanged() {
+        for url in [
+            "https://example.test/owner/sub.git",
+            "git@example.test:owner/sub.git",
+            "/srv/git/sub.git",
+            "file:///srv/git/sub.git",
+        ] {
+            assert_eq!(
+                resolve(Some("https://example.test/o/r.git"), url).as_deref(),
+                Some(url)
+            );
+        }
+    }
+
+    #[test]
+    fn relative_urls_follow_git_rules() {
+        // Expected values obtained with `git submodule init`.
+        for (remote, url, expected) in [
+            (
+                "https://example.test/owner/repo.git",
+                "../other.git",
+                "https://example.test/owner/other.git",
+            ),
+            (
+                "https://example.test/owner/repo.git",
+                "./sub",
+                "https://example.test/owner/repo.git/sub",
+            ),
+            (
+                "https://example.test/owner/repo.git",
+                "../../top.git",
+                "https://example.test/top.git",
+            ),
+            (
+                "https://example.test/owner/repo.git/",
+                "../other.git",
+                "https://example.test/owner/other.git",
+            ),
+            (
+                "git@example.test:owner/repo.git",
+                "../other.git",
+                "git@example.test:owner/other.git",
+            ),
+            (
+                "git@example.test:owner/repo.git",
+                "./sub",
+                "git@example.test:owner/repo.git/sub",
+            ),
+            (
+                "git@example.test:owner/repo.git",
+                "../../top.git",
+                "git@example.test:top.git",
+            ),
+            (
+                "/srv/git/owner/repo.git",
+                "../other.git",
+                "/srv/git/owner/other.git",
+            ),
+            (
+                "/srv/git/owner/repo.git",
+                "../../top.git",
+                "/srv/git/top.git",
+            ),
+            (
+                "ssh://git@example.test:22/owner/repo",
+                "./.././other",
+                "ssh://git@example.test:22/owner/other",
+            ),
+        ] {
+            assert_eq!(
+                resolve(Some(remote), url).as_deref(),
+                Some(expected),
+                "{remote} + {url}"
+            );
+        }
+    }
+
+    #[test]
+    fn relative_url_without_remote_is_relative_to_the_repository() {
+        assert_eq!(
+            resolve(None, "../lib.git").as_deref(),
+            Some("/work/lib.git")
+        );
+        assert_eq!(resolve(None, "./sub").as_deref(), Some("/work/main/sub"));
+    }
+
+    #[test]
+    fn relative_url_above_the_host_fails() {
+        assert_eq!(
+            resolve(Some("https://example.test/r.git"), "../../x"),
+            None
+        );
+        assert_eq!(resolve(Some("git@example.test:r.git"), "../../x"), None);
+        assert_eq!(resolve(Some("/r.git"), "../../x"), None);
+    }
+}
