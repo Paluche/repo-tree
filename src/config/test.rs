@@ -512,3 +512,26 @@ fn tree_space_renamed() -> Result<(), Box<dyn Error>> {
     assert_eq!(config.tree.dev.category.dir_name(), "active");
     Ok(())
 }
+
+/// Names of the host completion candidates for `current`.
+fn host_candidates(config: &Config, current: &str) -> Vec<String> {
+    let mut candidates: Vec<String> = config
+        .host_candidates(current)
+        .iter()
+        .map(|c| c.get_value().to_string_lossy().into_owned())
+        .collect();
+    candidates.sort();
+    candidates
+}
+
+#[test]
+fn host_candidates_match_the_host_name() -> Result<(), Box<dyn Error>> {
+    let config = load("[host.'git.example.com']\nname = 'example'\n")?;
+
+    assert_eq!(host_candidates(&config, "kern"), ["kernel"]);
+    assert_eq!(host_candidates(&config, "git"), ["github", "gitlab"]);
+    assert_eq!(host_candidates(&config, "ex"), ["example"]);
+    assert_eq!(host_candidates(&config, "x"), Vec::<String>::new());
+    assert_eq!(host_candidates(&config, "").len(), 6);
+    Ok(())
+}
