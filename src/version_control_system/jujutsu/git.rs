@@ -8,8 +8,10 @@ use std::path::PathBuf;
 
 use super::super::VcsRemote;
 use super::command::JujutsuCommand;
+use super::config;
 use super::get_jj_dir;
 use super::get_repo_dir;
+use crate::config::ResolvedIdentity;
 
 /// Get the path to the git backend repository.
 pub fn get_git_dir(repo_path: &Path) -> Result<PathBuf, Box<dyn Error>> {
@@ -67,13 +69,24 @@ fn parse_remote_list(
         .collect()
 }
 
-/// Clone a Jujutsu repository.
+/// Clone a Jujutsu repository. The identity, if any, is the configuration
+/// of the clone, so that the first working-copy commit already has the
+/// right author.
 pub fn clone<P: AsRef<OsStr>>(
     remote_url: &str,
     location: P,
     colocated: bool,
+    identity: Option<&ResolvedIdentity>,
 ) -> Result<(), Box<dyn Error>> {
-    JujutsuCommand::global()?
+    let mut command = JujutsuCommand::global()?;
+
+    if let Some(identity) = identity {
+        for arg in config::config_args(identity) {
+            command.arg("--config").arg(arg);
+        }
+    }
+
+    command
         .arg("git")
         .arg("clone")
         .arg(if colocated {

@@ -211,3 +211,21 @@ fn apply_without_identity_fails() {
         stderr(&assert)
     );
 }
+
+#[test]
+fn clone_sets_the_identity() {
+    let env = Env::new();
+    env.write_config(IDENTITIES);
+
+    let git = env.clone("company/git", "git");
+    assert_eq!(
+        env.git(&git, &["config", "--local", "user.email"]),
+        "work@company.test\n"
+    );
+
+    let jj = env.clone("company/jj", "jujutsu");
+    assert_eq!(
+        env.jj(&jj, &["config", "get", "user.email"]),
+        "work@company.test\n"
+    );
+}

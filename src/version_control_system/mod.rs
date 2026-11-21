@@ -233,8 +233,12 @@ pub trait VcsRepository {
     /// Get the configured remotes of the repository.
     fn get_remotes(&self) -> Result<Vec<VcsRemote>, Box<dyn Error>>;
 
-    /// Clone a repository.
-    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>>;
+    /// Clone a repository, then set the identity in its configuration.
+    fn clone(
+        &self,
+        remote_url: &str,
+        identity: Option<&ResolvedIdentity>,
+    ) -> Result<(), Box<dyn Error>>;
 
     /// Fetch the repository.
     fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>>;

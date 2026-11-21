@@ -494,6 +494,8 @@ repositories. Only the configuration of the repository itself is written, so
 your user configuration stays the fallback for the repositories outside the repo
 tree.
 
+`rt clone` sets the identity of the repositories it clones.
+
 ## Completion and utils
 
 We are using [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/index.html)

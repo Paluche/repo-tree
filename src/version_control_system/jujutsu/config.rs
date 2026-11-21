@@ -39,6 +39,25 @@ fn get(table: &toml::Table, key: &str) -> Option<ConfigValue> {
     })
 }
 
+/// Format a value the way Jujutsu parses it, as TOML: a name like `true`
+/// must stay a string.
+fn toml_value(value: &ConfigValue) -> String {
+    match value {
+        ConfigValue::String(value) => {
+            toml::Value::String(value.clone()).to_string()
+        }
+        ConfigValue::Bool(value) => value.to_string(),
+    }
+}
+
+/// Get the `--config` arguments setting the identity for a single command.
+pub fn config_args(identity: &ResolvedIdentity) -> Vec<String> {
+    jujutsu_settings(identity)
+        .iter()
+        .map(|(key, value)| format!("{key}={}", toml_value(value)))
+        .collect()
+}
+
 /// Get the configuration changes the repository needs to use the identity.
 pub fn identity_changes(
     repo_path: &Path,
@@ -57,21 +76,12 @@ pub fn apply(
     changes: &[ConfigChange],
 ) -> Result<(), Box<dyn Error>> {
     for change in changes {
-        // The value is parsed as TOML, so pass it as TOML: a name like
-        // `true` must stay a string.
-        let value = match &change.expected {
-            ConfigValue::String(value) => {
-                toml::Value::String(value.clone()).to_string()
-            }
-            ConfigValue::Bool(value) => value.to_string(),
-        };
-
         JujutsuCommand::repo(repo_path)?
             .arg("config")
             .arg("set")
             .arg("--repo")
             .arg(change.key)
-            .arg(value)
+            .arg(toml_value(&change.expected))
             .status()?;
     }
 
@@ -103,5 +113,14 @@ mod tests {
         assert_eq!(get(&table, "ui.paginate"), Some(ConfigValue::Bool(false)));
         assert_eq!(get(&table, "user.email"), None);
         assert_eq!(get(&table, "user.name.first"), None);
+    }
+
+    #[test]
+    fn values_are_toml() {
+        assert_eq!(
+            toml_value(&ConfigValue::String("true".to_string())),
+            "\"true\""
+        );
+        assert_eq!(toml_value(&ConfigValue::Bool(true)), "true");
     }
 }

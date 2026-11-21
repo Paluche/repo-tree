@@ -76,7 +76,7 @@ async fn do_clone(
             .url;
 
         vcs.get_repo(&Workspace::Other(location.clone()))
-            .clone(remote_url)?;
+            .clone(remote_url, config.identities.resolve(repo_id).as_ref())?;
     }
 
     // Refresh the cache.

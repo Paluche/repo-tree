@@ -97,8 +97,23 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         git::get_remotes(self.workspace.path())
     }
 
-    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
-        git::clone(remote_url, self.workspace.path(), self.colocated)
+    fn clone(
+        &self,
+        remote_url: &str,
+        identity: Option<&ResolvedIdentity>,
+    ) -> Result<(), Box<dyn Error>> {
+        git::clone(
+            remote_url,
+            self.workspace.path(),
+            self.colocated,
+            identity,
+        )?;
+
+        if let Some(identity) = identity {
+            self.apply_config(&self.identity_changes(identity)?)?;
+        }
+
+        Ok(())
     }
 
     fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>> {

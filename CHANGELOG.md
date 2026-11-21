@@ -72,6 +72,9 @@ None
 - **identity**: `rt identity apply` writes the identity in the Jujutsu and Git
   configuration of a repository, or of all of them with `--all`, and
   `rt identity show` lists the differences.
+- **clone**: `rt clone` sets the identity of the cloned repository. Jujutsu
+  repositories get it for the clone itself, so that the first working-copy
+  commit already has the right author.
 
 ### Fixed bugs
 

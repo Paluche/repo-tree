@@ -96,12 +96,20 @@ impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
             .collect())
     }
 
-    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
+    fn clone(
+        &self,
+        remote_url: &str,
+        identity: Option<&ResolvedIdentity>,
+    ) -> Result<(), Box<dyn Error>> {
         GitCommand::global()?
             .arg("clone")
             .arg(remote_url)
             .arg(self.workspace.path())
             .status()?;
+
+        if let Some(identity) = identity {
+            self.apply_config(&self.identity_changes(identity)?)?;
+        }
 
         GitCommand::repo(self.workspace.path())?
             .arg("submodule")
