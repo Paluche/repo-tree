@@ -390,3 +390,176 @@ where
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::colors;
+    use crate::test_utils::no_colors;
+
+    /// Wrapper to deserialize a color from a TOML value.
+    #[derive(Debug, Deserialize, Serialize)]
+    struct Wrapper {
+        /// The color.
+        color: Color,
+    }
+
+    /// Parse `value` as the TOML value of a color.
+    fn parse(value: &str) -> Result<Color, toml::de::Error> {
+        toml::from_str::<Wrapper>(&format!("color = {value}")).map(|w| w.color)
+    }
+
+    #[test]
+    fn color_from_name() {
+        assert_eq!(parse("'red'").expect("valid color"), Color::red());
+        assert_eq!(
+            parse("'bright blue'").expect("valid color"),
+            Color::bright_blue()
+        );
+    }
+
+    #[test]
+    fn color_from_unknown_name_fails() {
+        let error = parse("'reddish'").expect_err("invalid color");
+
+        assert!(error.to_string().contains("Invalid color string: reddish"));
+    }
+
+    #[test]
+    fn color_from_ansi_number() {
+        assert_eq!(parse("0").expect("valid color"), Color::ansi_color(0));
+        assert_eq!(parse("255").expect("valid color"), Color::ansi_color(255));
+    }
+
+    #[test]
+    fn color_from_out_of_range_number_fails() {
+        for value in ["256", "-1"] {
+            let error = parse(value).expect_err("invalid color");
+
+            assert!(
+                error.to_string().contains("ANSI Color value out of range"),
+                "{error}"
+            );
+        }
+    }
+
+    #[test]
+    fn color_from_rgb_array() {
+        assert_eq!(
+            parse("[1, 2, 3]").expect("valid color"),
+            Color::true_color(1, 2, 3)
+        );
+    }
+
+    #[test]
+    fn color_from_array_of_wrong_length_fails() {
+        for value in ["[]", "[1, 2]", "[1, 2, 3, 4]"] {
+            let error = parse(value).expect_err("invalid color");
+
+            assert!(
+                error.to_string().contains("array of 3 elements"),
+                "{value}: {error}"
+            );
+        }
+    }
+
+    #[test]
+    fn color_from_array_out_of_range_fails() {
+        assert!(parse("[1, 2, 300]").is_err());
+    }
+
+    #[test]
+    fn color_from_other_type_fails() {
+        assert!(parse("true").is_err());
+    }
+
+    #[test]
+    fn color_serialization_round_trips() {
+        for color in [
+            Color::black(),
+            Color::bright_white(),
+            Color::bright_black(),
+            Color::ansi_color(42),
+            Color::true_color(10, 20, 30),
+        ] {
+            let text = toml::to_string(&Wrapper {
+                color: color.clone(),
+            })
+            .expect("serializable color");
+
+            assert_eq!(
+                toml::from_str::<Wrapper>(&text).expect("valid color").color,
+                color,
+                "{text}"
+            );
+        }
+    }
+
+    #[test]
+    fn colored_text_fields_are_optional() {
+        let text: ColoredText =
+            toml::from_str("text = 'x'").expect("valid colored text");
+        assert_eq!(text, ColoredText::new("x", Color::none()));
+
+        let text: ColoredText =
+            toml::from_str("color = 'red'").expect("valid colored text");
+        assert_eq!(text, ColoredText::new("", Color::red()));
+        assert!(text.is_empty());
+    }
+
+    #[test]
+    fn colored_text_without_color_round_trips() {
+        let text = ColoredText::new("x", Color::none());
+        let serialized = toml::to_string(&text).expect("serializable text");
+
+        assert_eq!(
+            toml::from_str::<ColoredText>(&serialized).expect("valid text"),
+            text
+        );
+    }
+
+    #[test]
+    fn colorize_without_color_keeps_text() {
+        let _colors = colors();
+
+        assert_eq!(Color::none().colorize("text"), "text");
+    }
+
+    #[test]
+    fn colorize_applies_the_color() {
+        let _colors = colors();
+
+        assert_eq!(Color::red().colorize("text"), "\x1b[31mtext\x1b[0m");
+        // True colors are not checked: `colored` downgrades them to the
+        // closest basic color unless `COLORTERM` announces true color support.
+        assert_eq!(
+            Color::ansi_color(42).colorize("text"),
+            "\x1b[38;5;42mtext\x1b[0m"
+        );
+    }
+
+    #[test]
+    fn colorize_respects_disabled_colors() {
+        let _colors = no_colors();
+
+        assert_eq!(Color::red().colorize("text"), "text");
+    }
+
+    #[test]
+    fn colored_list_display() {
+        let _colors = no_colors();
+        let list = ColoredList::new("<", ", ", Color::red());
+
+        assert_eq!(list.display::<&str>(&[]).to_string(), "");
+        assert_eq!(list.display(&["a"]).to_string(), "<a");
+        assert_eq!(list.display(&["a", "b", "c"]).to_string(), "<a, b, c");
+    }
+
+    #[test]
+    fn empty_colored_list_has_no_color_codes() {
+        let _colors = colors();
+        let list = ColoredList::new("<", ", ", Color::red());
+
+        assert_eq!(list.display::<&str>(&[]).to_string(), "");
+    }
+}

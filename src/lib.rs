@@ -13,6 +13,8 @@ mod repo_state;
 mod repo_tree;
 mod repository;
 mod resolve;
+#[cfg(test)]
+mod test_utils;
 mod tree_space;
 mod ui;
 mod utils;
