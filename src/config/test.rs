@@ -2,13 +2,25 @@
 
 use std::error::Error;
 use std::ffi::OsString;
+use std::path::Path;
+use std::path::PathBuf;
 
 use super::config::Config;
+use super::config_dir_from;
+
+/// Load the configuration `content` with the test `REPO_TREE_DIR`.
+fn load(content: &str) -> Result<Config, Box<dyn Error>> {
+    Config::load_internal(content, Some(OsString::from("/home/user/work")))
+}
+
+/// Serialize the configuration, to compare configurations.
+fn serialized(config: &Config) -> String {
+    toml::to_string(config).expect("the configuration is serializable")
+}
 
 #[test]
 fn default_config() -> Result<(), Box<dyn Error>> {
-    let config =
-        Config::load_internal("", Some(OsString::from("/home/user/work")))?;
+    let config = load("")?;
 
     // Check the serialized output if the expected one.
     insta::assert_snapshot!(toml::to_string(&config)?, @r#"
@@ -272,5 +284,231 @@ fn default_config() -> Result<(), Box<dyn Error>> {
     ignored = "!"
     "#);
 
+    Ok(())
+}
+
+#[test]
+fn serialized_default_config_loads_back() -> Result<(), Box<dyn Error>> {
+    let config = load("")?;
+
+    assert_eq!(
+        serialized(&load(&serialized(&config))?),
+        serialized(&config)
+    );
+    Ok(())
+}
+
+/// Collect the path of every configuration section of `table`, prefixed by
+/// `prefix`.
+///
+/// Colored texts, lists and references are values, not sections: they are not
+/// partially overridden but replaced.
+fn table_paths(table: &toml::Table, prefix: &str, paths: &mut Vec<String>) {
+    for (key, value) in table {
+        if let toml::Value::Table(table) = value {
+            if table.keys().all(|key| {
+                ["text", "color", "prefix", "separator", "name", "remote"]
+                    .contains(&key.as_str())
+            }) {
+                continue;
+            }
+            let path = format!("{prefix}\"{key}\"");
+            paths.push(path.clone());
+            table_paths(table, &format!("{path}."), paths);
+        }
+    }
+}
+
+#[test]
+fn every_table_can_be_partially_overridden() -> Result<(), Box<dyn Error>> {
+    let default = serialized(&load("")?);
+    let mut paths = Vec::new();
+    table_paths(&toml::from_str(&default)?, "", &mut paths);
+    // A host has no default values, its name is required.
+    paths.retain(|path| !path.starts_with("\"host\""));
+    assert!(paths.len() > 20, "{paths:?}");
+
+    for path in paths {
+        let config = load(&format!("[{path}]\n"))
+            .map_err(|e| format!("empty [{path}] table rejected: {e}"))?;
+
+        assert_eq!(serialized(&config), default, "empty [{path}] table");
+    }
+    Ok(())
+}
+
+#[test]
+fn root_from_configuration() -> Result<(), Box<dyn Error>> {
+    let config = Config::load_internal("root = '/srv/tree'", None)?;
+
+    assert_eq!(config.root, PathBuf::from("/srv/tree"));
+    Ok(())
+}
+
+#[test]
+fn root_from_configuration_wins_over_repo_tree_dir()
+-> Result<(), Box<dyn Error>> {
+    assert_eq!(load("root = '/srv/tree'")?.root, PathBuf::from("/srv/tree"));
+    Ok(())
+}
+
+#[test]
+fn relative_root_is_rejected() {
+    let error = load("root = 'tree'").err().expect("relative root");
+
+    assert!(
+        error.to_string().contains("must be an absolute path"),
+        "{error}"
+    );
+}
+
+#[test]
+fn missing_root_without_repo_tree_dir_is_rejected() {
+    let error = Config::load_internal("", None).err().expect("missing root");
+
+    assert!(error.to_string().contains("REPO_TREE_DIR"), "{error}");
+}
+
+#[test]
+fn relative_repo_tree_dir_is_rejected() {
+    let error = Config::load_internal("", Some("tree".into()))
+        .err()
+        .expect("relative REPO_TREE_DIR");
+
+    assert!(error.to_string().contains("REPO_TREE_DIR"), "{error}");
+}
+
+#[test]
+fn invalid_toml_is_rejected() {
+    assert!(load("root = ").is_err());
+}
+
+#[test]
+fn user_host_is_added_to_default_hosts() -> Result<(), Box<dyn Error>> {
+    let config = load(
+        "[host.'git.example.com']\nname = 'example'\ndir_name = 'ex'\nforge = \
+         'GitLab'\n",
+    )?;
+
+    let host = config
+        .get_remote_host("git.example.com")
+        .expect("configured host");
+    assert_eq!(host.category.name, "example");
+    assert_eq!(host.category.dir_name(), "ex");
+    assert!(config.get_remote_host("github.com").is_some());
+    assert!(config.get_remote_host("codeberg.org").is_some());
+    Ok(())
+}
+
+#[test]
+fn user_host_overrides_default_host() -> Result<(), Box<dyn Error>> {
+    let config = load("[host.'github.com']\nname = 'gh'\n")?;
+
+    let host = config.get_remote_host("github.com").expect("github host");
+    assert_eq!(host.category.name, "gh");
+    assert_eq!(host.category.dir_name(), "gh");
+    assert!(host.info.forge.is_none());
+    Ok(())
+}
+
+#[test]
+fn host_without_name_is_rejected() {
+    assert!(load("[host.'git.example.com']\ndir_name = 'ex'\n").is_err());
+}
+
+#[test]
+fn unknown_forge_is_rejected() {
+    assert!(
+        load("[host.'git.example.com']\nname = 'ex'\nforge = 'Gitea'\n")
+            .is_err()
+    );
+}
+
+#[test]
+fn should_be_ignored_by_default() -> Result<(), Box<dyn Error>> {
+    let config = load("")?;
+
+    assert!(config.should_be_ignored(Path::new("/tmp/repo")));
+    assert!(config.should_be_ignored(Path::new("/home/user/.cache/repo")));
+    assert!(!config.should_be_ignored(Path::new("/home/user/projects/repo")));
+    // Never ignore a repository inside the tree.
+    assert!(!config.should_be_ignored(Path::new("/home/user/work/.x/repo")));
+    Ok(())
+}
+
+#[test]
+fn should_be_ignored_with_overridden_ignore() -> Result<(), Box<dyn Error>> {
+    let config = load("[repository]\nignore = ['/opt/**']\n")?;
+
+    assert!(config.should_be_ignored(Path::new("/opt/repo")));
+    assert!(!config.should_be_ignored(Path::new("/tmp/repo")));
+    Ok(())
+}
+
+#[test]
+fn should_be_ignored_with_extended_ignore() -> Result<(), Box<dyn Error>> {
+    let config = load("[repository]\nextend_ignore = ['/opt/**']\n")?;
+
+    assert!(config.should_be_ignored(Path::new("/opt/repo")));
+    assert!(config.should_be_ignored(Path::new("/tmp/repo")));
+    Ok(())
+}
+
+#[test]
+fn invalid_ignore_glob_is_rejected() {
+    assert!(load("[repository]\nignore = ['a[']\n").is_err());
+}
+
+#[test]
+fn config_dir_prefers_xdg_config_home() -> Result<(), Box<dyn Error>> {
+    assert_eq!(
+        config_dir_from(Some("/xdg".into()), Some("/home/user".into()))?,
+        PathBuf::from("/xdg/repo-tree")
+    );
+    Ok(())
+}
+
+#[test]
+fn config_dir_falls_back_to_home() -> Result<(), Box<dyn Error>> {
+    let expected = PathBuf::from("/home/user/.config/repo-tree");
+
+    assert_eq!(config_dir_from(None, Some("/home/user".into()))?, expected);
+    // Empty or relative XDG_CONFIG_HOME must be ignored.
+    assert_eq!(
+        config_dir_from(Some("".into()), Some("/home/user".into()))?,
+        expected
+    );
+    assert_eq!(
+        config_dir_from(Some("config".into()), Some("/home/user".into()))?,
+        expected
+    );
+    Ok(())
+}
+
+#[test]
+fn config_dir_without_home_fails() {
+    assert!(config_dir_from(None, None).is_err());
+    assert!(config_dir_from(None, Some("".into())).is_err());
+}
+
+#[test]
+fn tree_space_partial_override() -> Result<(), Box<dyn Error>> {
+    let config = load("[tree.archive]\ndir_name = 'old'\n")?;
+
+    assert_eq!(config.tree.archive.category.name, "archive");
+    assert_eq!(config.tree.archive.category.dir_name(), "old");
+    assert_eq!(
+        config.tree.archive.category.repr,
+        load("")?.tree.archive.category.repr
+    );
+    Ok(())
+}
+
+#[test]
+fn tree_space_renamed() -> Result<(), Box<dyn Error>> {
+    let config = load("[tree.dev]\nname = 'active'\n")?;
+
+    assert_eq!(config.tree.dev.category.name, "active");
+    assert_eq!(config.tree.dev.category.dir_name(), "active");
     Ok(())
 }

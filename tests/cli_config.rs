@@ -81,3 +81,28 @@ fn deleted_current_directory_is_reported() {
         stderr(&assert)
     );
 }
+
+#[test]
+fn missing_root_is_reported() {
+    let env = Env::new();
+    env.write_raw_config("");
+
+    let assert = env.rt().arg("list").assert().code(1);
+
+    assert!(
+        stderr(&assert).contains("REPO_TREE_DIR"),
+        "{}",
+        stderr(&assert)
+    );
+}
+
+#[test]
+fn partial_repository_table_is_accepted() {
+    let env = Env::new();
+    env.write_raw_config(&format!(
+        "root = '{}'\n[repository]\nignore = []\n",
+        env.root.display()
+    ));
+
+    env.rt().arg("list").assert().success();
+}
