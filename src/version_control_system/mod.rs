@@ -81,11 +81,19 @@ impl VersionControlSystem {
     }
 
     /// Find out if the version control system is a Git repository.
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "methods of VersionControlSystem consistently borrow it"
+    )]
     pub fn is_git(&self) -> bool {
         matches!(self, Self::Git | Self::JujutsuGit)
     }
 
     /// Find out if the version control system is a Jujutsu repository.
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "methods of VersionControlSystem consistently borrow it"
+    )]
     pub fn is_jujutsu(&self) -> bool {
         matches!(self, Self::Jujutsu | Self::JujutsuGit)
     }
@@ -101,6 +109,10 @@ impl VersionControlSystem {
 
     /// Get the struct to use to interact with a repository using this version
     /// control system.
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "methods of VersionControlSystem consistently borrow it"
+    )]
     pub fn get_repo<'repo_tree>(
         &self,
         workspace: &'repo_tree Workspace,

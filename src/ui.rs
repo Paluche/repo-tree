@@ -25,11 +25,19 @@ impl<'config> Ui<'config> {
     }
 
     /// Clear the current stderr line.
+    #[expect(
+        clippy::unused_self,
+        reason = "all output goes through Ui, even when it needs no state"
+    )]
     pub fn clear_current_line(&self) {
         eprint!("\r{}", Clear(ClearType::CurrentLine));
     }
 
     /// Clear the current stderr line and print something in its place.
+    #[expect(
+        clippy::unused_self,
+        reason = "all output goes through Ui, even when it needs no state"
+    )]
     pub fn clear_and_print_current_line<S>(&self, msg: S)
     where
         S: Display,
@@ -38,6 +46,10 @@ impl<'config> Ui<'config> {
     }
 
     /// Print a information message (no prefix).
+    #[expect(
+        clippy::unused_self,
+        reason = "all output goes through Ui, even when it needs no state"
+    )]
     pub fn info<S>(&self, msg: S)
     where
         S: Display,
