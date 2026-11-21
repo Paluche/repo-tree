@@ -1,7 +1,7 @@
 [package]
 name = "repo-tree"
 description = "Repo-tree - Local Repository manager"
-default-run="rt"
+default-run = "rt"
 version = "0.2.0"
 edition = "2024"
 license = "MIT"
@@ -22,7 +22,7 @@ clap_complete = { version = "4.6.9", features = ["unstable-dynamic"] }
 colored = "3.1.1"
 crossterm = "0.29.0"
 fuzzy-matcher = "0.3.7"
-git2 = { version = "0.21.0", default-features=false }
+git2 = { version = "0.21.0", default-features = false }
 globset = { version = "0.4.20", features = ["serde1"] }
 indoc = "2.0.7"
 itertools = "0.15.0"
@@ -40,3 +40,4 @@ which = "8.0.6"
 [dev-dependencies]
 assert_cmd = "2.2.2"
 insta = "1.48.0"
+tempfile = "3.27.0"
