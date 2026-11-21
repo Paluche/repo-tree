@@ -69,6 +69,12 @@ impl<'config> Ui<'config> {
         eprintln!("{}: {msg}", self.config.ui.error);
     }
 
+    /// Messages already printed with `hint_once`.
+    #[cfg(test)]
+    pub fn printed_messages(&self) -> &[String] {
+        &self.printed_messages
+    }
+
     /// Print a hint message. Only once per execution.
     pub fn hint_once<S>(&mut self, msg: S)
     where
