@@ -1,5 +1,5 @@
-//! Define the repository identifier RepoId, it is obtained by parsing the URL
-//! of the remote associated with the repository.
+//! Define the state of a repository, telling if there is something left to do
+//! in it.
 use std::fmt::Display;
 
 use colored::Colorize;
