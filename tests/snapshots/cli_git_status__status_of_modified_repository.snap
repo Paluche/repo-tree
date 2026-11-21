@@ -1,0 +1,32 @@
+---
+source: tests/cli_git_status.rs
+expression: "[root_view, sub_dir_view, no_relative].join(\"=====\\n\")"
+---
+┊ a17111c34d5a2705e9dd5ab8eee03c143104fde6 -> main 1  0  origin/main
+┊ 1 stash pending
+┊ RM      README -> RENAMED
+┊ A       dir/staged file
+┊  M S M  sub
+┊         ┊ a8bb40a5f4f4405bd654e2985f40ab7a9609484d -> main 0  0  origin/main
+┊         ┊  M      sub/README
+┊ ?? ???? untracked
+
+=====
+┊ a17111c34d5a2705e9dd5ab8eee03c143104fde6 -> main 1  0  origin/main
+┊ 1 stash pending
+┊ RM      ../README -> ../RENAMED
+┊ A       staged file
+┊  M S M  ../sub
+┊         ┊ a8bb40a5f4f4405bd654e2985f40ab7a9609484d -> main 0  0  origin/main
+┊         ┊  M      ../sub/README
+┊ ?? ???? ../untracked
+
+=====
+┊ a17111c34d5a2705e9dd5ab8eee03c143104fde6 -> main 1  0  origin/main
+┊ 1 stash pending
+┊ RM      README -> RENAMED
+┊ A       dir/staged file
+┊  M S M  sub
+┊         ┊ a8bb40a5f4f4405bd654e2985f40ab7a9609484d -> main 0  0  origin/main
+┊         ┊  M      sub/README
+┊ ?? ???? untracked
