@@ -295,7 +295,7 @@ pub fn get_bookmarks<'bookmarks>(
                 format!(
                     "Bookmark {}{} is not in the list of bookmarks",
                     raw.name,
-                    raw.remote.map(|r| format!("@{r}")).unwrap_or_default()
+                    raw.remote.map_or_default(|r| format!("@{r}"))
                 )
                 .into()
             })
