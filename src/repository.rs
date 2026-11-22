@@ -101,8 +101,7 @@ impl Workspace {
     /// Get the path to the workspace.
     pub fn path(&self) -> &PathBuf {
         match self {
-            Self::Tree(_, path) => path,
-            Self::Other(path) => path,
+            Self::Tree(_, path) | Self::Other(path) => path,
         }
     }
 

@@ -43,8 +43,8 @@ impl TreeOrganization<'_> {
     /// Path to where the directory for that tree-space category is located.
     pub fn location(&self) -> PathBuf {
         let (config, tree_category) = match self {
-            Self::RemoteBased(config, tree_category) => (config, tree_category),
-            Self::Local(config, tree_category) => (config, tree_category),
+            Self::RemoteBased(config, tree_category)
+            | Self::Local(config, tree_category) => (config, tree_category),
         };
 
         config.root.join(tree_category.dir_name())
@@ -218,10 +218,10 @@ impl TreeSpace {
     ) -> TreeOrganization<'config> {
         let category = self.category(config);
         match self {
-            Self::Dev => TreeOrganization::RemoteBased(config, category),
+            Self::Dev | Self::Agent | Self::Archive => {
+                TreeOrganization::RemoteBased(config, category)
+            }
             Self::Local => TreeOrganization::Local(config, category),
-            Self::Agent => TreeOrganization::RemoteBased(config, category),
-            Self::Archive => TreeOrganization::RemoteBased(config, category),
         }
     }
 
