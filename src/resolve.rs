@@ -71,14 +71,12 @@ fn get_workspace<'repo_tree>(
         ResolveFilter::TreeSpace(tree_space) => {
             repository.get_tree_workspace(ui, tree_space)
         }
-        ResolveFilter::TreeSpaceKind(tree_space_kind) => repository
-            .workspaces
-            .iter()
-            .filter_map(|w| {
+        ResolveFilter::TreeSpaceKind(tree_space_kind) => {
+            repository.workspaces.iter().find_map(|w| {
                 w.tree_space()
                     .and_then(|t| (&t.kind() == tree_space_kind).then_some(w))
             })
-            .next(),
+        }
     }
 }
 
