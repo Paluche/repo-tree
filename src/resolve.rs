@@ -212,7 +212,7 @@ where
     // Provide choices on stdin.
     {
         let stdin = child.stdin.as_mut().unwrap();
-        stdin.write_all(&candidates.join("\n").into_bytes())?
+        stdin.write_all(&candidates.join("\n").into_bytes())?;
     }
 
     // Wait and read selection.

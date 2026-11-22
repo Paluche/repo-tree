@@ -314,7 +314,7 @@ pub fn complete_utils(
     match shell {
         Shell::Zsh => complete_utils_zsh(var, completer, &mut buf)?,
         shell => {
-            eprintln!("Utils generation not implemented yet for shell {shell}")
+            eprintln!("Utils generation not implemented yet for shell {shell}");
         }
     }
     std::io::stdout().write_all(&buf)
@@ -342,7 +342,7 @@ pub fn complete() {
                     })
                     .and_then(|shell| complete_utils(shell, var, bin))
                     .inspect_err(|e| {
-                        eprintln!("Failed to generate {bin} utils: {e}")
+                        eprintln!("Failed to generate {bin} utils: {e}");
                     })
                     .is_ok()
             {

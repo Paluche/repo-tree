@@ -830,7 +830,7 @@ fn get_ongoing_operations(git_dir: &Path) -> Vec<GitOperation> {
                 GitOperation::Rebase
             } else {
                 GitOperation::AM
-            })
+            });
         }
     }
 

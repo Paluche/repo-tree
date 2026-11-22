@@ -42,7 +42,7 @@ impl<'config> Ui<'config> {
     where
         S: Display,
     {
-        eprintln!("{msg}")
+        eprintln!("{msg}");
     }
 
     /// Print a hint message.

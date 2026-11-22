@@ -172,7 +172,7 @@ pub fn get<P: AsRef<Path>>(
                 config_url: None,
                 url: None,
             }
-        })
+        });
     }
 
     Ok(ret)

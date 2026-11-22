@@ -37,7 +37,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: RootArgs) -> i32 {
     if args.parent
         && let Some(parent) = cwd.parent()
     {
-        cwd = parent.to_path_buf()
+        cwd = parent.to_path_buf();
     }
 
     if let Some((root, vcs, _)) =

@@ -436,7 +436,7 @@ mod tests {
             &config,
             &config.tree.dev.category,
             Some(TreeSpace::Dev),
-        )
+        );
     }
 
     #[test]
@@ -447,7 +447,7 @@ mod tests {
             &config,
             &config.tree.archive.category,
             Some(TreeSpace::Archive),
-        )
+        );
     }
 
     #[test]
@@ -458,7 +458,7 @@ mod tests {
             &config,
             &config.tree.local.category,
             Some(TreeSpace::Local),
-        )
+        );
     }
 
     #[test]
@@ -466,7 +466,7 @@ mod tests {
         let config = Config::test_default();
         let repo_path = PathBuf::from("/home/not-user/work/dev/test/foo/bar");
         let tree_space = TreeSpace::from_path(&config, &repo_path);
-        assert_eq!(tree_space, None)
+        assert_eq!(tree_space, None);
     }
 
     #[test]
@@ -495,7 +495,7 @@ mod tests {
                 "{workspace_tree_space:?} convert into {tree_space:?} which \
                  is not of kind 'workspace' but {:?}",
                 tree_space.kind()
-            )
+            );
         }
     }
 
@@ -509,7 +509,7 @@ mod tests {
                 kind.is_main(),
                 "{force_tree_space:?} convert into {tree_space:?} which is not
                 of kind 'main' but {kind:?}"
-            )
+            );
         }
     }
 
