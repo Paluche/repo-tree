@@ -273,7 +273,7 @@ pub fn resolve_repo<'repo_tree>(
                 ResolveFilter::TreeSpace(tree_space) =>
                     format!("tree space {}", tree_space.display(config)),
                 ResolveFilter::TreeSpaceKind(tree_space_kind) =>
-                    format!("tree spaces of kind {}", tree_space_kind),
+                    format!("tree spaces of kind {tree_space_kind}"),
             }
         );
         return Ok(None);
