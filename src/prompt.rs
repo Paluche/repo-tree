@@ -38,7 +38,7 @@ impl<'repo> Prompt<'repo> {
     {
         let string = string.to_string();
         if !string.is_empty() {
-            self.fields.push(string.to_string());
+            self.fields.push(string);
         }
     }
 

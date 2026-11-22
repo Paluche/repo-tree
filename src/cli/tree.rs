@@ -165,7 +165,7 @@ impl<'repo_tree> Directory<'repo_tree> {
             f,
             "{prefix}{}{}",
             dir_state.get_dir_prefix(),
-            current_dir.to_string().blue(),
+            current_dir.clone().blue(),
         )?;
 
         if let Some((r, w)) = &current.repository {

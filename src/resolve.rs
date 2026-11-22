@@ -176,7 +176,7 @@ fn get_candidates<'repo_tree>(
 
     for (alias, repo_name) in config.command.resolve.aliases.iter() {
         if let Some(repo) = ret.get(repo_name) {
-            ret.insert(alias.to_string(), repo);
+            ret.insert(alias.clone(), repo);
         } else if filter.is_all() {
             // This warning is no more reliable when there is filtering. So
             // print it only if there is no filtering.

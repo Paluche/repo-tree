@@ -174,7 +174,7 @@ impl RepoId {
         match &self.remote {
             Some(remote) => config
                 .get_remote_host(&remote.host_url)
-                .ok_or(UnknownRemoteHostError(remote.host_url.to_string()))
+                .ok_or(UnknownRemoteHostError(remote.host_url.clone()))
                 .map(Some),
             None => Ok(None),
         }

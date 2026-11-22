@@ -62,9 +62,7 @@ impl TreeOrganization<'_> {
                 if let Some(remote) = &repo_id.remote {
                     Ok(config
                         .get_remote_host(&remote.host_url)
-                        .ok_or(UnknownRemoteHostError(
-                            remote.host_url.to_string(),
-                        ))
+                        .ok_or(UnknownRemoteHostError(remote.host_url.clone()))
                         .map(|remote_host| {
                             base.join(remote_host.category.dir_name()).join(
                                 repo_id.name.split('/').collect::<PathBuf>(),
@@ -73,7 +71,7 @@ impl TreeOrganization<'_> {
                 } else {
                     Err(Box::new(UnexpectedTreeSpaceError(
                         repo_id.name.clone(),
-                        tree_category.name.to_string(),
+                        tree_category.name.clone(),
                     )))
                 }
             }
@@ -81,7 +79,7 @@ impl TreeOrganization<'_> {
                 if repo_id.remote.is_some() {
                     Err(Box::new(UnexpectedTreeSpaceError(
                         repo_id.name.clone(),
-                        tree_category.name.to_string(),
+                        tree_category.name.clone(),
                     )))
                 } else {
                     Ok(base.join(repo_id.name.split('/').collect::<PathBuf>()))
