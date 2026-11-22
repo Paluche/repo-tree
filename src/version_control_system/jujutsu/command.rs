@@ -71,14 +71,14 @@ impl JujutsuCommand {
     fn exec(&mut self) -> Result<Output, Box<dyn Error>> {
         let output = self.command.output()?;
         let status = output.status;
-        if !status.success() {
+        if status.success() {
+            Ok(output)
+        } else {
             Err(Box::new(CommandError::new(
                 &self.command,
                 status,
                 Some(output),
             )))
-        } else {
-            Ok(output)
         }
     }
 

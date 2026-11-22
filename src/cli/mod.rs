@@ -110,10 +110,10 @@ fn cwd_default_path(ui: &Ui, path: Option<String>) -> PathBuf {
         exit(1);
     }
 
-    if !ret.is_absolute() {
-        canonicalize(env::current_dir().unwrap().join(ret)).unwrap()
-    } else {
+    if ret.is_absolute() {
         ret
+    } else {
+        canonicalize(env::current_dir().unwrap().join(ret)).unwrap()
     }
 }
 
