@@ -291,7 +291,8 @@ impl RepoTree {
         if !refresh_cache {
             match Self::from_cache() {
                 Ok(mut repo_tree) => {
-                    if !repo_tree.repo_iter().any(|r| r.has_been_modified()) {
+                    if !repo_tree.repo_iter().any(Repository::has_been_modified)
+                    {
                         let config_file = track_config();
 
                         // The identities may have changed.

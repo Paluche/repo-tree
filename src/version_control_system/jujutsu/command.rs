@@ -89,7 +89,7 @@ impl JujutsuCommand {
         Ok(String::from_utf8(output.stdout)?
             .split('\n')
             .filter(|l| !l.is_empty())
-            .map(|l| l.to_string())
+            .map(String::from)
             .collect())
     }
 
