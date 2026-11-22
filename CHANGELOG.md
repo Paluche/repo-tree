@@ -198,6 +198,11 @@ None
 - **errors**: The errors about a repository in an unexpected tree-space and
   about a directory which is not a repository now name the tree-space and the
   directory instead of repeating the repository or the version control system.
+- **tree**: `rt tree` shows, under each git submodule, how many commits its
+  checkout is ahead of and behind the commit recorded in the main repository,
+  or that it is not checked out. These counts were computed from the main
+  repository objects, which do not hold the submodule commits, and were never
+  shown.
 
 ## [0.2.0] - 2026-06-21
 

@@ -4,6 +4,7 @@ mod common;
 use common::Env;
 use common::sorted_lines;
 use common::stdout;
+use common::write;
 
 /// Environment with a few repositories in each tree-space.
 fn tree() -> Env {
@@ -125,4 +126,64 @@ fn tree_refreshes_the_cache_with_the_global_flag() {
         let assert = env.rt().args(args).assert().success();
         assert!(stdout(&assert).contains("new"), "{args:?}");
     }
+}
+
+/// Line shown by `rt tree` under the submodule `name` of `main`, with the
+/// commit recorded for it.
+fn submodule_commit_line(tree: &str, name: &str) -> String {
+    let mut lines = tree.lines();
+    lines
+        .find(|line| line.ends_with(&format!("── {name}")))
+        .and_then(|_| lines.next())
+        .unwrap_or_else(|| panic!("no submodule {name} in:\n{tree}"))
+        .trim_start_matches([' ', '│'])
+        .to_string()
+}
+
+#[test]
+fn tree_view_shows_how_far_submodules_are_from_the_recorded_commit() {
+    let env = Env::new();
+    let sub_url = env.bare_remote("owner/sub");
+    let main = env.dev_path("owner/main");
+    env.git_repo(&main, Some(&Env::remote_url("owner/main")));
+    for name in ["synced", "ahead", "behind", "missing"] {
+        env.git(&main, &["submodule", "add", "--quiet", &sub_url, name]);
+    }
+    let behind = main.join("behind");
+    write(&behind.join("new"), "new\n");
+    env.git(&behind, &["add", "new"]);
+    env.git(&behind, &["commit", "--quiet", "-m", "New commit"]);
+    env.git(&main, &["add", "behind"]);
+    env.git(&main, &["commit", "--quiet", "-m", "Add submodules"]);
+    env.git(&behind, &["reset", "--quiet", "--hard", "HEAD~1"]);
+    let ahead = main.join("ahead");
+    write(&ahead.join("new"), "new\n");
+    env.git(&ahead, &["add", "new"]);
+    env.git(&ahead, &["commit", "--quiet", "-m", "New commit"]);
+    env.git(
+        &main,
+        &["submodule", "deinit", "--quiet", "--force", "missing"],
+    );
+
+    let assert = env.rt().arg("tree").assert().success();
+
+    let tree = stdout(&assert);
+    let recorded = |name: &str| {
+        env.git(&main, &["rev-parse", &format!("HEAD:{name}")])
+            .trim()
+            .to_string()
+    };
+    assert_eq!(submodule_commit_line(&tree, "synced"), recorded("synced"));
+    assert_eq!(
+        submodule_commit_line(&tree, "ahead"),
+        format!("{} 1 ahead, 0 behind", recorded("ahead"))
+    );
+    assert_eq!(
+        submodule_commit_line(&tree, "behind"),
+        format!("{} 0 ahead, 1 behind", recorded("behind"))
+    );
+    assert_eq!(
+        submodule_commit_line(&tree, "missing"),
+        format!("{} not checked out", recorded("missing"))
+    );
 }

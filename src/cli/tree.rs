@@ -234,7 +234,20 @@ impl<'repo_tree> Directory<'repo_tree> {
                         submodule.head.map(|o| o.to_string()),
                         88,
                     );
-                    writeln!(f, "{prefix}{head_id}")?;
+                    let checkout = if submodule.actual_head.is_none() {
+                        format!(" {}", "not checked out".yellow())
+                    } else if let (Some(ahead), Some(behind)) =
+                        (submodule.ahead, submodule.behind)
+                        && (ahead, behind) != (0, 0)
+                    {
+                        format!(
+                            " {}",
+                            format!("{ahead} ahead, {behind} behind").yellow()
+                        )
+                    } else {
+                        String::new()
+                    };
+                    writeln!(f, "{prefix}{head_id}{checkout}")?;
                     let submodule_url = {
                         let config_url = submodule.config_url.clone();
                         let resolved_url = submodule.url.clone();

@@ -89,13 +89,14 @@ pub struct SubmoduleInfo {
     pub main_repo_root: PathBuf,
     /// Relative path from the main repository to the submodule.
     pub sub_path: PathBuf,
-    /// Head OID, commit at which the submodule is configured to be.
+    /// Commit at which the main repository HEAD records the submodule.
     pub head: Option<Oid>,
-    /// Head OID, the submodule is currently at.
+    /// Commit currently checked out in the submodule, `None` when the
+    /// submodule is not initialized.
     pub actual_head: Option<Oid>,
-    /// Number of commits ahead to go to the head to the action_head.
+    /// Number of commits of `actual_head` that are not in `head`.
     pub ahead: Option<usize>,
-    /// Number of commits behind to go to the head to the action_head.
+    /// Number of commits of `head` that are not in `actual_head`.
     pub behind: Option<usize>,
     /// URL of the submodule remote as configured in the .gitmodules file.
     pub config_url: Option<String>,
@@ -108,6 +109,24 @@ impl SubmoduleInfo {
     pub fn abs_path(&self) -> PathBuf {
         self.main_repo_root.join(&self.sub_path)
     }
+}
+
+/// Count the commits of `actual_head` not in `head` and the commits of
+/// `head` not in `actual_head`, looked up in the submodule repository, which
+/// holds the commits of the submodule (the main repository does not).
+///
+/// Returns `None` when the submodule repository cannot be opened or does not
+/// contain one of the commits, for example before it has been fetched.
+fn ahead_behind(
+    submodule: &git2::Submodule<'_>,
+    actual_head: Oid,
+    head: Oid,
+) -> Option<(usize, usize)> {
+    if actual_head == head {
+        return Some((0, 0));
+    }
+    let repo = submodule.open().ok()?;
+    repo.graph_ahead_behind(actual_head, head).ok()
 }
 
 /// Get the submodules information.
@@ -124,22 +143,13 @@ pub fn get<P: AsRef<Path>>(
         let sub_path = submodule.path().to_path_buf();
         ret.push(if let Some(conf_url) = submodule.url()? {
             let head = submodule.head_id();
-            let actual_head = submodule.index_id();
-            let (ahead, behind) = if let (Some(head), Some(actual_head)) =
-                (head, actual_head)
-            {
-                if let (Ok(head_obj), Ok(actual_obj)) =
-                    (repo.find_commit(head), repo.find_commit(actual_head))
-                {
-                    let (a, b) = repo
-                        .graph_ahead_behind(actual_obj.id(), head_obj.id())?;
-                    (Some(a), Some(b))
-                } else {
-                    (None, None)
-                }
-            } else {
-                (None, None)
-            };
+            let actual_head = submodule.workdir_id();
+            let (ahead, behind) = head
+                .zip(actual_head)
+                .and_then(|(head, actual_head)| {
+                    ahead_behind(&submodule, actual_head, head)
+                })
+                .unzip();
 
             SubmoduleInfo {
                 main_repo_root: main_repo_root.clone(),
