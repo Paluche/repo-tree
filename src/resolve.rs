@@ -277,15 +277,13 @@ pub fn resolve_repo<'repo_tree>(
         return Ok(None);
     }
 
-    let repo_id = match repo_id {
-        Some(repo_id) => repo_id,
-        None => match fzf_ask(candidates.keys())? {
-            Some(repo_id) => repo_id,
-            None => {
-                ui.error("Nothing selected");
-                return Ok(None);
-            }
-        },
+    let repo_id = if let Some(repo_id) = repo_id {
+        repo_id
+    } else if let Some(repo_id) = fzf_ask(candidates.keys())? {
+        repo_id
+    } else {
+        ui.error("Nothing selected");
+        return Ok(None);
     };
 
     let repo = candidates.remove(&repo_id);
