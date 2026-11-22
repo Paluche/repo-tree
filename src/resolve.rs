@@ -365,12 +365,12 @@ pub fn resolve<'repo_tree>(
     config: &Config,
     repo_tree: &'repo_tree RepoTree,
     repo_id: Option<String>,
-    filter: ResolveFilter,
+    filter: &ResolveFilter,
 ) -> Result<
     Option<(&'repo_tree Repository, &'repo_tree Workspace)>,
     Box<dyn Error>,
 > {
-    if let Some(repo) = resolve_repo(ui, config, repo_tree, repo_id, &filter)? {
+    if let Some(repo) = resolve_repo(ui, config, repo_tree, repo_id, filter)? {
         let workspace = if filter.is_all() && repo.workspaces.len() != 1 {
             let names = repo
                 .workspaces
@@ -395,7 +395,7 @@ pub fn resolve<'repo_tree>(
                 repo.get_main_workspace(ui)
             }
         } else {
-            get_workspace(ui, repo, &filter).expect(
+            get_workspace(ui, repo, filter).expect(
                 "resolve_repo only returns repositories with a workspace \
                  matching the filter",
             )

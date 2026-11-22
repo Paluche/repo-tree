@@ -27,7 +27,7 @@ pub struct RootArgs {
 }
 
 /// Execute the `rt repo root` command.
-pub fn run(ui: &Ui<'_>, config: &Config, args: RootArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: &RootArgs) -> i32 {
     if args.refresh_cache {
         RepoTree::load(ui, config, true);
     }
@@ -40,9 +40,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: RootArgs) -> i32 {
         cwd = parent.to_path_buf();
     }
 
-    if let Some((root, vcs, _)) =
-        VersionControlSystem::discover_root(cwd.clone())
-    {
+    if let Some((root, vcs, _)) = VersionControlSystem::discover_root(&cwd) {
         print!("{}", root.display());
         if args.print_type {
             println!("\n{}\n{}", vcs.is_git(), vcs.is_jujutsu());

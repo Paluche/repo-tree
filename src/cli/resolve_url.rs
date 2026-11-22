@@ -52,7 +52,7 @@ fn get_candidates<'repo_tree>(
 }
 
 /// Execute the `rt resolve-url` command.
-pub fn run(ui: &Ui<'_>, config: &Config, args: ResolveUrlArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: &ResolveUrlArgs) -> i32 {
     let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
     let candidates = get_candidates(ui, &repo_tree, args.tree.as_ref());
     if let Some(repo) = candidates.get(&args.repo_id) {

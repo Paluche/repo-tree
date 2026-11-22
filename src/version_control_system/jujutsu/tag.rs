@@ -43,7 +43,9 @@ impl Tag {
     /// Get the tag short representation.
     pub fn get_repr(&self, tag_config: &JujutsuTagConfig) -> Vec<String> {
         if self.conflicted {
-            Vec::from([tag_config.tracked.colorize(format!("{}??", self.name))])
+            Vec::from([tag_config
+                .tracked
+                .colorize(&format!("{}??", self.name))])
         } else if self.is_remote_only() {
             self.remotes
                 .iter()
@@ -54,7 +56,7 @@ impl Tag {
         } else if self.is_local_only() {
             Vec::from([tag_config.local.colorize(&self.name)])
         } else {
-            Vec::from([tag_config.tracked.colorize(format!(
+            Vec::from([tag_config.tracked.colorize(&format!(
                 "{}{}",
                 self.name.as_str(),
                 if self.modified { "*" } else { "" }

@@ -40,7 +40,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: ResolveArgs) -> i32 {
     };
 
     if let Some((_, workspace)) =
-        match resolve(ui, config, &repo_tree, args.repo_id, filter) {
+        match resolve(ui, config, &repo_tree, args.repo_id, &filter) {
             Ok(r) => r,
             Err(err) => {
                 ui.error(err);

@@ -35,7 +35,7 @@ pub async fn run(ui: &Ui<'_>, config: &Config, args: RmArgs) -> i32 {
         config,
         &repo_tree,
         args.repo_id,
-        ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
+        &ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
     ) {
         Ok(Some(repo)) => repo,
         Ok(None) => {

@@ -278,9 +278,9 @@ impl Color {
 impl Color {
     /// Colorize the provided text. An empty text stays empty, without color
     /// escape sequences, so that it can be detected as empty.
-    pub fn colorize<T>(&self, text: T) -> String
+    pub fn colorize<T>(&self, text: &T) -> String
     where
-        T: ToString,
+        T: ToString + ?Sized,
     {
         let text = text.to_string();
         if let Some(color) = self.color
@@ -305,9 +305,9 @@ pub struct ColoredText {
 
 impl ColoredText {
     /// Create a new `ColoredText`.
-    pub fn new<S, C>(text: S, color: C) -> Self
+    pub fn new<S, C>(text: &S, color: C) -> Self
     where
-        S: ToString,
+        S: ToString + ?Sized,
         Color: From<C>,
     {
         Self {
@@ -341,9 +341,9 @@ pub struct ColoredList {
 
 impl ColoredList {
     /// Create a new `ColoredList`.
-    pub fn new<S, C>(prefix: S, separator: S, color: C) -> Self
+    pub fn new<S, C>(prefix: &S, separator: &S, color: C) -> Self
     where
-        S: ToString,
+        S: ToString + ?Sized,
         Color: From<C>,
     {
         Self {
@@ -389,7 +389,7 @@ where
         write!(
             f,
             "{}",
-            self.colored_list.color.colorize(format!(
+            self.colored_list.color.colorize(&format!(
                 "{}{}",
                 self.colored_list.prefix,
                 join(self.list.iter(), &self.colored_list.separator)

@@ -32,9 +32,9 @@ impl<'repo> Prompt<'repo> {
     }
 
     /// Extend the prompt line with a string.
-    pub fn push<S>(&mut self, string: S)
+    pub fn push<S>(&mut self, string: &S)
     where
-        S: ToString,
+        S: ToString + ?Sized,
     {
         let string = string.to_string();
         if !string.is_empty() {
@@ -137,9 +137,9 @@ impl PromptListField {
     }
 
     /// Extend the prompt line with a string.
-    pub fn push<S>(&mut self, string: S)
+    pub fn push<S>(&mut self, string: &S)
     where
-        S: ToString,
+        S: ToString + ?Sized,
     {
         let string = string.to_string();
         if !string.is_empty() {
@@ -165,8 +165,8 @@ mod tests {
 
         field.push("a");
         field.push("");
-        field.push(String::from("b"));
-        field.push(3);
+        field.push(&String::from("b"));
+        field.push(&3);
 
         assert_eq!(field.to_string(), "a b 3");
     }

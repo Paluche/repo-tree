@@ -26,6 +26,7 @@ pub struct TreeArgs {
 }
 
 /// The different states a directory entry in the tree might take.
+#[derive(Clone, Copy)]
 enum DirState {
     /// Root directory.
     Root,
@@ -37,7 +38,7 @@ enum DirState {
 
 impl DirState {
     /// Prefix to display a new directory entry.
-    fn get_dir_prefix(&self) -> &str {
+    fn get_dir_prefix(self) -> &'static str {
         match self {
             Self::Root => "",
             Self::SubDir => "├── ",
@@ -46,7 +47,7 @@ impl DirState {
     }
 
     /// Prefix to display a sub-content for the last printed directory entry.
-    fn get_subdir_prefix(&self) -> &str {
+    fn get_subdir_prefix(self) -> &'static str {
         match self {
             Self::Root => "",
             Self::SubDir => "│   ",
@@ -148,7 +149,7 @@ impl<'repo_tree> Directory<'repo_tree> {
         &self,
         config: &Config,
         f: &mut std::fmt::Formatter<'_>,
-        prefix: String,
+        prefix: &str,
         name: T,
         dir_state: DirState,
     ) -> std::fmt::Result {
@@ -272,7 +273,7 @@ impl<'repo_tree> Directory<'repo_tree> {
             directory.display(
                 config,
                 f,
-                format!("{prefix}{}", dir_state.get_subdir_prefix()),
+                &format!("{prefix}{}", dir_state.get_subdir_prefix()),
                 name,
                 if i == final_i {
                     DirState::FinalSubDir
@@ -299,12 +300,12 @@ impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
     fn new(
         config: &'config Config,
         repo_tree: &'repo_tree RepoTree,
-        maybe_tree_space: Option<TreeSpace>,
+        maybe_tree_space: Option<&TreeSpace>,
     ) -> Self {
         let mut directory: Directory<'repo_tree> = Directory::default();
 
         for (repository, workspace) in repo_tree.workspace_iter() {
-            if let Some(tree_space) = &maybe_tree_space
+            if let Some(tree_space) = maybe_tree_space
                 && workspace.tree_space() != Some(tree_space)
             {
                 continue;
@@ -321,7 +322,7 @@ impl Display for RootDirectory<'_, '_> {
         self.directory.display(
             self.config,
             f,
-            String::new(),
+            "",
             self.config.root.display(),
             DirState::Root,
         )
@@ -329,13 +330,13 @@ impl Display for RootDirectory<'_, '_> {
 }
 
 /// Execute the `rt tree` command.
-pub fn run(ui: &Ui<'_>, config: &Config, args: TreeArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: &TreeArgs) -> i32 {
     println!(
         "{}",
         RootDirectory::new(
             config,
             &RepoTree::load(ui, config, args.refresh_cache),
-            args.tree,
+            args.tree.as_ref(),
         )
     );
 

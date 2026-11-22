@@ -413,7 +413,7 @@ mod tests {
     fn check_tree_space_from_path(
         config: &Config,
         category: &TreeCategory,
-        expected_tree_space: Option<TreeSpace>,
+        expected_tree_space: Option<&TreeSpace>,
     ) {
         let repo_path = config
             .root
@@ -423,7 +423,7 @@ mod tests {
             .join("bar");
 
         let tree_space = TreeSpace::from_path(config, &repo_path);
-        assert_eq!(tree_space, expected_tree_space);
+        assert_eq!(tree_space.as_ref(), expected_tree_space);
     }
 
     #[test]
@@ -433,7 +433,7 @@ mod tests {
         check_tree_space_from_path(
             &config,
             &config.tree.dev.category,
-            Some(TreeSpace::Dev),
+            Some(&TreeSpace::Dev),
         );
     }
 
@@ -444,7 +444,7 @@ mod tests {
         check_tree_space_from_path(
             &config,
             &config.tree.archive.category,
-            Some(TreeSpace::Archive),
+            Some(&TreeSpace::Archive),
         );
     }
 
@@ -455,7 +455,7 @@ mod tests {
         check_tree_space_from_path(
             &config,
             &config.tree.local.category,
-            Some(TreeSpace::Local),
+            Some(&TreeSpace::Local),
         );
     }
 
@@ -557,7 +557,7 @@ mod tests {
         check_tree_space_from_path(
             &config,
             &config.tree.agent.category,
-            Some(TreeSpace::Agent),
+            Some(&TreeSpace::Agent),
         );
     }
 

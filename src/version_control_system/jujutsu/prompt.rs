@@ -97,7 +97,7 @@ fn list_bookmarks(
     bookmarks: &Bookmarks,
 ) -> Result<(), Box<dyn Error>> {
     field.push(
-        category.get_bookmark_repr(bookmark_config).display(
+        &category.get_bookmark_repr(bookmark_config).display(
             &category
                 .get_bookmarks(repo_path, bookmarks)?
                 .iter()
@@ -115,7 +115,7 @@ fn list_deleted_bookmarks(
     bookmarks: &Bookmarks,
 ) {
     prompt.push(
-        config.deleted.display(
+        &config.deleted.display(
             &bookmarks
                 .get_deleted()
                 .iter()
@@ -134,7 +134,7 @@ fn list_tags(
     tags: &Tags,
 ) -> Result<(), Box<dyn Error>> {
     field.push(
-        category.get_tag_repr(tag_config).display(
+        &category.get_tag_repr(tag_config).display(
             &category
                 .get_tags(repo_path, tags)?
                 .iter()
@@ -152,7 +152,7 @@ fn list_deleted_tags(
     tags: &Tags,
 ) {
     prompt.push(
-        config.deleted.display(
+        &config.deleted.display(
             &tags
                 .get_deleted()
                 .iter()
@@ -218,7 +218,7 @@ pub fn prompt(
             &tags,
         )?;
 
-        prompt.push(field);
+        prompt.push(&field);
 
         list_deleted_bookmarks(&prompt_config.bookmark, prompt, &bookmarks);
         list_deleted_tags(&prompt_config.tag, prompt, &tags);

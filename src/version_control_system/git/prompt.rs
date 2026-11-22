@@ -18,7 +18,7 @@ pub fn prompt(
     let config = &config.prompt.git;
 
     prompt.push(
-        config
+        &config
             .ongoing_operations
             .display(&git_status.ongoing_operations),
     );
@@ -36,10 +36,10 @@ pub fn prompt(
                 .into_iter()
                 .chain(head.branches.iter())
                 .collect();
-            field.push(config.branches.display(&branches));
-            field.push(config.tags.display(&git_status.head.tags));
+            field.push(&config.branches.display(&branches));
+            field.push(&config.tags.display(&git_status.head.tags));
             field.push(
-                if let Some(upstream_info) = &git_status.head.upstream {
+                &if let Some(upstream_info) = &git_status.head.upstream {
                     if upstream_info.gone {
                         config.upstream.gone()
                     } else if upstream_info.ahead == 0
@@ -61,18 +61,18 @@ pub fn prompt(
                     config.upstream.local()
                 },
             );
-            prompt.push(field);
+            prompt.push(&field);
         }
 
-        prompt.push(format!(
+        prompt.push(&format!(
             "{}{}",
-            config.staged.colorize(staged.display(&config.status)),
-            config.unstaged.colorize(unstaged.display(&config.status)),
+            config.staged.colorize(&staged.display(&config.status)),
+            config.unstaged.colorize(&unstaged.display(&config.status)),
         ));
     }
 
     // Submodule status.
-    prompt.push(submodules.display(&config.submodule_status));
+    prompt.push(&submodules.display(&config.submodule_status));
 
     // stash status
     if git_status.nb_stash != 0 {

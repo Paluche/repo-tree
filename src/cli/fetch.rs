@@ -76,7 +76,7 @@ pub fn fetch_repo(
 }
 
 /// Execute `rt fetch` command.
-pub fn run(ui: &Ui<'_>, config: &Config, args: FetchArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: &FetchArgs) -> i32 {
     let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
 
     let (ok, total) = repo_tree

@@ -143,7 +143,7 @@ fn get_current_repo_or_main<'repo_tree>(
             config,
             repo_tree,
             Some(repo_id),
-            ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
+            &ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
         )
     } else {
         Ok(repo_tree.get_workspace(&get_cwd(ui)))
@@ -186,11 +186,11 @@ pub async fn run() -> i32 {
 
     match args.action {
         Action::Resolve(args) => resolve::run(&ui, &config, args),
-        Action::ResolveUrl(args) => resolve_url::run(&ui, &config, args),
-        Action::List(args) => list::run(&ui, &config, args),
-        Action::Tree(args) => tree::run(&ui, &config, args),
+        Action::ResolveUrl(args) => resolve_url::run(&ui, &config, &args),
+        Action::List(args) => list::run(&ui, &config, &args),
+        Action::Tree(args) => tree::run(&ui, &config, &args),
         Action::Clean(args) => clean::run(&mut ui, &config, args).await,
-        Action::Fetch(args) => fetch::run(&ui, &config, args),
+        Action::Fetch(args) => fetch::run(&ui, &config, &args),
         Action::Todo(args) => todo::run(&mut ui, &config, args).await,
         Action::Repo(args) => repo::run(&mut ui, &config, args).await,
         Action::Workspace(args) => workspace::run(&ui, &config, args).await,

@@ -115,7 +115,7 @@ impl Display for EntryStatusDisplay<'_, '_> {
             }
         };
 
-        write!(f, "{}", color.colorize(char_repr))
+        write!(f, "{}", color.colorize(&char_repr))
     }
 }
 
@@ -213,7 +213,7 @@ impl Display for SubmoduleStatusDisplay<'_, '_> {
             ),
         };
 
-        write!(f, "{}", self.git_status_config.submodule.colorize(text))
+        write!(f, "{}", self.git_status_config.submodule.colorize(&text))
     }
 }
 
@@ -276,13 +276,13 @@ impl Display for SummarizeSubmoduleStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let color = &self.config.color;
         if self.summarize_submodule_status.commit_changed != 0 {
-            write!(f, "{}", color.colorize(self.config.commit_changed))?;
+            write!(f, "{}", color.colorize(&self.config.commit_changed))?;
         }
         if self.summarize_submodule_status.tracked_changed != 0 {
-            write!(f, "{}", color.colorize(self.config.tracked_changed))?;
+            write!(f, "{}", color.colorize(&self.config.tracked_changed))?;
         }
         if self.summarize_submodule_status.has_untracked != 0 {
-            write!(f, "{}", color.colorize(self.config.has_untracked))?;
+            write!(f, "{}", color.colorize(&self.config.has_untracked))?;
         }
 
         Ok(())
@@ -626,12 +626,12 @@ impl Display for UpstreamInfoDisplay<'_, '_> {
             upstream_config
                 .ahead
                 .color
-                .colorize(self.upstream_info.ahead),
+                .colorize(&self.upstream_info.ahead),
             upstream_config.ahead,
             upstream_config
                 .behind
                 .color
-                .colorize(self.upstream_info.behind),
+                .colorize(&self.upstream_info.behind),
             upstream_config.behind,
             upstream_config.name.colorize(&self.upstream_info.name)
         )

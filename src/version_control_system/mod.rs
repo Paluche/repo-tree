@@ -41,7 +41,7 @@ impl VersionControlSystem {
     /// Returns the path to the root of the repository, the type of version
     /// control system it is, and if the repository is a git submodule or
     /// not.
-    pub fn discover_root(path: PathBuf) -> Option<(PathBuf, Self, bool)> {
+    pub fn discover_root(path: &Path) -> Option<(PathBuf, Self, bool)> {
         // The parent of a relative path ends with an empty path, which is not
         // to be searched as the current directory.
         path.ancestors()
@@ -201,7 +201,7 @@ impl Display for VcsWorkspaceDisplayName<'_, '_> {
             self.config
                 .prompt
                 .workspace
-                .colorize(format!("{}@", self.vcs_workspace.name))
+                .colorize(&format!("{}@", self.vcs_workspace.name))
         )
     }
 }
@@ -339,7 +339,7 @@ mod tests {
         fs::create_dir_all(&sub).expect("cannot create directory");
 
         assert_eq!(
-            VersionControlSystem::discover_root(sub),
+            VersionControlSystem::discover_root(&sub),
             Some((dir.path().to_path_buf(), VersionControlSystem::Git, false))
         );
     }
@@ -351,7 +351,7 @@ mod tests {
         fs::create_dir_all(sub.join(".jj")).expect("cannot create directory");
 
         assert_eq!(
-            VersionControlSystem::discover_root(sub.join("x")),
+            VersionControlSystem::discover_root(&sub.join("x")),
             Some((sub, VersionControlSystem::Jujutsu, false))
         );
     }
@@ -362,12 +362,12 @@ mod tests {
 
         // The temporary directory itself is not inside a repository.
         if let Some((root, _, _)) =
-            VersionControlSystem::discover_root(dir.path().to_path_buf())
+            VersionControlSystem::discover_root(dir.path())
         {
             assert!(!root.starts_with(dir.path()));
         }
         assert_eq!(
-            VersionControlSystem::discover_root(PathBuf::from("relative/x")),
+            VersionControlSystem::discover_root(Path::new("relative/x")),
             None
         );
     }

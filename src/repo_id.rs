@@ -102,6 +102,7 @@ pub struct RepoId {
 
 /// Definition of the different strategies available to obtain the expected
 /// tree-space the repository should be in.
+#[derive(Clone, Copy)]
 pub enum ExpectedTreeStrategy {
     /// Lazy strategy. Do what you can with what you have access locally. In
     /// other words if if we hesitate somehow between dev and archive
