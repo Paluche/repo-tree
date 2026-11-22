@@ -98,5 +98,6 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: FetchArgs) -> i32 {
 
     println!("{ok}/{total} repository fetched");
 
-    if ok == total { 0 } else { 1 }
+    let all_fetched = ok == total;
+    i32::from(!all_fetched)
 }
