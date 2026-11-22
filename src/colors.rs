@@ -58,7 +58,7 @@ impl<'de> Deserialize<'de> for Color {
             where
                 E: serde::de::Error,
             {
-                Color::from_str(value).map_err(|_| {
+                Color::from_str(value).map_err(|()| {
                     E::custom(format!("Invalid color string: {value}"))
                 })
             }

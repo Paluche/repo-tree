@@ -57,7 +57,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: PromptArgs) -> i32 {
         .get_vcs_repo(workspace)
         .prompt(config, &mut prompt)
     {
-        Ok(_) => {
+        Ok(()) => {
             println!("{}", prompt.display(config));
             0
         }

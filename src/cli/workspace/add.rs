@@ -52,7 +52,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceAddArgs) -> i32 {
         };
 
     match repository.add_workspace_in_tree(ui, config, &args.workspace.into()) {
-        Ok(_) => (),
+        Ok(()) => (),
         Err(err) => {
             ui.error(err);
             return 1;
