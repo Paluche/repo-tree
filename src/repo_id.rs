@@ -236,8 +236,8 @@ impl RepoId {
             config: &Config,
             strategy: ExpectedTreeStrategy,
             repo_path: Option<&Path>,
-        ) -> Result<TreeSpace, Box<dyn Error>> {
-            Ok(if matches!(strategy, ExpectedTreeStrategy::ForceDev) {
+        ) -> TreeSpace {
+            if matches!(strategy, ExpectedTreeStrategy::ForceDev) {
                 TreeSpace::Dev
             } else if matches!(strategy, ExpectedTreeStrategy::ForceArchive) {
                 TreeSpace::Archive
@@ -248,7 +248,7 @@ impl RepoId {
                 }
             } else {
                 TreeSpace::Dev
-            })
+            }
         }
 
         if self.remote.is_none() {
@@ -272,13 +272,13 @@ impl RepoId {
                     },
                 )
             }
-            Ok(None) => dev_or_archive(config, strategy, repo_path),
+            Ok(None) => Ok(dev_or_archive(config, strategy, repo_path)),
             Err(err) => {
                 if let Some(err) = err.downcast_ref::<UnimplementedForgeApi>() {
                     if matches!(strategy, ExpectedTreeStrategy::Exact) {
                         ui.hint_once(err);
                     }
-                    dev_or_archive(config, strategy, repo_path)
+                    Ok(dev_or_archive(config, strategy, repo_path))
                 } else {
                     Err(err)
                 }

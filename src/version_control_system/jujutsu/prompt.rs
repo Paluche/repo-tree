@@ -113,7 +113,7 @@ fn list_deleted_bookmarks(
     config: &JujutsuBookmarkConfig,
     prompt: &mut Prompt<'_>,
     bookmarks: &Bookmarks,
-) -> Result<(), Box<dyn Error>> {
+) {
     prompt.push(
         config.deleted.display(
             &bookmarks
@@ -123,7 +123,6 @@ fn list_deleted_bookmarks(
                 .collect::<Vec<String>>(),
         ),
     );
-    Ok(())
 }
 
 /// Build the list of tags for the prompt line.
@@ -221,7 +220,7 @@ pub fn prompt(
 
         prompt.push(field);
 
-        list_deleted_bookmarks(&prompt_config.bookmark, prompt, &bookmarks)?;
+        list_deleted_bookmarks(&prompt_config.bookmark, prompt, &bookmarks);
         list_deleted_tags(&prompt_config.tag, prompt, &tags);
     }
 
