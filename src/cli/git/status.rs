@@ -107,7 +107,7 @@ fn format_repo_status(
                 .red(),
             "ongoing".red()
         ));
-    };
+    }
 
     for item in status.status {
         ret.push_str(&format!(
