@@ -174,7 +174,7 @@ fn get_candidates<'repo_tree>(
 ) -> BTreeMap<String, &'repo_tree Repository> {
     let mut ret = reduce_repo_names(ui, config, repo_tree, filter);
 
-    for (alias, repo_name) in config.command.resolve.aliases.iter() {
+    for (alias, repo_name) in &config.command.resolve.aliases {
         if let Some(repo) = ret.get(repo_name) {
             ret.insert(alias.clone(), repo);
         } else if filter.is_all() {

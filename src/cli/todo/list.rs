@@ -49,10 +49,12 @@ pub async fn run(ui: &Ui<'_>, config: &Config, args: ListArgs) -> i32 {
     let mut n_a: usize = 0;
     let mut skipped: usize = 0;
 
-    for (repository, workspace) in
-        RepoTree::load(ui, config, args.refresh_cache)
-            .filtered(ui, config, &args.hosts, &args.names, &args.trees)
-            .iter()
+    for (repository, workspace) in &RepoTree::load(
+        ui,
+        config,
+        args.refresh_cache,
+    )
+    .filtered(ui, config, &args.hosts, &args.names, &args.trees)
     {
         let remote_host_repr =
             if let Some(repr) = repository.id.remote_host_repr(config) {
