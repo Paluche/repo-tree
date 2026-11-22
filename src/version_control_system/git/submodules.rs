@@ -20,14 +20,14 @@ use crate::repo_id::Remote;
 /// Returns `None` if the relative URL goes above the root of the remote URL.
 fn resolve_url<P: AsRef<Path>>(
     main_repo_root: P,
-    main_repo_remote: &Option<Remote>,
+    main_repo_remote: Option<&Remote>,
     submodule_url: &str,
 ) -> Option<String> {
     if !(submodule_url.starts_with("./") || submodule_url.starts_with("../")) {
         return Some(submodule_url.to_string());
     }
 
-    let base = main_repo_remote.as_ref().map_or_else(
+    let base = main_repo_remote.map_or_else(
         || main_repo_root.as_ref().to_string_lossy().into_owned(),
         |remote| remote.url.clone(),
     );
@@ -132,7 +132,7 @@ fn ahead_behind(
 /// Get the submodules information.
 pub fn get<P: AsRef<Path>>(
     main_repo_root: P,
-    main_repo_remote: &Option<Remote>,
+    main_repo_remote: Option<&Remote>,
 ) -> Result<Vec<SubmoduleInfo>, Box<dyn Error>> {
     let main_repo_root = main_repo_root.as_ref().to_path_buf();
     let repo = git2::Repository::discover(&main_repo_root)?;
@@ -187,10 +187,12 @@ mod tests {
     fn resolve(remote: Option<&str>, url: &str) -> Option<String> {
         resolve_url(
             "/work/main",
-            &remote.map(|url| Remote {
-                url: url.to_string(),
-                host_url: String::new(),
-            }),
+            remote
+                .map(|url| Remote {
+                    url: url.to_string(),
+                    host_url: String::new(),
+                })
+                .as_ref(),
             url,
         )
     }

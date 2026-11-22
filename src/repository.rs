@@ -384,7 +384,7 @@ impl Repository {
         assert!(self.has_workspace(workspace));
 
         Ok(if self.vcs.is_git() {
-            git::submodules::get(workspace.path(), &self.id.remote)?
+            git::submodules::get(workspace.path(), self.id.remote.as_ref())?
         } else {
             Vec::new()
         })
