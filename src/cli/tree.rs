@@ -321,7 +321,7 @@ impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
     }
 }
 
-impl<'config, 'repo_tree> Display for RootDirectory<'config, 'repo_tree> {
+impl Display for RootDirectory<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.directory.display(
             self.config,

@@ -63,7 +63,7 @@ impl<'repo_tree> GitVcs<'repo_tree> {
     }
 }
 
-impl<'repo_tree> VcsRepository for GitVcs<'repo_tree> {
+impl VcsRepository for GitVcs<'_> {
     fn get_remote_url(
         &self,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {

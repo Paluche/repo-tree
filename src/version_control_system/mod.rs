@@ -140,7 +140,7 @@ pub struct ShortDisplay<'vcs, 'config> {
     config: &'config Config,
 }
 
-impl<'vcs, 'config> Display for ShortDisplay<'vcs, 'config> {
+impl Display for ShortDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.vcs {
             VersionControlSystem::Git => {
@@ -193,9 +193,7 @@ pub struct VcsWorkspaceDisplayName<'vcs_workspace, 'config> {
     config: &'config Config,
 }
 
-impl<'vcs_workspace, 'config> Display
-    for VcsWorkspaceDisplayName<'vcs_workspace, 'config>
-{
+impl Display for VcsWorkspaceDisplayName<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

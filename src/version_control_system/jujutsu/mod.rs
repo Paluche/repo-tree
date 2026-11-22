@@ -78,7 +78,7 @@ impl<'repo_tree> JujutsuVcs<'repo_tree> {
     }
 }
 
-impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
+impl VcsRepository for JujutsuVcs<'_> {
     fn get_remote_url(
         &self,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {

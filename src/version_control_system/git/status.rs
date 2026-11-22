@@ -85,9 +85,7 @@ pub struct EntryStatusDisplay<'entry_status, 'config> {
     staged: bool,
 }
 
-impl<'entry_status, 'config> Display
-    for EntryStatusDisplay<'entry_status, 'config>
-{
+impl Display for EntryStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let entry_config = &self.git_status_config.entry;
         let char_repr = match self.entry_status {
@@ -192,9 +190,7 @@ pub struct SubmoduleStatusDisplay<'submodule_status, 'config> {
     git_status_config: &'config GitStatusCommandConfig,
 }
 
-impl<'submodule_status, 'config> Display
-    for SubmoduleStatusDisplay<'submodule_status, 'config>
-{
+impl Display for SubmoduleStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let text = match self.submodule_status {
             SubmoduleStatus::NotASubmodule => "    ".to_string(),
@@ -276,9 +272,7 @@ pub struct SummarizeSubmoduleStatusDisplay<'submodule_status, 'config> {
     config: &'config GitSummarizeSubmoduleStatusConfig,
 }
 
-impl<'submodule_status, 'config> Display
-    for SummarizeSubmoduleStatusDisplay<'submodule_status, 'config>
-{
+impl Display for SummarizeSubmoduleStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let color = &self.config.color;
         if self.summarize_submodule_status.commit_changed != 0 {
@@ -346,9 +340,7 @@ pub struct ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
     rel_path: Option<&'rel_path str>,
 }
 
-impl<'item_status, 'config, 'cwd, 'repo_root, 'rel_path> Display
-    for ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
-{
+impl Display for ItemStatusDisplay<'_, '_, '_, '_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -551,9 +543,7 @@ pub struct SummarizeStatusDisplay<'summarize_status, 'config> {
     config: &'config GitSummarizeStatusConfig,
 }
 
-impl<'summarize_status, 'config> Display
-    for SummarizeStatusDisplay<'summarize_status, 'config>
-{
+impl Display for SummarizeStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let map = &self.summarize_status.map;
         if *map.get(&EntryStatus::Added).unwrap() != 0 {
@@ -627,9 +617,7 @@ pub struct UpstreamInfoDisplay<'upstream_info, 'config> {
     git_status_config: &'config GitStatusCommandConfig,
 }
 
-impl<'upstream_info, 'config> Display
-    for UpstreamInfoDisplay<'upstream_info, 'config>
-{
+impl Display for UpstreamInfoDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let upstream_config = &self.git_status_config.upstream;
         write!(

@@ -62,9 +62,7 @@ pub struct PromptDisplay<'prompt, 'repo, 'config> {
     config: &'config Config,
 }
 
-impl<'prompt, 'repo, 'config> Display
-    for PromptDisplay<'prompt, 'repo, 'config>
-{
+impl Display for PromptDisplay<'_, '_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

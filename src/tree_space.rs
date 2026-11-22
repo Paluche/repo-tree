@@ -39,7 +39,7 @@ pub enum TreeOrganization<'config> {
     Local(&'config Config, &'config TreeCategory),
 }
 
-impl<'config> TreeOrganization<'config> {
+impl TreeOrganization<'_> {
     /// Path to where the directory for that tree-space category is located.
     pub fn location(&self) -> PathBuf {
         let (config, tree_category) = match self {
@@ -295,7 +295,7 @@ pub struct TreeSpaceDisplay<'tree_space, 'config> {
     config: &'config Config,
 }
 
-impl<'tree_space, 'config> Display for TreeSpaceDisplay<'tree_space, 'config> {
+impl Display for TreeSpaceDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.tree_space.category(self.config).name)
     }

@@ -374,7 +374,7 @@ pub struct ColoredListDisplay<'config, 'list, T> {
     list: &'list [T],
 }
 
-impl<'config, 'list, T> Display for ColoredListDisplay<'config, 'list, T>
+impl<T> Display for ColoredListDisplay<'_, '_, T>
 where
     T: Display,
 {

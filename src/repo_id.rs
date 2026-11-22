@@ -333,7 +333,7 @@ pub struct RepoIdDisplay<'repo_id, 'config> {
     remote_host_name: Option<&'config str>,
 }
 
-impl<'repo_id, 'config> Display for RepoIdDisplay<'repo_id, 'config> {
+impl Display for RepoIdDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(name) = self.remote_host_name {
             write!(f, "{name} ")?;
