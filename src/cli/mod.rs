@@ -156,8 +156,8 @@ pub async fn run() -> i32 {
 
     // `rt gh` hands all its arguments to gh: parsing them would take gh
     // options for rt ones, such as `-R`.
-    let argv: Vec<OsString> = env::args_os().collect();
-    if argv.get(1).is_some_and(|arg| arg == "gh") {
+    let raw_args: Vec<OsString> = env::args_os().collect();
+    if raw_args.get(1).is_some_and(|arg| arg == "gh") {
         let config = match Config::load() {
             Ok(c) => c,
             Err(err) => {
@@ -165,7 +165,7 @@ pub async fn run() -> i32 {
                 return 1;
             }
         };
-        return gh::run(&Ui::new(&config), &config, &argv[2..]);
+        return gh::run(&Ui::new(&config), &config, &raw_args[2..]);
     }
 
     let args = Args::parse();

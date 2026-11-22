@@ -60,12 +60,12 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: ResolveUrlArgs) -> i32 {
         return 0;
     }
 
-    let matcher = SkimMatcherV2::default();
+    let fuzzy_matcher = SkimMatcherV2::default();
 
     let mut matches: Vec<_> = candidates
         .keys()
         .filter_map(|item| {
-            matcher
+            fuzzy_matcher
                 .fuzzy_match(item, args.repo_id.as_str())
                 .map(|score| (score, item))
         })
@@ -109,12 +109,12 @@ fn resolve_completer(current: &std::ffi::OsStr) -> Vec<CompletionCandidate> {
 
     let repo_tree = RepoTree::load_silent(&ui, &config, false);
     let candidates = get_candidates(&ui, &repo_tree, None);
-    let matcher = SkimMatcherV2::default();
+    let fuzzy_matcher = SkimMatcherV2::default();
 
     candidates
         .iter()
         .filter_map(|(item, path)| {
-            matcher.fuzzy_match(item, current).map(|_| {
+            fuzzy_matcher.fuzzy_match(item, current).map(|_| {
                 CompletionCandidate::new(item)
                     .tag(Some(StyledStr::from(format!("{}", path.display()))))
             })

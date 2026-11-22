@@ -292,12 +292,12 @@ pub fn resolve_repo<'repo_tree>(
         return Ok(repo);
     }
 
-    let matcher = SkimMatcherV2::default();
+    let fuzzy_matcher = SkimMatcherV2::default();
 
     let mut matches: Vec<_> = candidates
         .keys()
         .filter_map(|item| {
-            matcher
+            fuzzy_matcher
                 .fuzzy_match(item, &repo_id)
                 .map(|score| (score, item))
         })
@@ -419,12 +419,12 @@ pub fn resolve_completer() -> ArgValueCompleter {
         let repo_tree = RepoTree::load_silent(&ui, &config, false);
         let candidates =
             get_candidates(&ui, &config, &repo_tree, &ResolveFilter::All);
-        let matcher = SkimMatcherV2::default();
+        let fuzzy_matcher = SkimMatcherV2::default();
 
         candidates
             .keys()
             .filter_map(|item| {
-                matcher.fuzzy_match(item, current).map(|_| {
+                fuzzy_matcher.fuzzy_match(item, current).map(|_| {
                     let repository = candidates.get(item).unwrap();
 
                     CompletionCandidate::new(item)
