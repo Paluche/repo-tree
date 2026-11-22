@@ -47,9 +47,10 @@ pub fn fetch_repo(
         let root = submodule.abs_path();
         let repository = Repository::try_new(config, &root)?;
 
-        let (_ok, _total) = fetch_repo(ui, config, quiet, &repository, true)?;
-        ok += _ok;
-        total += _total;
+        let (sub_ok, sub_total) =
+            fetch_repo(ui, config, quiet, &repository, true)?;
+        ok += sub_ok;
+        total += sub_total;
     }
 
     if !quiet {
