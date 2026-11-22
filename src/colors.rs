@@ -183,9 +183,12 @@ impl Hash for Color {
                 colored::Color::BrightMagenta => 13,
                 colored::Color::BrightCyan => 14,
                 colored::Color::BrightWhite => 15,
-                colored::Color::AnsiColor(n) => 16 + n as u32,
+                colored::Color::AnsiColor(n) => 16 + u32::from(n),
                 colored::Color::TrueColor { r, g, b } => {
-                    17 + u8::MAX as u32 + r as u32 + g as u32 + b as u32
+                    17 + u32::from(u8::MAX)
+                        + u32::from(r)
+                        + u32::from(g)
+                        + u32::from(b)
                 }
             },
             None => u32::MAX,
