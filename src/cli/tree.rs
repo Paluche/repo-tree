@@ -189,14 +189,14 @@ impl<'repo_tree> Directory<'repo_tree> {
                     if let Some(workspace) = workspace {
                         format!(" {}", workspace.display_name(config))
                     } else {
-                        "".to_string()
+                        String::new()
                     },
                     if let Some(tree_space) = w.tree_space()
                         && matches!(tree_space, TreeSpace::Archive)
                     {
                         " 󰌾".red().to_string()
                     } else {
-                        "".to_string()
+                        String::new()
                     },
                 )?;
             }
@@ -326,7 +326,7 @@ impl<'config, 'repo_tree> Display for RootDirectory<'config, 'repo_tree> {
         self.directory.display(
             self.config,
             f,
-            "".to_string(),
+            String::new(),
             self.config.root.display(),
             DirState::Root,
         )

@@ -248,7 +248,7 @@ fn repository_candidate_help(
             {
                 format!(" <{}>", tree_space.display(config))
             } else {
-                "".to_string()
+                String::new()
             }
         ))
     })

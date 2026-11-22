@@ -34,7 +34,7 @@ impl CommandError {
             status.code().unwrap_or(1),
             output
                 .and_then(|o| String::from_utf8(o.stderr).ok())
-                .unwrap_or("".to_string()),
+                .unwrap_or_default(),
         )
     }
 }

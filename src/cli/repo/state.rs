@@ -63,7 +63,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: StateArgs) -> i32 {
                 .id
                 .remote
                 .as_ref()
-                .map_or("".to_string(), |r| format!(": {}", r.url))
+                .map_or(String::new(), |r| format!(": {}", r.url))
         );
         println!(
             "{} {}",
