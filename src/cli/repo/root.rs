@@ -45,7 +45,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: RootArgs) -> i32 {
     {
         print!("{}", root.display());
         if args.print_type {
-            println!("\n{}\n{}", vcs.is_git(), vcs.is_jujutsu(),);
+            println!("\n{}\n{}", vcs.is_git(), vcs.is_jujutsu());
         } else {
             println!();
         }

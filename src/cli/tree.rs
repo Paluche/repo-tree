@@ -169,7 +169,7 @@ impl<'repo_tree> Directory<'repo_tree> {
         )?;
 
         if let Some((r, w)) = &current.repository {
-            let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
+            let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix());
             // Errors cannot be reported from a Display implementation, a
             // repository whose submodules cannot be read is shown without them.
             let submodules = r.submodules(w).unwrap_or_default();
@@ -263,7 +263,7 @@ impl<'repo_tree> Directory<'repo_tree> {
                             )
                         }
                     };
-                    writeln!(f, "{prefix}{submodule_url}",)?;
+                    writeln!(f, "{prefix}{submodule_url}")?;
                 }
             }
         }
