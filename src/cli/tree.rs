@@ -13,6 +13,7 @@ use crate::repository::Repository;
 use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
 use crate::ui::Ui;
+use crate::version_control_system::git::SubmoduleInfo;
 
 /// Display a tree of your repo tree.
 #[derive(Args)]
@@ -54,6 +55,60 @@ impl DirState {
             Self::FinalSubDir => "    ",
         }
     }
+}
+
+/// Colorize an optional value, `None` being displayed in red.
+fn option_to_str(o: Option<String>, color: u8) -> ColoredString {
+    o.map_or("None".to_string().red(), |v| v.ansi_color(color))
+}
+
+/// Display the entry of a submodule: its path, the commit recorded for it
+/// with how far its checkout is from it, and its URL.
+fn display_submodule(
+    f: &mut std::fmt::Formatter<'_>,
+    prefix: &str,
+    submodule: &SubmoduleInfo,
+    dir_state: DirState,
+) -> std::fmt::Result {
+    writeln!(
+        f,
+        "{prefix}{}{}",
+        dir_state.get_dir_prefix(),
+        submodule.sub_path.display()
+    )?;
+
+    let prefix = format!(
+        "{prefix}{}{}",
+        dir_state.get_subdir_prefix(),
+        DirState::FinalSubDir.get_subdir_prefix()
+    );
+
+    let head_id = option_to_str(submodule.head.map(|o| o.to_string()), 88);
+    let checkout = if submodule.actual_head.is_none() {
+        format!(" {}", "not checked out".yellow())
+    } else if let (Some(ahead), Some(behind)) =
+        (submodule.ahead, submodule.behind)
+        && (ahead, behind) != (0, 0)
+    {
+        format!(" {}", format!("{ahead} ahead, {behind} behind").yellow())
+    } else {
+        String::new()
+    };
+    writeln!(f, "{prefix}{head_id}{checkout}")?;
+
+    let config_url = submodule.config_url.clone();
+    let resolved_url = submodule.url.clone();
+    let submodule_url = if config_url == resolved_url {
+        option_to_str(config_url, 2).to_string()
+    } else {
+        format!(
+            "{} {} {}",
+            option_to_str(config_url, 8),
+            "=>".bright_black(),
+            option_to_str(resolved_url, 2),
+        )
+    };
+    writeln!(f, "{prefix}{submodule_url}")
 }
 
 /// Directory representation.
@@ -153,10 +208,6 @@ impl<'repo_tree> Directory<'repo_tree> {
         name: T,
         dir_state: DirState,
     ) -> std::fmt::Result {
-        fn option_to_str(o: Option<String>, color: u8) -> ColoredString {
-            o.map_or("None".to_string().red(), |v| v.ansi_color(color))
-        }
-
         let mut current = self;
         let mut current_dir = name.to_string();
         while current.children.len() == 1 {
@@ -213,53 +264,7 @@ impl<'repo_tree> Directory<'repo_tree> {
                     } else {
                         DirState::SubDir
                     };
-                    writeln!(
-                        f,
-                        "{prefix}{}{}",
-                        dir_state.get_dir_prefix(),
-                        submodule.sub_path.display()
-                    )?;
-
-                    let prefix = format!(
-                        "{prefix}{}{}",
-                        dir_state.get_subdir_prefix(),
-                        DirState::FinalSubDir.get_subdir_prefix()
-                    );
-
-                    let head_id = option_to_str(
-                        submodule.head.map(|o| o.to_string()),
-                        88,
-                    );
-                    let checkout = if submodule.actual_head.is_none() {
-                        format!(" {}", "not checked out".yellow())
-                    } else if let (Some(ahead), Some(behind)) =
-                        (submodule.ahead, submodule.behind)
-                        && (ahead, behind) != (0, 0)
-                    {
-                        format!(
-                            " {}",
-                            format!("{ahead} ahead, {behind} behind").yellow()
-                        )
-                    } else {
-                        String::new()
-                    };
-                    writeln!(f, "{prefix}{head_id}{checkout}")?;
-                    let submodule_url = {
-                        let config_url = submodule.config_url.clone();
-                        let resolved_url = submodule.url.clone();
-
-                        if config_url == resolved_url {
-                            option_to_str(config_url, 2).to_string()
-                        } else {
-                            format!(
-                                "{} {} {}",
-                                option_to_str(config_url, 8),
-                                "=>".bright_black(),
-                                option_to_str(resolved_url, 2),
-                            )
-                        }
-                    };
-                    writeln!(f, "{prefix}{submodule_url}")?;
+                    display_submodule(f, &prefix, submodule, dir_state)?;
                 }
             }
         }
