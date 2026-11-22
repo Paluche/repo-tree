@@ -232,10 +232,6 @@ impl RepoId {
         strategy: ExpectedTreeStrategy,
         forge_api: Result<Option<Box<dyn ForgeApi>>, Box<dyn Error>>,
     ) -> Result<TreeSpace, Box<dyn Error>> {
-        if self.remote.is_none() {
-            return Ok(TreeSpace::Local);
-        }
-
         fn dev_or_archive(
             config: &Config,
             strategy: ExpectedTreeStrategy,
@@ -253,6 +249,10 @@ impl RepoId {
             } else {
                 TreeSpace::Dev
             })
+        }
+
+        if self.remote.is_none() {
+            return Ok(TreeSpace::Local);
         }
 
         match forge_api {

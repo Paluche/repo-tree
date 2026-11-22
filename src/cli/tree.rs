@@ -152,6 +152,10 @@ impl<'repo_tree> Directory<'repo_tree> {
         name: T,
         dir_state: DirState,
     ) -> std::fmt::Result {
+        fn option_to_str(o: Option<String>, color: u8) -> ColoredString {
+            o.map_or("None".to_string().red(), |v| v.ansi_color(color))
+        }
+
         let mut current = self;
         let mut current_dir = name.to_string();
         while current.children.len() == 1 {
@@ -220,15 +224,6 @@ impl<'repo_tree> Directory<'repo_tree> {
                         dir_state.get_subdir_prefix(),
                         DirState::FinalSubDir.get_subdir_prefix()
                     );
-
-                    fn option_to_str(
-                        o: Option<String>,
-                        color: u8,
-                    ) -> ColoredString {
-                        o.map_or("None".to_string().red(), |v| {
-                            v.ansi_color(color)
-                        })
-                    }
 
                     let head_id = option_to_str(
                         submodule.head.map(|o| o.to_string()),

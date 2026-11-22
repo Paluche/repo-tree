@@ -342,20 +342,6 @@ pub struct ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
 
 impl Display for ItemStatusDisplay<'_, '_, '_, '_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{} {} ",
-            self.item_status
-                .staged
-                .display(self.git_status_config, true),
-            self.item_status
-                .unstaged
-                .display(self.git_status_config, false),
-            self.item_status
-                .submodule_status
-                .display(self.git_status_config),
-        )?;
-
         fn format_path(
             cwd: &Path,
             repo_root: &Path,
@@ -370,6 +356,20 @@ impl Display for ItemStatusDisplay<'_, '_, '_, '_, '_> {
 
             diff_paths(&ret, cwd).unwrap_or(ret).display().to_string()
         }
+
+        write!(
+            f,
+            "{}{} {} ",
+            self.item_status
+                .staged
+                .display(self.git_status_config, true),
+            self.item_status
+                .unstaged
+                .display(self.git_status_config, false),
+            self.item_status
+                .submodule_status
+                .display(self.git_status_config),
+        )?;
 
         if let Some(orig_path) = &self.item_status.orig_path {
             write!(
