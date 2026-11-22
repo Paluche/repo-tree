@@ -35,7 +35,7 @@ enum ReferenceCategory {
 impl ReferenceCategory {
     /// Get the bookmarks associated with the current category.
     fn get_bookmarks<'bookmarks>(
-        &self,
+        self,
         repo_path: &Path,
         bookmarks: &'bookmarks Bookmarks,
     ) -> Result<Vec<&'bookmarks Bookmark>, Box<dyn Error>> {
@@ -49,10 +49,10 @@ impl ReferenceCategory {
     }
 
     /// Get short representation logo to represent this category of bookmarks.
-    fn get_bookmark_repr<'config>(
-        &self,
-        bookmark_config: &'config JujutsuBookmarkConfig,
-    ) -> &'config ColoredList {
+    fn get_bookmark_repr(
+        self,
+        bookmark_config: &JujutsuBookmarkConfig,
+    ) -> &ColoredList {
         match self {
             Self::Current => &bookmark_config.current,
             Self::Parent => &bookmark_config.parent,
@@ -62,7 +62,7 @@ impl ReferenceCategory {
 
     /// Get the tags associated with the current category.
     fn get_tags<'tags>(
-        &self,
+        self,
         repo_path: &Path,
         tags: &'tags Tags,
     ) -> Result<Vec<&'tags Tag>, Box<dyn Error>> {
@@ -76,10 +76,7 @@ impl ReferenceCategory {
     }
 
     /// Get short representation logo to represent this category of tags.
-    fn get_tag_repr<'config>(
-        &self,
-        tag_config: &'config JujutsuTagConfig,
-    ) -> &'config ColoredList {
+    fn get_tag_repr(self, tag_config: &JujutsuTagConfig) -> &ColoredList {
         match self {
             Self::Current => &tag_config.current,
             Self::Parent => &tag_config.parent,
