@@ -183,7 +183,8 @@ None
   and `color` of a colored text can now each be omitted.
 - **todo**: `rt todo next` now goes forward in the list of repositories and
   `rt todo prev` backward, from inside a repository as from outside of it. Both
-  no longer hang when the current repository is not in the filtered list.
+  no longer hang when the current repository is not in the filtered list, and
+  never propose the current repository, including from one of its workspaces.
 - **errors**: The errors about a repository in an unexpected tree-space and
   about a directory which is not a repository now name the tree-space and the
   directory instead of repeating the repository or the version control system.

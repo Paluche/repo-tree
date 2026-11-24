@@ -68,6 +68,12 @@ pub async fn run(
     };
 
     let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
+    // The repository of the tree for the current directory, to start from.
+    let current_repository = current_repository.as_ref().and_then(|r| {
+        repo_tree
+            .get_workspace(r.get_latest_workspace().path())
+            .map(|(repository, _)| repository)
+    });
 
     // Skip the current repository.
     for repository in into_iter_from(
@@ -76,7 +82,7 @@ pub async fn run(
             .into_iter()
             .map(|(r, _)| r)
             .collect::<Vec<&Repository>>(),
-        current_repository.as_ref(),
+        current_repository,
         reverse,
     ) {
         if repository.id.is_local() {
