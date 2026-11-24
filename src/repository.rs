@@ -415,3 +415,154 @@ impl Repository {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+
+    /// Configuration whose root is a new temporary directory.
+    fn config() -> (tempfile::TempDir, Config) {
+        let dir = tempfile::tempdir().expect("cannot create directory");
+        let mut config = Config::test_default();
+        config.root = dir.path().to_path_buf();
+        (dir, config)
+    }
+
+    /// Create the directories `paths` in the root of `config`.
+    fn create_dirs(config: &Config, paths: &[&str]) {
+        for path in paths {
+            fs::create_dir_all(config.root.join(path))
+                .expect("cannot create directory");
+        }
+    }
+
+    #[test]
+    fn rm_removes_empty_parents_up_to_the_tree_space() {
+        let (_dir, config) = config();
+        create_dirs(&config, &["agent/test/owner/repo/src", "agent/other"]);
+        let workspace = Workspace::Tree(
+            TreeSpace::Agent,
+            config.root.join("agent/test/owner/repo"),
+        );
+
+        workspace.rm(&config).expect("removable workspace");
+
+        assert!(!config.root.join("agent/test").exists());
+        assert!(config.root.join("agent/other").is_dir());
+    }
+
+    #[test]
+    fn rm_keeps_the_tree_space_directory() {
+        let (_dir, config) = config();
+        create_dirs(&config, &["agent/test/owner/repo"]);
+        let workspace = Workspace::Tree(
+            TreeSpace::Agent,
+            config.root.join("agent/test/owner/repo"),
+        );
+
+        workspace.rm(&config).expect("removable workspace");
+
+        assert!(config.root.join("agent").is_dir());
+        assert!(!config.root.join("agent/test").exists());
+    }
+
+    #[test]
+    fn rm_stops_at_the_first_non_empty_parent() {
+        let (_dir, config) = config();
+        create_dirs(&config, &["dev/test/owner/repo", "dev/test/owner/other"]);
+        let workspace = Workspace::Tree(
+            TreeSpace::Dev,
+            config.root.join("dev/test/owner/repo"),
+        );
+
+        workspace.rm(&config).expect("removable workspace");
+
+        assert!(!config.root.join("dev/test/owner/repo").exists());
+        assert!(config.root.join("dev/test/owner/other").is_dir());
+    }
+
+    #[test]
+    fn rm_outside_the_tree_removes_only_the_workspace() {
+        let (dir, config) = config();
+        let outside = tempfile::tempdir().expect("cannot create directory");
+        let path = outside.path().join("parent/repo");
+        fs::create_dir_all(&path).expect("cannot create directory");
+
+        Workspace::Other(path.clone())
+            .rm(&config)
+            .expect("removable");
+
+        assert!(!path.exists());
+        assert!(outside.path().join("parent").is_dir());
+        assert!(dir.path().is_dir());
+    }
+
+    #[test]
+    fn rm_of_missing_workspace_fails() {
+        let (_dir, config) = config();
+        let workspace = Workspace::Tree(
+            TreeSpace::Dev,
+            config.root.join("dev/test/missing"),
+        );
+
+        assert!(workspace.rm(&config).is_err());
+    }
+
+    /// Repository with workspaces in `tree_spaces`.
+    fn repository(tree_spaces: &[TreeSpace]) -> Repository {
+        Repository::for_test(
+            RepoId::from_remote_url("https://test.com/o/r").expect("valid URL"),
+            VersionControlSystem::Git,
+            tree_spaces
+                .iter()
+                .map(|t| {
+                    Workspace::Tree(t.clone(), PathBuf::from(format!("/{t:?}")))
+                })
+                .collect(),
+        )
+    }
+
+    #[test]
+    fn main_and_tree_workspaces() {
+        let config = Config::test_default();
+        let ui = Ui::new(&config);
+        let repository = repository(&[TreeSpace::Agent, TreeSpace::Dev]);
+
+        assert_eq!(
+            repository.get_main_workspace(&ui).tree_space(),
+            Some(&TreeSpace::Dev)
+        );
+        assert_eq!(
+            repository
+                .get_tree_workspace(&ui, &TreeSpace::Agent)
+                .and_then(Workspace::tree_space),
+            Some(&TreeSpace::Agent)
+        );
+        assert!(
+            repository
+                .get_tree_workspace(&ui, &TreeSpace::Archive)
+                .is_none()
+        );
+        assert_eq!(
+            repository.get_latest_workspace().tree_space(),
+            Some(&TreeSpace::Dev)
+        );
+    }
+
+    #[test]
+    fn main_workspace_without_main_tree_space_falls_back_to_the_first() {
+        let config = Config::test_default();
+        let ui = Ui::new(&config);
+        let mut repository = repository(&[TreeSpace::Agent]);
+        repository
+            .workspaces
+            .push(Workspace::Tree(TreeSpace::Agent, PathBuf::from("/other")));
+
+        assert_eq!(
+            repository.get_main_workspace(&ui).path(),
+            &PathBuf::from("/Agent")
+        );
+    }
+}

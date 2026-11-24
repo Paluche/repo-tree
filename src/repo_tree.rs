@@ -452,3 +452,316 @@ impl RepoTree {
         Self { repositories }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+    use crate::repo_id::RepoId;
+    use crate::version_control_system::VersionControlSystem;
+
+    /// Temporary repo tree, with the test configuration.
+    struct Tree {
+        /// Temporary directory of the tree.
+        _dir: tempfile::TempDir,
+        /// Configuration whose root is the temporary directory.
+        config: Config,
+    }
+
+    impl Tree {
+        /// Create an empty repo tree.
+        fn new() -> Self {
+            let dir = tempfile::tempdir().expect("cannot create directory");
+            let mut config = Config::test_default();
+            config.root = dir.path().canonicalize().expect("canonical path");
+            Self { _dir: dir, config }
+        }
+
+        /// Path of `path` in the tree.
+        fn path(&self, path: &str) -> PathBuf {
+            self.config.root.join(path)
+        }
+
+        /// Create a Git repository at `path` in the tree, with an `origin`
+        /// remote if `url` is set.
+        fn git_repo(&self, path: &str, url: Option<&str>) -> PathBuf {
+            let path = self.path(path);
+            let repo = git2::Repository::init(&path)
+                .expect("cannot create repository");
+            if let Some(url) = url {
+                repo.remote("origin", url).expect("cannot add remote");
+            }
+            path
+        }
+
+        /// Search the repositories of the tree.
+        fn search(&self) -> (Vec<Repository>, Vec<PathBuf>) {
+            search(&Ui::new(&self.config), &self.config)
+        }
+    }
+
+    #[test]
+    fn search_finds_repositories_of_every_tree_space() {
+        let tree = Tree::new();
+        let bar =
+            tree.git_repo("dev/test/foo/bar", Some("https://test.com/foo/bar"));
+        let old =
+            tree.git_repo("archive/test/foo/old", Some("git@test.com:foo/old"));
+        let project = tree.git_repo("local/project", None);
+        let agent = tree
+            .git_repo("agent/test/foo/bar", Some("https://test.com/foo/bar"));
+
+        let (mut repositories, empty_dirs) = tree.search();
+        repositories.sort_by(|a, b| a.id.name.cmp(&b.id.name));
+
+        assert_eq!(empty_dirs, Vec::<PathBuf>::new());
+        let summary: Vec<(String, Vec<Workspace>)> = repositories
+            .iter()
+            .map(|r| (r.id.name.clone(), r.workspaces.clone()))
+            .collect();
+        assert_eq!(
+            summary,
+            [
+                (
+                    "foo/bar".to_string(),
+                    vec![
+                        Workspace::Tree(TreeSpace::Dev, bar),
+                        Workspace::Tree(TreeSpace::Agent, agent),
+                    ]
+                ),
+                (
+                    "foo/old".to_string(),
+                    vec![Workspace::Tree(TreeSpace::Archive, old)]
+                ),
+                (
+                    "project".to_string(),
+                    vec![Workspace::Tree(TreeSpace::Local, project)]
+                ),
+            ]
+        );
+        assert!(
+            repositories
+                .iter()
+                .all(|r| r.vcs == VersionControlSystem::Git)
+        );
+    }
+
+    #[test]
+    fn search_reports_empty_directories() {
+        let tree = Tree::new();
+        tree.git_repo("dev/test/foo/bar", Some("https://test.com/foo/bar"));
+        fs::create_dir_all(tree.path("dev/test/empty/nested"))
+            .expect("cannot create directory");
+        fs::create_dir_all(tree.path("archive")).expect("cannot create dir");
+
+        let (_, mut empty_dirs) = tree.search();
+        empty_dirs.sort();
+
+        assert_eq!(
+            empty_dirs,
+            [tree.path("archive"), tree.path("dev/test/empty/nested")]
+        );
+    }
+
+    #[test]
+    fn search_does_not_explore_unloadable_repositories() {
+        let tree = Tree::new();
+        // The remote URL cannot be parsed.
+        let broken = tree.git_repo("dev/test/broken", Some("not a url"));
+        fs::create_dir_all(broken.join("empty")).expect("cannot create dir");
+
+        let (repositories, empty_dirs) = tree.search();
+
+        assert_eq!(repositories, []);
+        assert!(
+            empty_dirs.iter().all(|dir| !dir.starts_with(&broken)),
+            "{empty_dirs:?}"
+        );
+    }
+
+    #[test]
+    fn search_ignores_workspace_without_main_repository() {
+        let tree = Tree::new();
+        tree.git_repo(
+            "agent/test/foo/orphan",
+            Some("https://test.com/foo/orphan"),
+        );
+
+        let (repositories, _) = tree.search();
+
+        assert_eq!(repositories, []);
+    }
+
+    #[test]
+    fn search_without_root_finds_nothing() {
+        let mut tree = Tree::new();
+        tree.config.root = tree.path("missing");
+
+        let (repositories, empty_dirs) = tree.search();
+
+        assert_eq!(repositories, []);
+        assert_eq!(empty_dirs, Vec::<PathBuf>::new());
+    }
+
+    #[test]
+    fn repository_is_modified_when_a_workspace_is_removed() {
+        let tree = Tree::new();
+        let path = tree.git_repo("local/project", None);
+        let repository =
+            Repository::try_new(&tree.config, &path).expect("valid repository");
+        assert!(!repository.has_been_modified());
+
+        fs::remove_dir_all(&path).expect("cannot remove repository");
+
+        assert!(repository.has_been_modified());
+    }
+
+    #[test]
+    fn repository_is_modified_when_its_remote_changes() {
+        let tree = Tree::new();
+        let path = tree.git_repo("local/project", None);
+        let repository =
+            Repository::try_new(&tree.config, &path).expect("valid repository");
+        let config = fs::File::options()
+            .append(true)
+            .open(path.join(".git/config"))
+            .expect("cannot open configuration");
+        config
+            .set_modified(
+                std::time::SystemTime::now()
+                    + std::time::Duration::from_secs(5),
+            )
+            .expect("cannot set modification time");
+
+        assert!(repository.has_been_modified());
+    }
+
+    #[test]
+    fn cache_round_trips() {
+        let tree = Tree::new();
+        tree.git_repo("dev/test/foo/bar", Some("https://test.com/foo/bar"));
+        tree.git_repo("agent/test/foo/bar", Some("https://test.com/foo/bar"));
+        tree.git_repo("local/project", None);
+        let repo_tree = RepoTree::from_repositories(tree.search().0);
+
+        let serialized = toml::to_string(&repo_tree).expect("serializable");
+        let loaded: RepoTree =
+            toml::from_str(&serialized).expect("valid cache");
+
+        assert_eq!(loaded.repositories, repo_tree.repositories);
+    }
+
+    #[test]
+    fn cache_file_location() {
+        let path = |xdg: Option<&str>, home: Option<&str>| {
+            cache_file_from(xdg.map(Into::into), home.map(Into::into))
+                .ok()
+                .map(|p| p.display().to_string())
+        };
+
+        assert_eq!(
+            path(Some("/xdg"), Some("/home/u")).as_deref(),
+            Some("/xdg/repo-tree/repo-tree.toml")
+        );
+        assert_eq!(
+            path(None, Some("/home/u")).as_deref(),
+            Some("/home/u/.cache/repo-tree/repo-tree.toml")
+        );
+        assert_eq!(
+            path(Some("relative"), Some("/home/u")).as_deref(),
+            Some("/home/u/.cache/repo-tree/repo-tree.toml")
+        );
+        assert_eq!(path(None, None), None);
+        assert_eq!(path(Some(""), Some("")), None);
+    }
+
+    /// Repository of the `test.com` host named `name`, with a workspace in
+    /// each of `tree_spaces`.
+    fn repo(name: &str, tree_spaces: &[TreeSpace]) -> Repository {
+        let id = RepoId::from_remote_url(&format!("https://test.com/{name}"))
+            .expect("valid URL");
+        Repository::for_test(
+            id,
+            VersionControlSystem::Git,
+            tree_spaces
+                .iter()
+                .map(|t| {
+                    Workspace::Tree(
+                        t.clone(),
+                        PathBuf::from(format!("/{t:?}/{name}")),
+                    )
+                })
+                .collect(),
+        )
+    }
+
+    /// Workspaces of the test tree matching the filters.
+    fn filtered(hosts: &[&str], names: &[&str], trees: &[&str]) -> Vec<String> {
+        let config = Config::test_default();
+        let ui = Ui::new(&config);
+        let mut local = repo("x", &[TreeSpace::Local]);
+        local.id.remote = None;
+        local.id.name = "local-project".into();
+        let repo_tree = RepoTree::from_repositories(vec![
+            repo("owner/a", &[TreeSpace::Dev, TreeSpace::Agent]),
+            repo("owner/b", &[TreeSpace::Archive]),
+            repo("other/c", &[TreeSpace::Dev]),
+            local,
+        ]);
+        let globs = |patterns: &[&str]| -> Vec<Glob> {
+            patterns
+                .iter()
+                .map(|p| Glob::new(p).expect("valid glob"))
+                .collect()
+        };
+
+        repo_tree
+            .filtered(&ui, &config, &globs(hosts), &globs(names), &globs(trees))
+            .into_iter()
+            .map(|(_, w)| w.path().display().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn filter_workspaces() {
+        assert_eq!(filtered(&[], &[], &[]).len(), 5);
+        assert_eq!(
+            filtered(&["test"], &[], &[]),
+            [
+                "/Dev/owner/a",
+                "/Agent/owner/a",
+                "/Archive/owner/b",
+                "/Dev/other/c"
+            ]
+        );
+        assert_eq!(filtered(&["git*"], &[], &[]), Vec::<String>::new());
+        assert_eq!(
+            filtered(&[], &["owner/*"], &[]),
+            ["/Dev/owner/a", "/Agent/owner/a", "/Archive/owner/b"]
+        );
+        assert_eq!(
+            filtered(&[], &[], &["archive", "local"]),
+            ["/Archive/owner/b", "/Local/x"]
+        );
+        assert_eq!(
+            filtered(&[], &["*/a", "*/c"], &["dev"]),
+            ["/Dev/owner/a", "/Dev/other/c"]
+        );
+    }
+
+    #[test]
+    fn get_workspace_by_path() {
+        let repo_tree = RepoTree::from_repositories(vec![repo(
+            "owner/a",
+            &[TreeSpace::Dev, TreeSpace::Agent],
+        )]);
+
+        let (repository, workspace) = repo_tree
+            .get_workspace(Path::new("/Agent/owner/a"))
+            .expect("known workspace");
+        assert_eq!(repository.id.name, "owner/a");
+        assert_eq!(workspace.tree_space(), Some(&TreeSpace::Agent));
+        assert!(repo_tree.get_workspace(Path::new("/Agent/owner")).is_none());
+    }
+}
