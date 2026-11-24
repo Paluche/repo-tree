@@ -9,6 +9,7 @@ use crate::colors::ColoredText;
 
 /// Configuration for the different tree spaces.
 #[derive(Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct TreeSpaceConfig {
     /// Configuration for active / in development repositories tree-space.
     #[serde(default)]

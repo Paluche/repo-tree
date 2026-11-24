@@ -100,6 +100,9 @@ None
   `REPO_TREE_DIR`, is now reported as an error instead of making `rt` crash.
   An empty or relative `XDG_CONFIG_HOME` is ignored, as required by the XDG
   Base Directory specification.
+- **config**: Every configuration table can now be partially written, the
+  missing values take their default value. For instance a `[repository]`
+  table with only `ignore` was rejected.
 - **config**: A color given as an array with other than 3 values is now
   reported as a configuration error instead of making `rt` crash. The `text`
   and `color` of a colored text can now each be omitted.

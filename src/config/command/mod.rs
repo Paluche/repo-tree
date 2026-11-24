@@ -13,6 +13,7 @@ pub use todo::TodoCommandConfig;
 
 /// Configuration for `rt` commands.
 #[derive(Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct CommandConfig {
     /// Configuration for `rt clone`.
     #[serde(default)]

@@ -16,8 +16,10 @@ pub fn default_vcs_prompt() -> ColoredText {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct RemoteReferenceConfig {
     /// Which color to use for the name of the reference.
+    #[serde(default)]
     name: Color,
     /// Which color to use for the name of the remote.
+    #[serde(default)]
     remote: Color,
 }
 
@@ -35,6 +37,7 @@ impl RemoteReferenceConfig {
 
 /// Configuration for the Jujutsu bookmarks prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct JujutsuBookmarkConfig {
     /// How to color local bookmarks
     #[serde(default = "JujutsuBookmarkConfig::default_local")]
@@ -114,6 +117,7 @@ impl Default for JujutsuBookmarkConfig {
 
 /// Configuration for the Jujutsu tags prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct JujutsuTagConfig {
     /// How to color local tags.
     #[serde(default = "JujutsuTagConfig::default_local")]
@@ -191,6 +195,7 @@ impl Default for JujutsuTagConfig {
 
 /// Configuration for the Jujutsu prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct JujutsuPromptConfig {
     /// Color to use to print local bookmarks
     /// Configuration for the Jujutsu bookmarks prompt.

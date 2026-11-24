@@ -16,6 +16,7 @@ use crate::colors::ColoredText;
 
 /// Configuration to representing a version control system.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct VcsPromptConfig {
     /// Git Version Control System representation.
     #[serde(default = "git::default_vcs_prompt")]
@@ -36,6 +37,7 @@ impl Default for VcsPromptConfig {
 
 /// Configuration to customize the prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct PromptConfig {
     /// Prefix to put in front of the prompt fields.
     #[serde(default = "PromptConfig::default_prefix")]

@@ -8,6 +8,7 @@ use crate::colors::ColoredText;
 
 /// How to display the upstream information in the git status.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GitUpstreamStatusConfig {
     /// Text to use to represent the number of commits ahead the local branch
     /// is relative to its upstream.
@@ -49,6 +50,7 @@ impl Default for GitUpstreamStatusConfig {
 
 /// How to display the git status entries.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GitStatusEntryConfig {
     /// Entry is not modified.
     #[serde(default = "GitStatusEntryConfig::default_unmodified")]
@@ -144,6 +146,7 @@ impl Default for GitStatusEntryConfig {
 
 /// Configuration for the `rt git status` command.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GitStatusCommandConfig {
     /// How to display the upstream information in the git status.
     pub upstream: GitUpstreamStatusConfig,

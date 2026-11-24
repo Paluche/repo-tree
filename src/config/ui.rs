@@ -8,6 +8,7 @@ use crate::colors::ColoredText;
 
 /// Configuration for the user interface.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(default)]
 pub struct UiConfig {
     /// Prefix for hint logs.
     #[serde(default = "UiConfig::default_hint")]

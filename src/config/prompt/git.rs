@@ -14,6 +14,7 @@ pub fn default_vcs_prompt() -> ColoredText {
 
 /// How to display the upstream information.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GitUpstreamConfig {
     /// Representation to display when the upstream associated with the current
     /// branch is gone.
@@ -128,6 +129,7 @@ impl Default for GitUpstreamConfig {
 
 /// Configuration for the Git repository status summary in the prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GitSummarizeStatusConfig {
     /// Representation that shows that the repository has at least one new file
     /// added.
@@ -206,6 +208,7 @@ impl Default for GitSummarizeStatusConfig {
 
 /// Configuration for the Git repository submodule status summary in the prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GitSummarizeSubmoduleStatusConfig {
     /// Color to use to display the submodule status.
     #[serde(default = "GitSummarizeSubmoduleStatusConfig::default_color")]
@@ -262,6 +265,7 @@ impl Default for GitSummarizeSubmoduleStatusConfig {
 
 /// Configuration for the Git prompt.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct GitPromptConfig {
     /// How to display the list of ongoing operations.
     #[serde(default = "GitPromptConfig::default_ongoing_operations")]

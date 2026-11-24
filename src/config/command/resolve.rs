@@ -7,6 +7,7 @@ use serde::Serialize;
 
 /// Configuration for the `rt resolve` command.
 #[derive(Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct ResolveCommandConfig {
     /// Resolution aliases.
     #[serde(default)]

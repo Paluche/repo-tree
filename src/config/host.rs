@@ -84,6 +84,7 @@ pub fn default_remote_hosts() -> RemoteHosts {
 /// Configuration when having to handle an unknown host (unknown from the
 /// configuration).
 #[derive(Deserialize, Serialize, Hash, PartialEq, Debug)]
+#[serde(default)]
 pub struct UnknownHost {
     /// Short representation to use if the host is unknown.
     #[serde(default = "UnknownHost::default_repr")]

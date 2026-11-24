@@ -8,6 +8,7 @@ use serde::Serialize;
 
 /// Configuration regarding allowed repository locations.
 #[derive(Serialize, Deserialize, Hash, PartialEq)]
+#[serde(default)]
 pub struct RepositoryLocation {
     /// List of glob patterns, any repositories path matching one of the
     /// defined pattern will be allowed to live outside the repo tree. No

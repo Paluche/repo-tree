@@ -7,6 +7,7 @@ use crate::version_control_system::VersionControlSystem;
 
 /// Configuration for the `rt clone` command.
 #[derive(Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct CloneCommandConfig {
     /// Default version control system to use to clone a repository in the repo
     /// tree.

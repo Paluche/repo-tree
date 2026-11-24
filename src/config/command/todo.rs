@@ -5,6 +5,7 @@ use serde::Serialize;
 
 /// Configuration for the `rt todo` command.
 #[derive(Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct TodoCommandConfig {
     /// List of ID of repositories to be ignored by the command.
     #[serde(default)]
