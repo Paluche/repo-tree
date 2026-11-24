@@ -42,7 +42,9 @@ pub fn get_repo_dir(jj_dir: &Path) -> io::Result<PathBuf> {
 
     Ok(if repo_dir.is_file() {
         // jj workspace.
-        jj_dir.join(read_to_string(repo_dir)?).canonicalize()?
+        jj_dir
+            .join(read_to_string(repo_dir)?.trim_end_matches('\n'))
+            .canonicalize()?
     } else {
         repo_dir
     })
