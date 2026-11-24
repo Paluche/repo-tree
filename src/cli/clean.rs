@@ -81,6 +81,8 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
         }
     }
 
+    // Removing empty directories may leave their parent empty, search again
+    // until there is no more empty directories, or a removal failed.
     let mut first = true;
     loop {
         // Force the cache to be refreshed at the same time as loading the empty
@@ -105,13 +107,17 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
             break;
         }
 
+        let mut failed = false;
         for empty_dir in empty_dirs {
             println!("Removing empty directory: {}", empty_dir.display());
-            if let Err(err) = remove_dir(empty_dir) {
+            if let Err(err) = remove_dir(&empty_dir) {
                 ui.error(err);
-                ret = 1;
-                break;
+                failed = true;
             }
+        }
+        if failed {
+            ret = 1;
+            break;
         }
     }
 

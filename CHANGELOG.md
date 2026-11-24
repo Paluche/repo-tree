@@ -97,7 +97,8 @@ None
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
 - **clean**: `rt clean --dry-run` no longer loops forever when there are empty
-  directories, it lists them as to be removed.
+  directories, it lists them as to be removed. `rt clean` stops with an error
+  when an empty directory cannot be removed, instead of looping forever.
 - **cache**: The cache is now located in `XDG_CACHE_HOME` when it is set, and
   is written atomically so that a concurrent `rt` never reads a partial cache.
   The first run no longer reports an error about the missing cache.
