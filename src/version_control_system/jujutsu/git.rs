@@ -37,20 +37,24 @@ pub fn get_remote_url(
 
 /// Get the configured remotes of the repository.
 pub fn get_remotes(repo_path: &Path) -> Result<Vec<VcsRemote>, Box<dyn Error>> {
-    Ok(JujutsuCommand::repo(repo_path)?
+    JujutsuCommand::repo(repo_path)?
         .arg("git")
         .arg("remote")
         .arg("list")
         .output_lines()?
         .iter()
-        .map(|l| {
-            let mut parts = l.split(' ');
-            VcsRemote {
-                name: parts.next().unwrap().to_string(),
-                url: parts.next().unwrap().to_string(),
-            }
+        .map(|line| {
+            let (name, url) = line.split_once(' ').ok_or_else(|| {
+                format!(
+                    "Unexpected line in jj git remote list output: {line:?}"
+                )
+            })?;
+            Ok(VcsRemote {
+                name: name.to_string(),
+                url: url.to_string(),
+            })
         })
-        .collect())
+        .collect()
 }
 
 /// Clone a Jujutsu repository.

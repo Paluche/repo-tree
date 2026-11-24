@@ -99,6 +99,8 @@ None
 - **jj prompt**: In a repository colocated with Git, a bookmark existing only
   locally is displayed as local, instead of as tracked by the `git` pseudo
   remote.
+- **jj**: An unexpected output of `jj git remote list` or `jj workspace list`
+  is reported as an error instead of making `rt` crash.
 - **repository**: Looking for the repository of a relative path, as done by
   `rt insert`, no longer ends up with the repository of the current directory
   when the path is not inside a repository.

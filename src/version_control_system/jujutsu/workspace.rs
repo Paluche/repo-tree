@@ -15,20 +15,23 @@ pub const DEFAULT_WORKSPACE: &str = "default";
 pub fn list_workspaces(
     repo_path: &Path,
 ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
-    Ok(JujutsuCommand::repo(repo_path)?
+    JujutsuCommand::repo(repo_path)?
         .arg("workspace")
         .arg("list")
         .arg("--template")
         .arg(r#"name ++ "\t" ++ root ++ "\n""#)
         .output_lines()?
         .iter()
-        .map(|l| {
-            let mut parts = l.split("\t");
-            let name = parts.next().unwrap().to_string();
-            let path = PathBuf::from(parts.next().unwrap());
-            VcsWorkspace { name, path }
+        .map(|line| {
+            let (name, path) = line.split_once('\t').ok_or_else(|| {
+                format!("Unexpected line in jj workspace list output: {line:?}")
+            })?;
+            Ok(VcsWorkspace {
+                name: name.to_string(),
+                path: PathBuf::from(path),
+            })
         })
-        .collect())
+        .collect()
 }
 
 /// Add a new workspace.
