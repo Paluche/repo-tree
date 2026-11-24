@@ -19,6 +19,10 @@ fn serialized(config: &Config) -> String {
 }
 
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "inline snapshot of the whole default configuration"
+)]
 fn default_config() -> Result<(), Box<dyn Error>> {
     let config = load("")?;
 

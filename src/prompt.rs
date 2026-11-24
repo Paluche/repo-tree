@@ -32,13 +32,13 @@ impl<'repo> Prompt<'repo> {
     }
 
     /// Extend the prompt line with a string.
-    pub fn push<S>(&mut self, string: S)
+    pub fn push<S>(&mut self, string: &S)
     where
-        S: ToString,
+        S: ToString + ?Sized,
     {
         let string = string.to_string();
         if !string.is_empty() {
-            self.fields.push(string.to_string())
+            self.fields.push(string);
         }
     }
 
@@ -62,9 +62,7 @@ pub struct PromptDisplay<'prompt, 'repo, 'config> {
     config: &'config Config,
 }
 
-impl<'prompt, 'repo, 'config> Display
-    for PromptDisplay<'prompt, 'repo, 'config>
-{
+impl Display for PromptDisplay<'_, '_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -130,7 +128,7 @@ pub struct PromptListField {
 }
 
 impl PromptListField {
-    /// Create a new PromptListField.
+    /// Create a new `PromptListField`.
     pub fn new(separator: &'static str) -> Self {
         Self {
             list: Vec::new(),
@@ -139,9 +137,9 @@ impl PromptListField {
     }
 
     /// Extend the prompt line with a string.
-    pub fn push<S>(&mut self, string: S)
+    pub fn push<S>(&mut self, string: &S)
     where
-        S: ToString,
+        S: ToString + ?Sized,
     {
         let string = string.to_string();
         if !string.is_empty() {
@@ -167,8 +165,8 @@ mod tests {
 
         field.push("a");
         field.push("");
-        field.push(String::from("b"));
-        field.push(3);
+        field.push(&String::from("b"));
+        field.push(&3);
 
         assert_eq!(field.to_string(), "a b 3");
     }

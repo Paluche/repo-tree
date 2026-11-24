@@ -39,12 +39,12 @@ pub enum TreeOrganization<'config> {
     Local(&'config Config, &'config TreeCategory),
 }
 
-impl<'config> TreeOrganization<'config> {
+impl TreeOrganization<'_> {
     /// Path to where the directory for that tree-space category is located.
     pub fn location(&self) -> PathBuf {
         let (config, tree_category) = match self {
-            Self::RemoteBased(config, tree_category) => (config, tree_category),
-            Self::Local(config, tree_category) => (config, tree_category),
+            Self::RemoteBased(config, tree_category)
+            | Self::Local(config, tree_category) => (config, tree_category),
         };
 
         config.root.join(tree_category.dir_name())
@@ -62,9 +62,7 @@ impl<'config> TreeOrganization<'config> {
                 if let Some(remote) = &repo_id.remote {
                     Ok(config
                         .get_remote_host(&remote.host_url)
-                        .ok_or(UnknownRemoteHostError(
-                            remote.host_url.to_string(),
-                        ))
+                        .ok_or(UnknownRemoteHostError(remote.host_url.clone()))
                         .map(|remote_host| {
                             base.join(remote_host.category.dir_name()).join(
                                 repo_id.name.split('/').collect::<PathBuf>(),
@@ -73,7 +71,7 @@ impl<'config> TreeOrganization<'config> {
                 } else {
                     Err(Box::new(UnexpectedTreeSpaceError(
                         repo_id.name.clone(),
-                        tree_category.name.to_string(),
+                        tree_category.name.clone(),
                     )))
                 }
             }
@@ -81,7 +79,7 @@ impl<'config> TreeOrganization<'config> {
                 if repo_id.remote.is_some() {
                     Err(Box::new(UnexpectedTreeSpaceError(
                         repo_id.name.clone(),
-                        tree_category.name.to_string(),
+                        tree_category.name.clone(),
                     )))
                 } else {
                     Ok(base.join(repo_id.name.split('/').collect::<PathBuf>()))
@@ -169,13 +167,13 @@ pub enum TreeSpace {
 }
 
 impl TreeSpace {
-    /// Obtain the TreeSpace value based on its name, as defined by the
+    /// Obtain the `TreeSpace` value based on its name, as defined by the
     /// configuration.
     pub fn from_name(config: &Config, name: &str) -> Option<Self> {
         Self::iter().find(|tree_space| name == tree_space.name(config))
     }
 
-    /// Obtain the TreeSpace value based on a directory name, directory should
+    /// Obtain the `TreeSpace` value based on a directory name, directory should
     /// match a tree-category.
     pub fn from_dir_name(config: &Config, dir_name: &OsStr) -> Option<Self> {
         Self::iter().find(|tree_space| {
@@ -183,7 +181,7 @@ impl TreeSpace {
         })
     }
 
-    /// Obtain the TreeSpace value based on a path which should be inside a
+    /// Obtain the `TreeSpace` value based on a path which should be inside a
     /// tree-space.
     pub fn from_path(config: &Config, path: &Path) -> Option<Self> {
         Self::from_dir_name(
@@ -192,7 +190,7 @@ impl TreeSpace {
         )
     }
 
-    /// Obtain the TreeSpaceKind associated with the tree-space.
+    /// Obtain the `TreeSpaceKind` associated with the tree-space.
     pub fn kind(&self) -> TreeSpaceKind {
         match self {
             Self::Dev | Self::Local | Self::Archive => TreeSpaceKind::Main,
@@ -220,10 +218,10 @@ impl TreeSpace {
     ) -> TreeOrganization<'config> {
         let category = self.category(config);
         match self {
-            Self::Dev => TreeOrganization::RemoteBased(config, category),
+            Self::Dev | Self::Agent | Self::Archive => {
+                TreeOrganization::RemoteBased(config, category)
+            }
             Self::Local => TreeOrganization::Local(config, category),
-            Self::Agent => TreeOrganization::RemoteBased(config, category),
-            Self::Archive => TreeOrganization::RemoteBased(config, category),
         }
     }
 
@@ -287,15 +285,15 @@ impl TreeSpace {
     }
 }
 
-/// Struct which knows how to display a TreeSpace.
+/// Struct which knows how to display a `TreeSpace`.
 pub struct TreeSpaceDisplay<'tree_space, 'config> {
-    /// TreeSpace instance to display.
+    /// `TreeSpace` instance to display.
     tree_space: &'tree_space TreeSpace,
     /// User configuration which dictates how to display the tree space.
     config: &'config Config,
 }
 
-impl<'tree_space, 'config> Display for TreeSpaceDisplay<'tree_space, 'config> {
+impl Display for TreeSpaceDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.tree_space.category(self.config).name)
     }
@@ -415,7 +413,7 @@ mod tests {
     fn check_tree_space_from_path(
         config: &Config,
         category: &TreeCategory,
-        expected_tree_space: Option<TreeSpace>,
+        expected_tree_space: Option<&TreeSpace>,
     ) {
         let repo_path = config
             .root
@@ -425,7 +423,7 @@ mod tests {
             .join("bar");
 
         let tree_space = TreeSpace::from_path(config, &repo_path);
-        assert_eq!(tree_space, expected_tree_space);
+        assert_eq!(tree_space.as_ref(), expected_tree_space);
     }
 
     #[test]
@@ -435,8 +433,8 @@ mod tests {
         check_tree_space_from_path(
             &config,
             &config.tree.dev.category,
-            Some(TreeSpace::Dev),
-        )
+            Some(&TreeSpace::Dev),
+        );
     }
 
     #[test]
@@ -446,8 +444,8 @@ mod tests {
         check_tree_space_from_path(
             &config,
             &config.tree.archive.category,
-            Some(TreeSpace::Archive),
-        )
+            Some(&TreeSpace::Archive),
+        );
     }
 
     #[test]
@@ -457,8 +455,8 @@ mod tests {
         check_tree_space_from_path(
             &config,
             &config.tree.local.category,
-            Some(TreeSpace::Local),
-        )
+            Some(&TreeSpace::Local),
+        );
     }
 
     #[test]
@@ -466,7 +464,7 @@ mod tests {
         let config = Config::test_default();
         let repo_path = PathBuf::from("/home/not-user/work/dev/test/foo/bar");
         let tree_space = TreeSpace::from_path(&config, &repo_path);
-        assert_eq!(tree_space, None)
+        assert_eq!(tree_space, None);
     }
 
     #[test]
@@ -495,7 +493,7 @@ mod tests {
                 "{workspace_tree_space:?} convert into {tree_space:?} which \
                  is not of kind 'workspace' but {:?}",
                 tree_space.kind()
-            )
+            );
         }
     }
 
@@ -509,7 +507,7 @@ mod tests {
                 kind.is_main(),
                 "{force_tree_space:?} convert into {tree_space:?} which is not
                 of kind 'main' but {kind:?}"
-            )
+            );
         }
     }
 
@@ -559,7 +557,7 @@ mod tests {
         check_tree_space_from_path(
             &config,
             &config.tree.agent.category,
-            Some(TreeSpace::Agent),
+            Some(&TreeSpace::Agent),
         );
     }
 

@@ -6,7 +6,7 @@ use std::path::Path;
 use super::command::JujutsuCommand;
 
 /// Option to specify in which order to obtain the list of commit.
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 pub enum RevSetOrder {
     /// Children commit first (start from the HEAD of your branches).
     #[default]

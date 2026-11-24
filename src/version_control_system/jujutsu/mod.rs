@@ -1,4 +1,4 @@
-//! Module for retrieving JuJutsu information.
+//! Module for retrieving Jujutsu information.
 mod bookmark;
 mod command;
 mod config;
@@ -53,16 +53,16 @@ pub fn get_repo_dir(jj_dir: &Path) -> io::Result<PathBuf> {
     })
 }
 
-/// Interact with a JuJutsu repository.
+/// Interact with a Jujutsu repository.
 pub struct JujutsuVcs<'repo_tree> {
-    /// Path to the root of the JuJutsu repository.
+    /// Path to the root of the Jujutsu repository.
     workspace: &'repo_tree Workspace,
     /// If the Jujutsu repository is colocated with a Git repository.
     colocated: bool,
 }
 
 impl<'repo_tree> JujutsuVcs<'repo_tree> {
-    /// Create a new JujutsuVcs structure.
+    /// Create a new `JujutsuVcs` structure.
     pub fn new(workspace: &'repo_tree Workspace, colocated: bool) -> Self {
         Self {
             workspace,
@@ -78,7 +78,7 @@ impl<'repo_tree> JujutsuVcs<'repo_tree> {
     }
 }
 
-impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
+impl VcsRepository for JujutsuVcs<'_> {
     fn get_remote_url(
         &self,
     ) -> Result<(PathBuf, Option<String>), Box<dyn Error>> {

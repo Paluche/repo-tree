@@ -49,7 +49,7 @@ impl Bookmark {
         if self.conflicted {
             Vec::from([bookmark_config
                 .tracked
-                .colorize(format!("{}??", self.name))])
+                .colorize(&format!("{}??", self.name))])
         } else if self.is_remote_only() {
             self.remotes
                 .iter()
@@ -62,7 +62,7 @@ impl Bookmark {
         } else if self.is_local_only() {
             Vec::from([bookmark_config.local.colorize(&self.name)])
         } else {
-            Vec::from([bookmark_config.tracked.colorize(format!(
+            Vec::from([bookmark_config.tracked.colorize(&format!(
                 "{}{}",
                 self.name.as_str(),
                 if self.modified { "*" } else { "" }
@@ -295,7 +295,7 @@ pub fn get_bookmarks<'bookmarks>(
                 format!(
                     "Bookmark {}{} is not in the list of bookmarks",
                     raw.name,
-                    raw.remote.map(|r| format!("@{r}")).unwrap_or_default()
+                    raw.remote.map_or_default(|r| format!("@{r}"))
                 )
                 .into()
             })

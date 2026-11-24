@@ -15,8 +15,8 @@ use crate::version_control_system::VersionControlSystem;
 pub struct CommandError(pub String, pub i32, pub String);
 
 impl CommandError {
-    /// Create a new CommandError struct based on the command and output of the
-    /// failed command.
+    /// Create a new `CommandError` struct based on the command and output of
+    /// the failed command.
     pub fn new(
         command: &Command,
         status: ExitStatus,
@@ -34,7 +34,7 @@ impl CommandError {
             status.code().unwrap_or(1),
             output
                 .and_then(|o| String::from_utf8(o.stderr).ok())
-                .unwrap_or("".to_string()),
+                .unwrap_or_default(),
         )
     }
 }

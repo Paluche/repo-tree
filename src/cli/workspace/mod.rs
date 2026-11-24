@@ -27,7 +27,7 @@ enum WorkspaceAction {
 }
 
 /// Execute `rt git` sub-commands.
-pub async fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceArgs) -> i32 {
     match args.action {
         WorkspaceAction::Add(args) => add::run(ui, config, args),
         WorkspaceAction::Rm(args) => rm::run(ui, config, args),

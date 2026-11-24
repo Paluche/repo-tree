@@ -110,7 +110,7 @@ pub async fn run(
                 if let Some(r) = repository.id.remote_host_repr(config) {
                     format!("{r} ")
                 } else {
-                    "".to_string()
+                    String::new()
                 };
             ui.clear_and_print_current_line(format!(
                 "{}{:20} {}",

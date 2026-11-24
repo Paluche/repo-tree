@@ -1,4 +1,4 @@
-//! Fetch and update the whole repo_tree.
+//! Fetch and update the whole `repo_tree`.
 
 use std::error::Error;
 
@@ -10,7 +10,7 @@ use crate::repository::Repository;
 use crate::ui::Ui;
 use crate::ui_error;
 
-/// Fetch all the repositories within the repo_tree.
+/// Fetch all the repositories within the repo tree.
 #[derive(Args)]
 pub struct FetchArgs {
     /// Suppress output to the minimum, only the final summary will be printed.
@@ -47,9 +47,10 @@ pub fn fetch_repo(
         let root = submodule.abs_path();
         let repository = Repository::try_new(config, &root)?;
 
-        let (_ok, _total) = fetch_repo(ui, config, quiet, &repository, true)?;
-        ok += _ok;
-        total += _total;
+        let (sub_ok, sub_total) =
+            fetch_repo(ui, config, quiet, &repository, true)?;
+        ok += sub_ok;
+        total += sub_total;
     }
 
     if !quiet {
@@ -75,7 +76,7 @@ pub fn fetch_repo(
 }
 
 /// Execute `rt fetch` command.
-pub fn run(ui: &Ui<'_>, config: &Config, args: FetchArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: &FetchArgs) -> i32 {
     let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
 
     let (ok, total) = repo_tree
@@ -97,5 +98,6 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: FetchArgs) -> i32 {
 
     println!("{ok}/{total} repository fetched");
 
-    if ok == total { 0 } else { 1 }
+    let all_fetched = ok == total;
+    i32::from(!all_fetched)
 }

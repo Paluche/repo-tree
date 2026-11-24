@@ -102,6 +102,7 @@ pub struct RepoId {
 
 /// Definition of the different strategies available to obtain the expected
 /// tree-space the repository should be in.
+#[derive(Clone, Copy)]
 pub enum ExpectedTreeStrategy {
     /// Lazy strategy. Do what you can with what you have access locally. In
     /// other words if if we hesitate somehow between dev and archive
@@ -174,7 +175,7 @@ impl RepoId {
         match &self.remote {
             Some(remote) => config
                 .get_remote_host(&remote.host_url)
-                .ok_or(UnknownRemoteHostError(remote.host_url.to_string()))
+                .ok_or(UnknownRemoteHostError(remote.host_url.clone()))
                 .map(Some),
             None => Ok(None),
         }
@@ -182,7 +183,7 @@ impl RepoId {
 
     /// Get the host representation associated with that repository. This method
     /// is deterministic compared to getting the category using
-    /// host_category().
+    /// `host_category()`.
     pub fn remote_host_repr<'config>(
         &self,
         config: &'config Config,
@@ -195,7 +196,7 @@ impl RepoId {
 
     /// Get the host name associated with that repository. This method is
     /// deterministic compared to getting the category using
-    /// host_category().
+    /// `host_category()`.
     pub fn remote_host_name<'config>(
         &self,
         config: &'config Config,
@@ -232,16 +233,12 @@ impl RepoId {
         strategy: ExpectedTreeStrategy,
         forge_api: Result<Option<Box<dyn ForgeApi>>, Box<dyn Error>>,
     ) -> Result<TreeSpace, Box<dyn Error>> {
-        if self.remote.is_none() {
-            return Ok(TreeSpace::Local);
-        }
-
         fn dev_or_archive(
             config: &Config,
             strategy: ExpectedTreeStrategy,
             repo_path: Option<&Path>,
-        ) -> Result<TreeSpace, Box<dyn Error>> {
-            Ok(if matches!(strategy, ExpectedTreeStrategy::ForceDev) {
+        ) -> TreeSpace {
+            if matches!(strategy, ExpectedTreeStrategy::ForceDev) {
                 TreeSpace::Dev
             } else if matches!(strategy, ExpectedTreeStrategy::ForceArchive) {
                 TreeSpace::Archive
@@ -252,7 +249,11 @@ impl RepoId {
                 }
             } else {
                 TreeSpace::Dev
-            })
+            }
+        }
+
+        if self.remote.is_none() {
+            return Ok(TreeSpace::Local);
         }
 
         match forge_api {
@@ -272,13 +273,13 @@ impl RepoId {
                     },
                 )
             }
-            Ok(None) => dev_or_archive(config, strategy, repo_path),
+            Ok(None) => Ok(dev_or_archive(config, strategy, repo_path)),
             Err(err) => {
                 if let Some(err) = err.downcast_ref::<UnimplementedForgeApi>() {
                     if matches!(strategy, ExpectedTreeStrategy::Exact) {
                         ui.hint_once(err);
                     }
-                    dev_or_archive(config, strategy, repo_path)
+                    Ok(dev_or_archive(config, strategy, repo_path))
                 } else {
                     Err(err)
                 }
@@ -313,7 +314,7 @@ impl RepoId {
         }
     }
 
-    /// Obtain a struct implementing the display for the RepoId.
+    /// Obtain a struct implementing the display for the `RepoId`.
     pub fn display<'repo_id, 'config>(
         &'repo_id self,
         config: &'config Config,
@@ -325,15 +326,15 @@ impl RepoId {
     }
 }
 
-/// Struct to display a RepoId.
+/// Struct to display a `RepoId`.
 pub struct RepoIdDisplay<'repo_id, 'config> {
-    /// RepoId to display.
+    /// `RepoId` to display.
     repo_id: &'repo_id RepoId,
-    /// Host category data of the RepoId.
+    /// Host category data of the `RepoId`.
     remote_host_name: Option<&'config str>,
 }
 
-impl<'repo_id, 'config> Display for RepoIdDisplay<'repo_id, 'config> {
+impl Display for RepoIdDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(name) = self.remote_host_name {
             write!(f, "{name} ")?;

@@ -61,7 +61,7 @@ impl EntryStatus {
         })
     }
 
-    /// Obtain a struct which implements the Display trait for EntryStatus.
+    /// Obtain a struct which implements the Display trait for `EntryStatus`.
     pub fn display<'entry_status, 'config>(
         &'entry_status self,
         git_status_config: &'config GitStatusCommandConfig,
@@ -75,9 +75,9 @@ impl EntryStatus {
     }
 }
 
-/// Implement the Display for the EntryStatus struct.
+/// Implement the Display for the `EntryStatus` struct.
 pub struct EntryStatusDisplay<'entry_status, 'config> {
-    /// EntryStatus to display.
+    /// `EntryStatus` to display.
     entry_status: &'entry_status EntryStatus,
     /// Configuration dictating how to display the content of the entry status.
     git_status_config: &'config GitStatusCommandConfig,
@@ -85,9 +85,7 @@ pub struct EntryStatusDisplay<'entry_status, 'config> {
     staged: bool,
 }
 
-impl<'entry_status, 'config> Display
-    for EntryStatusDisplay<'entry_status, 'config>
-{
+impl Display for EntryStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let entry_config = &self.git_status_config.entry;
         let char_repr = match self.entry_status {
@@ -117,7 +115,7 @@ impl<'entry_status, 'config> Display
             }
         };
 
-        write!(f, "{}", color.colorize(char_repr))
+        write!(f, "{}", color.colorize(&char_repr))
     }
 }
 
@@ -170,7 +168,8 @@ impl SubmoduleStatus {
         }
     }
 
-    /// Obtain a struct which implements the Display trait for SubmoduleStatus.
+    /// Obtain a struct which implements the Display trait for
+    /// `SubmoduleStatus`.
     pub fn display<'submodule_status, 'config>(
         &'submodule_status self,
         git_status_config: &'config GitStatusCommandConfig,
@@ -182,18 +181,16 @@ impl SubmoduleStatus {
     }
 }
 
-/// Implement the Display for the SubmoduleStatus struct.
+/// Implement the Display for the `SubmoduleStatus` struct.
 pub struct SubmoduleStatusDisplay<'submodule_status, 'config> {
-    /// SubmoduleStatus to display.
+    /// `SubmoduleStatus` to display.
     submodule_status: &'submodule_status SubmoduleStatus,
     /// Configuration dictating how to display the content of the submodule
     /// status.
     git_status_config: &'config GitStatusCommandConfig,
 }
 
-impl<'submodule_status, 'config> Display
-    for SubmoduleStatusDisplay<'submodule_status, 'config>
-{
+impl Display for SubmoduleStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let text = match self.submodule_status {
             SubmoduleStatus::NotASubmodule => "    ".to_string(),
@@ -216,7 +213,7 @@ impl<'submodule_status, 'config> Display
             ),
         };
 
-        write!(f, "{}", self.git_status_config.submodule.colorize(text))
+        write!(f, "{}", self.git_status_config.submodule.colorize(&text))
     }
 }
 
@@ -254,7 +251,7 @@ impl SummarizeSubmoduleStatus {
     }
 
     /// Obtain a struct which implements the Display trait for
-    /// SummarizeSubmoduleStatus.
+    /// `SummarizeSubmoduleStatus`.
     pub fn display<'submodule_status, 'config>(
         &'submodule_status self,
         config: &'config GitSummarizeSubmoduleStatusConfig,
@@ -266,28 +263,26 @@ impl SummarizeSubmoduleStatus {
     }
 }
 
-/// Implement the Display for the SummarizeSubmoduleStatus struct.
+/// Implement the Display for the `SummarizeSubmoduleStatus` struct.
 pub struct SummarizeSubmoduleStatusDisplay<'submodule_status, 'config> {
-    /// SummarizeSubmoduleStatus to display.
+    /// `SummarizeSubmoduleStatus` to display.
     summarize_submodule_status: &'submodule_status SummarizeSubmoduleStatus,
     /// Configuration dictating how to display the content of the submodule
     /// status.
     config: &'config GitSummarizeSubmoduleStatusConfig,
 }
 
-impl<'submodule_status, 'config> Display
-    for SummarizeSubmoduleStatusDisplay<'submodule_status, 'config>
-{
+impl Display for SummarizeSubmoduleStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let color = &self.config.color;
         if self.summarize_submodule_status.commit_changed != 0 {
-            write!(f, "{}", color.colorize(self.config.commit_changed))?;
+            write!(f, "{}", color.colorize(&self.config.commit_changed))?;
         }
         if self.summarize_submodule_status.tracked_changed != 0 {
-            write!(f, "{}", color.colorize(self.config.tracked_changed))?;
+            write!(f, "{}", color.colorize(&self.config.tracked_changed))?;
         }
         if self.summarize_submodule_status.has_untracked != 0 {
-            write!(f, "{}", color.colorize(self.config.has_untracked))?;
+            write!(f, "{}", color.colorize(&self.config.has_untracked))?;
         }
 
         Ok(())
@@ -311,7 +306,7 @@ pub struct ItemStatus {
 }
 
 impl ItemStatus {
-    /// Obtain a struct which implements the Display trait for ItemStatus.
+    /// Obtain a struct which implements the Display trait for `ItemStatus`.
     pub fn display<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>(
         &'item_status self,
         git_status_config: &'config GitStatusCommandConfig,
@@ -330,10 +325,10 @@ impl ItemStatus {
     }
 }
 
-/// Implement the Display for the ItemStatus struct.
+/// Implement the Display for the `ItemStatus` struct.
 pub struct ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
 {
-    /// ItemStatus to display.
+    /// `ItemStatus` to display.
     item_status: &'item_status ItemStatus,
     /// Configuration dictating how to display the content of the item status.
     git_status_config: &'config GitStatusCommandConfig,
@@ -345,24 +340,8 @@ pub struct ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
     rel_path: Option<&'rel_path str>,
 }
 
-impl<'item_status, 'config, 'cwd, 'repo_root, 'rel_path> Display
-    for ItemStatusDisplay<'item_status, 'config, 'cwd, 'repo_root, 'rel_path>
-{
+impl Display for ItemStatusDisplay<'_, '_, '_, '_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}{} {} ",
-            self.item_status
-                .staged
-                .display(self.git_status_config, true),
-            self.item_status
-                .unstaged
-                .display(self.git_status_config, false),
-            self.item_status
-                .submodule_status
-                .display(self.git_status_config),
-        )?;
-
         fn format_path(
             cwd: &Path,
             repo_root: &Path,
@@ -377,6 +356,20 @@ impl<'item_status, 'config, 'cwd, 'repo_root, 'rel_path> Display
 
             diff_paths(&ret, cwd).unwrap_or(ret).display().to_string()
         }
+
+        write!(
+            f,
+            "{}{} {} ",
+            self.item_status
+                .staged
+                .display(self.git_status_config, true),
+            self.item_status
+                .unstaged
+                .display(self.git_status_config, false),
+            self.item_status
+                .submodule_status
+                .display(self.git_status_config),
+        )?;
 
         if let Some(orig_path) = &self.item_status.orig_path {
             write!(
@@ -514,7 +507,7 @@ pub struct SummarizeStatus {
 }
 
 impl SummarizeStatus {
-    /// Initialize a new SummarizeStatus struct.
+    /// Initialize a new `SummarizeStatus` struct.
     fn new() -> Self {
         let mut map = HashMap::new();
         EntryStatus::iter().for_each(|status| {
@@ -523,12 +516,14 @@ impl SummarizeStatus {
         Self { map }
     }
 
-    /// Increment the internal counters based on the provided EntryStatus value.
+    /// Increment the internal counters based on the provided `EntryStatus`
+    /// value.
     fn increment(&mut self, entry_status: &EntryStatus) {
         *self.map.get_mut(entry_status).unwrap() += 1;
     }
 
-    /// Obtain a struct which implements the Display trait for SummarizeStatus.
+    /// Obtain a struct which implements the Display trait for
+    /// `SummarizeStatus`.
     pub fn display<'summarize_status, 'config>(
         &'summarize_status self,
         config: &'config GitSummarizeStatusConfig,
@@ -540,17 +535,15 @@ impl SummarizeStatus {
     }
 }
 
-/// Implement the Display trait for SummarizeStatus.
+/// Implement the Display trait for `SummarizeStatus`.
 pub struct SummarizeStatusDisplay<'summarize_status, 'config> {
-    /// SummarizeStatus to display.
+    /// `SummarizeStatus` to display.
     summarize_status: &'summarize_status SummarizeStatus,
     /// Configuration dictating how to display the content of the item status.
     config: &'config GitSummarizeStatusConfig,
 }
 
-impl<'summarize_status, 'config> Display
-    for SummarizeStatusDisplay<'summarize_status, 'config>
-{
+impl Display for SummarizeStatusDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let map = &self.summarize_status.map;
         if *map.get(&EntryStatus::Added).unwrap() != 0 {
@@ -603,7 +596,8 @@ pub struct UpstreamInfo {
 }
 
 impl UpstreamInfo {
-    /// Obtain a struct which implements the Display trait for SubmoduleStatus.
+    /// Obtain a struct which implements the Display trait for
+    /// `SubmoduleStatus`.
     pub fn display<'upstream_info, 'config>(
         &'upstream_info self,
         git_status_config: &'config GitStatusCommandConfig,
@@ -615,17 +609,15 @@ impl UpstreamInfo {
     }
 }
 
-/// Implement the Display for the UpstreamInfo struct.
+/// Implement the Display for the `UpstreamInfo` struct.
 pub struct UpstreamInfoDisplay<'upstream_info, 'config> {
-    /// UpstreamInfo to display.
+    /// `UpstreamInfo` to display.
     upstream_info: &'upstream_info UpstreamInfo,
     /// Configuration dictating how to display the content of the item status.
     git_status_config: &'config GitStatusCommandConfig,
 }
 
-impl<'upstream_info, 'config> Display
-    for UpstreamInfoDisplay<'upstream_info, 'config>
-{
+impl Display for UpstreamInfoDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let upstream_config = &self.git_status_config.upstream;
         write!(
@@ -634,12 +626,12 @@ impl<'upstream_info, 'config> Display
             upstream_config
                 .ahead
                 .color
-                .colorize(self.upstream_info.ahead),
+                .colorize(&self.upstream_info.ahead),
             upstream_config.ahead,
             upstream_config
                 .behind
                 .color
-                .colorize(self.upstream_info.behind),
+                .colorize(&self.upstream_info.behind),
             upstream_config.behind,
             upstream_config.name.colorize(&self.upstream_info.name)
         )
@@ -826,7 +818,7 @@ fn get_ongoing_operations(git_dir: &Path) -> Vec<GitOperation> {
                 GitOperation::Rebase
             } else {
                 GitOperation::AM
-            })
+            });
         }
     }
 

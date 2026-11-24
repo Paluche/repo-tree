@@ -49,7 +49,7 @@ impl Forge {
         }
     }
 
-    /// Get the struct implementing the ForgeApi for the respective forge.
+    /// Get the struct implementing the `ForgeApi` for the respective forge.
     pub fn api(&self) -> Result<Box<dyn ForgeApi>, Box<dyn Error>> {
         match self {
             Self::GitHub | Self::GitLab | Self::Forgejo | Self::Bitbucket => {

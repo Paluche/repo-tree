@@ -314,7 +314,7 @@ pub fn complete_utils(
     match shell {
         Shell::Zsh => complete_utils_zsh(var, completer, &mut buf)?,
         shell => {
-            eprintln!("Utils generation not implemented yet for shell {shell}")
+            eprintln!("Utils generation not implemented yet for shell {shell}");
         }
     }
     std::io::stdout().write_all(&buf)
@@ -334,22 +334,16 @@ pub fn complete() {
         .try_complete(args_os(), current_dir.as_deref())
         .unwrap_or_else(|e| e.exit())
     {
-        exit(
-            if var_os("_CLAP_COMPLETE_INDEX").is_some()
-                || shell
-                    .ok_or_else(|| {
-                        Error::other(format!("unsupported shell in {var}"))
-                    })
-                    .and_then(|shell| complete_utils(shell, var, bin))
-                    .inspect_err(|e| {
-                        eprintln!("Failed to generate {bin} utils: {e}")
-                    })
-                    .is_ok()
-            {
-                0
-            } else {
-                1
-            },
-        );
+        let succeeded = var_os("_CLAP_COMPLETE_INDEX").is_some()
+            || shell
+                .ok_or_else(|| {
+                    Error::other(format!("unsupported shell in {var}"))
+                })
+                .and_then(|shell| complete_utils(shell, var, bin))
+                .inspect_err(|e| {
+                    eprintln!("Failed to generate {bin} utils: {e}");
+                })
+                .is_ok();
+        exit(i32::from(!succeeded));
     }
 }

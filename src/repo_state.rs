@@ -17,7 +17,7 @@ pub struct RepoState {
 }
 
 impl RepoState {
-    /// Create a new RepoState structure.
+    /// Create a new `RepoState` structure.
     pub fn new(
         has_unpushed_commits: bool,
         needs_restack: bool,

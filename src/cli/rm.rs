@@ -28,22 +28,20 @@ pub struct RmArgs {
 }
 
 /// Execute the `rt rm` command.
-pub async fn run(ui: &Ui<'_>, config: &Config, args: RmArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: RmArgs) -> i32 {
     let repo_tree = RepoTree::load(ui, config, args.refresh_cache);
     let (repository, workspace) = match resolve(
         ui,
         config,
         &repo_tree,
         args.repo_id,
-        ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
+        &ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
     ) {
-        Ok(v) => match v {
-            Some(repo) => repo,
-            None => {
-                ui.error("No repository found matching the given identifier");
-                return 2;
-            }
-        },
+        Ok(Some(repo)) => repo,
+        Ok(None) => {
+            ui.error("No repository found matching the given identifier");
+            return 2;
+        }
         Err(err) => {
             ui.error(err);
             return 1;

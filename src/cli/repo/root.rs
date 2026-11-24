@@ -16,8 +16,9 @@ pub struct RootArgs {
     #[arg(long, short)]
     parent: bool,
 
-    /// Also display repository types. The output will then have 3 lines:
-    /// <Root of the repository> <is_git> <is_jj>.
+    /// Also display repository types. The output will then have 3 lines: the
+    /// root of the repository, then whether it is a Git repository and
+    /// whether it is a Jujutsu repository (true or false).
     #[arg(long)]
     print_type: bool,
     /// Force recreating the cache.
@@ -26,7 +27,7 @@ pub struct RootArgs {
 }
 
 /// Execute the `rt repo root` command.
-pub fn run(ui: &Ui<'_>, config: &Config, args: RootArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: &RootArgs) -> i32 {
     if args.refresh_cache {
         RepoTree::load(ui, config, true);
     }
@@ -36,15 +37,13 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: RootArgs) -> i32 {
     if args.parent
         && let Some(parent) = cwd.parent()
     {
-        cwd = parent.to_path_buf()
+        cwd = parent.to_path_buf();
     }
 
-    if let Some((root, vcs, _)) =
-        VersionControlSystem::discover_root(cwd.clone())
-    {
+    if let Some((root, vcs, _)) = VersionControlSystem::discover_root(&cwd) {
         print!("{}", root.display());
         if args.print_type {
-            println!("\n{}\n{}", vcs.is_git(), vcs.is_jujutsu(),);
+            println!("\n{}\n{}", vcs.is_git(), vcs.is_jujutsu());
         } else {
             println!();
         }

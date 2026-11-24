@@ -25,7 +25,7 @@ use crate::ui_error;
 use crate::ui_hint;
 use crate::ui_warning;
 
-/// All potential filter options for the resolve() function.
+/// All potential filter options for the `resolve()` function.
 #[derive(Default)]
 pub enum ResolveFilter {
     /// No filter.
@@ -71,14 +71,12 @@ fn get_workspace<'repo_tree>(
         ResolveFilter::TreeSpace(tree_space) => {
             repository.get_tree_workspace(ui, tree_space)
         }
-        ResolveFilter::TreeSpaceKind(tree_space_kind) => repository
-            .workspaces
-            .iter()
-            .filter_map(|w| {
+        ResolveFilter::TreeSpaceKind(tree_space_kind) => {
+            repository.workspaces.iter().find_map(|w| {
                 w.tree_space()
                     .and_then(|t| (&t.kind() == tree_space_kind).then_some(w))
             })
-            .next(),
+        }
     }
 }
 
@@ -174,9 +172,9 @@ fn get_candidates<'repo_tree>(
 ) -> BTreeMap<String, &'repo_tree Repository> {
     let mut ret = reduce_repo_names(ui, config, repo_tree, filter);
 
-    for (alias, repo_name) in config.command.resolve.aliases.iter() {
+    for (alias, repo_name) in &config.command.resolve.aliases {
         if let Some(repo) = ret.get(repo_name) {
-            ret.insert(alias.to_string(), repo);
+            ret.insert(alias.clone(), repo);
         } else if filter.is_all() {
             // This warning is no more reliable when there is filtering. So
             // print it only if there is no filtering.
@@ -212,7 +210,7 @@ where
     // Provide choices on stdin.
     {
         let stdin = child.stdin.as_mut().unwrap();
-        stdin.write_all(&candidates.join("\n").into_bytes())?
+        stdin.write_all(&candidates.join("\n").into_bytes())?;
     }
 
     // Wait and read selection.
@@ -248,7 +246,7 @@ fn repository_candidate_help(
             {
                 format!(" <{}>", tree_space.display(config))
             } else {
-                "".to_string()
+                String::new()
             }
         ))
     })
@@ -273,21 +271,19 @@ pub fn resolve_repo<'repo_tree>(
                 ResolveFilter::TreeSpace(tree_space) =>
                     format!("tree space {}", tree_space.display(config)),
                 ResolveFilter::TreeSpaceKind(tree_space_kind) =>
-                    format!("tree spaces of kind {}", tree_space_kind),
+                    format!("tree spaces of kind {tree_space_kind}"),
             }
         );
         return Ok(None);
     }
 
-    let repo_id = match repo_id {
-        Some(repo_id) => repo_id,
-        None => match fzf_ask(candidates.keys())? {
-            Some(repo_id) => repo_id,
-            None => {
-                ui.error("Nothing selected");
-                return Ok(None);
-            }
-        },
+    let repo_id = if let Some(repo_id) = repo_id {
+        repo_id
+    } else if let Some(repo_id) = fzf_ask(candidates.keys())? {
+        repo_id
+    } else {
+        ui.error("Nothing selected");
+        return Ok(None);
     };
 
     let repo = candidates.remove(&repo_id);
@@ -296,12 +292,12 @@ pub fn resolve_repo<'repo_tree>(
         return Ok(repo);
     }
 
-    let matcher = SkimMatcherV2::default();
+    let fuzzy_matcher = SkimMatcherV2::default();
 
     let mut matches: Vec<_> = candidates
         .keys()
         .filter_map(|item| {
-            matcher
+            fuzzy_matcher
                 .fuzzy_match(item, &repo_id)
                 .map(|score| (score, item))
         })
@@ -369,12 +365,12 @@ pub fn resolve<'repo_tree>(
     config: &Config,
     repo_tree: &'repo_tree RepoTree,
     repo_id: Option<String>,
-    filter: ResolveFilter,
+    filter: &ResolveFilter,
 ) -> Result<
     Option<(&'repo_tree Repository, &'repo_tree Workspace)>,
     Box<dyn Error>,
 > {
-    if let Some(repo) = resolve_repo(ui, config, repo_tree, repo_id, &filter)? {
+    if let Some(repo) = resolve_repo(ui, config, repo_tree, repo_id, filter)? {
         let workspace = if filter.is_all() && repo.workspaces.len() != 1 {
             let names = repo
                 .workspaces
@@ -399,7 +395,7 @@ pub fn resolve<'repo_tree>(
                 repo.get_main_workspace(ui)
             }
         } else {
-            get_workspace(ui, repo, &filter).expect(
+            get_workspace(ui, repo, filter).expect(
                 "resolve_repo only returns repositories with a workspace \
                  matching the filter",
             )
@@ -423,12 +419,12 @@ pub fn resolve_completer() -> ArgValueCompleter {
         let repo_tree = RepoTree::load_silent(&ui, &config, false);
         let candidates =
             get_candidates(&ui, &config, &repo_tree, &ResolveFilter::All);
-        let matcher = SkimMatcherV2::default();
+        let fuzzy_matcher = SkimMatcherV2::default();
 
         candidates
             .keys()
             .filter_map(|item| {
-                matcher.fuzzy_match(item, current).map(|_| {
+                fuzzy_matcher.fuzzy_match(item, current).map(|_| {
                     let repository = candidates.get(item).unwrap();
 
                     CompletionCandidate::new(item)

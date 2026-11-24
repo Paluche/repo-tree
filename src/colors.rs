@@ -58,7 +58,7 @@ impl<'de> Deserialize<'de> for Color {
             where
                 E: serde::de::Error,
             {
-                Color::from_str(value).map_err(|_| {
+                Color::from_str(value).map_err(|()| {
                     E::custom(format!("Invalid color string: {value}"))
                 })
             }
@@ -183,9 +183,12 @@ impl Hash for Color {
                 colored::Color::BrightMagenta => 13,
                 colored::Color::BrightCyan => 14,
                 colored::Color::BrightWhite => 15,
-                colored::Color::AnsiColor(n) => 16 + n as u32,
+                colored::Color::AnsiColor(n) => 16 + u32::from(n),
                 colored::Color::TrueColor { r, g, b } => {
-                    17 + u8::MAX as u32 + r as u32 + g as u32 + b as u32
+                    17 + u32::from(u8::MAX)
+                        + u32::from(r)
+                        + u32::from(g)
+                        + u32::from(b)
                 }
             },
             None => u32::MAX,
@@ -275,9 +278,9 @@ impl Color {
 impl Color {
     /// Colorize the provided text. An empty text stays empty, without color
     /// escape sequences, so that it can be detected as empty.
-    pub fn colorize<T>(&self, text: T) -> String
+    pub fn colorize<T>(&self, text: &T) -> String
     where
-        T: ToString,
+        T: ToString + ?Sized,
     {
         let text = text.to_string();
         if let Some(color) = self.color
@@ -301,10 +304,10 @@ pub struct ColoredText {
 }
 
 impl ColoredText {
-    /// Create a new ColoredText.
-    pub fn new<S, C>(text: S, color: C) -> Self
+    /// Create a new `ColoredText`.
+    pub fn new<S, C>(text: &S, color: C) -> Self
     where
-        S: ToString,
+        S: ToString + ?Sized,
         Color: From<C>,
     {
         Self {
@@ -337,10 +340,10 @@ pub struct ColoredList {
 }
 
 impl ColoredList {
-    /// Create a new ColoredList.
-    pub fn new<S, C>(prefix: S, separator: S, color: C) -> Self
+    /// Create a new `ColoredList`.
+    pub fn new<S, C>(prefix: &S, separator: &S, color: C) -> Self
     where
-        S: ToString,
+        S: ToString + ?Sized,
         Color: From<C>,
     {
         Self {
@@ -366,7 +369,7 @@ impl ColoredList {
     }
 }
 
-/// Displayable struct for ColoredList.
+/// Displayable struct for `ColoredList`.
 pub struct ColoredListDisplay<'config, 'list, T> {
     /// Configuration to use to display the list.
     colored_list: &'config ColoredList,
@@ -374,7 +377,7 @@ pub struct ColoredListDisplay<'config, 'list, T> {
     list: &'list [T],
 }
 
-impl<'config, 'list, T> Display for ColoredListDisplay<'config, 'list, T>
+impl<T> Display for ColoredListDisplay<'_, '_, T>
 where
     T: Display,
 {
@@ -386,7 +389,7 @@ where
         write!(
             f,
             "{}",
-            self.colored_list.color.colorize(format!(
+            self.colored_list.color.colorize(&format!(
                 "{}{}",
                 self.colored_list.prefix,
                 join(self.list.iter(), &self.colored_list.separator)

@@ -1,5 +1,6 @@
 //! Repo tree - rt: local repository manager.
 #![warn(missing_docs)]
+#![warn(clippy::pedantic)]
 #![warn(clippy::missing_docs_in_private_items)]
 
 mod cli;

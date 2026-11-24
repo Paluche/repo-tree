@@ -20,7 +20,7 @@ pub struct RepositoryLocation {
 }
 
 impl RepositoryLocation {
-    /// Default value for the ignore value of the RepositoryLocation struct.
+    /// Default value for the ignore value of the `RepositoryLocation` struct.
     fn default_ignore() -> Vec<Glob> {
         ["/tmp/**", "**/.*/**"]
             .into_iter()
@@ -35,14 +35,12 @@ impl RepositoryLocation {
     /// ignored as being a badly located repository due to not being within the
     /// repo tree.
     pub fn should_be_ignored(&self, path: &Path) -> bool {
-        path.to_str()
-            .map(|path| {
-                self.ignore
-                    .iter()
-                    .chain(self.extend_ignore.iter())
-                    .any(|glob| glob.compile_matcher().is_match(path))
-            })
-            .unwrap_or(false)
+        path.to_str().is_some_and(|path| {
+            self.ignore
+                .iter()
+                .chain(self.extend_ignore.iter())
+                .any(|glob| glob.compile_matcher().is_match(path))
+        })
     }
 }
 

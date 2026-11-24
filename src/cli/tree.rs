@@ -13,8 +13,9 @@ use crate::repository::Repository;
 use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
 use crate::ui::Ui;
+use crate::version_control_system::git::SubmoduleInfo;
 
-/// Display a tree of your repo_tree.
+/// Display a tree of your repo tree.
 #[derive(Args)]
 pub struct TreeArgs {
     /// Filter the tree view based on a specific tree.
@@ -26,6 +27,7 @@ pub struct TreeArgs {
 }
 
 /// The different states a directory entry in the tree might take.
+#[derive(Clone, Copy)]
 enum DirState {
     /// Root directory.
     Root,
@@ -37,7 +39,7 @@ enum DirState {
 
 impl DirState {
     /// Prefix to display a new directory entry.
-    fn get_dir_prefix(&self) -> &str {
+    fn get_dir_prefix(self) -> &'static str {
         match self {
             Self::Root => "",
             Self::SubDir => "├── ",
@@ -46,13 +48,67 @@ impl DirState {
     }
 
     /// Prefix to display a sub-content for the last printed directory entry.
-    fn get_subdir_prefix(&self) -> &str {
+    fn get_subdir_prefix(self) -> &'static str {
         match self {
             Self::Root => "",
             Self::SubDir => "│   ",
             Self::FinalSubDir => "    ",
         }
     }
+}
+
+/// Colorize an optional value, `None` being displayed in red.
+fn option_to_str(o: Option<String>, color: u8) -> ColoredString {
+    o.map_or("None".to_string().red(), |v| v.ansi_color(color))
+}
+
+/// Display the entry of a submodule: its path, the commit recorded for it
+/// with how far its checkout is from it, and its URL.
+fn display_submodule(
+    f: &mut std::fmt::Formatter<'_>,
+    prefix: &str,
+    submodule: &SubmoduleInfo,
+    dir_state: DirState,
+) -> std::fmt::Result {
+    writeln!(
+        f,
+        "{prefix}{}{}",
+        dir_state.get_dir_prefix(),
+        submodule.sub_path.display()
+    )?;
+
+    let prefix = format!(
+        "{prefix}{}{}",
+        dir_state.get_subdir_prefix(),
+        DirState::FinalSubDir.get_subdir_prefix()
+    );
+
+    let head_id = option_to_str(submodule.head.map(|o| o.to_string()), 88);
+    let checkout = if submodule.actual_head.is_none() {
+        format!(" {}", "not checked out".yellow())
+    } else if let (Some(ahead), Some(behind)) =
+        (submodule.ahead, submodule.behind)
+        && (ahead, behind) != (0, 0)
+    {
+        format!(" {}", format!("{ahead} ahead, {behind} behind").yellow())
+    } else {
+        String::new()
+    };
+    writeln!(f, "{prefix}{head_id}{checkout}")?;
+
+    let config_url = submodule.config_url.clone();
+    let resolved_url = submodule.url.clone();
+    let submodule_url = if config_url == resolved_url {
+        option_to_str(config_url, 2).to_string()
+    } else {
+        format!(
+            "{} {} {}",
+            option_to_str(config_url, 8),
+            "=>".bright_black(),
+            option_to_str(resolved_url, 2),
+        )
+    };
+    writeln!(f, "{prefix}{submodule_url}")
 }
 
 /// Directory representation.
@@ -148,7 +204,7 @@ impl<'repo_tree> Directory<'repo_tree> {
         &self,
         config: &Config,
         f: &mut std::fmt::Formatter<'_>,
-        prefix: String,
+        prefix: &str,
         name: T,
         dir_state: DirState,
     ) -> std::fmt::Result {
@@ -165,11 +221,11 @@ impl<'repo_tree> Directory<'repo_tree> {
             f,
             "{prefix}{}{}",
             dir_state.get_dir_prefix(),
-            current_dir.to_string().blue(),
+            current_dir.clone().blue(),
         )?;
 
         if let Some((r, w)) = &current.repository {
-            let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
+            let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix());
             // Errors cannot be reported from a Display implementation, a
             // repository whose submodules cannot be read is shown without them.
             let submodules = r.submodules(w).unwrap_or_default();
@@ -189,14 +245,14 @@ impl<'repo_tree> Directory<'repo_tree> {
                     if let Some(workspace) = workspace {
                         format!(" {}", workspace.display_name(config))
                     } else {
-                        "".to_string()
+                        String::new()
                     },
                     if let Some(tree_space) = w.tree_space()
                         && matches!(tree_space, TreeSpace::Archive)
                     {
                         " 󰌾".red().to_string()
                     } else {
-                        "".to_string()
+                        String::new()
                     },
                 )?;
             }
@@ -208,62 +264,7 @@ impl<'repo_tree> Directory<'repo_tree> {
                     } else {
                         DirState::SubDir
                     };
-                    writeln!(
-                        f,
-                        "{prefix}{}{}",
-                        dir_state.get_dir_prefix(),
-                        submodule.sub_path.display()
-                    )?;
-
-                    let prefix = format!(
-                        "{prefix}{}{}",
-                        dir_state.get_subdir_prefix(),
-                        DirState::FinalSubDir.get_subdir_prefix()
-                    );
-
-                    fn option_to_str(
-                        o: Option<String>,
-                        color: u8,
-                    ) -> ColoredString {
-                        o.map_or("None".to_string().red(), |v| {
-                            v.ansi_color(color)
-                        })
-                    }
-
-                    let head_id = option_to_str(
-                        submodule.head.map(|o| o.to_string()),
-                        88,
-                    );
-                    let checkout = if submodule.actual_head.is_none() {
-                        format!(" {}", "not checked out".yellow())
-                    } else if let (Some(ahead), Some(behind)) =
-                        (submodule.ahead, submodule.behind)
-                        && (ahead, behind) != (0, 0)
-                    {
-                        format!(
-                            " {}",
-                            format!("{ahead} ahead, {behind} behind").yellow()
-                        )
-                    } else {
-                        String::new()
-                    };
-                    writeln!(f, "{prefix}{head_id}{checkout}")?;
-                    let submodule_url = {
-                        let config_url = submodule.config_url.clone();
-                        let resolved_url = submodule.url.clone();
-
-                        if config_url == resolved_url {
-                            option_to_str(config_url, 2).to_string()
-                        } else {
-                            format!(
-                                "{} {} {}",
-                                option_to_str(config_url, 8),
-                                "=>".bright_black(),
-                                option_to_str(resolved_url, 2),
-                            )
-                        }
-                    };
-                    writeln!(f, "{prefix}{submodule_url}",)?;
+                    display_submodule(f, &prefix, submodule, dir_state)?;
                 }
             }
         }
@@ -277,7 +278,7 @@ impl<'repo_tree> Directory<'repo_tree> {
             directory.display(
                 config,
                 f,
-                format!("{prefix}{}", dir_state.get_subdir_prefix()),
+                &format!("{prefix}{}", dir_state.get_subdir_prefix()),
                 name,
                 if i == final_i {
                     DirState::FinalSubDir
@@ -300,16 +301,16 @@ struct RootDirectory<'config, 'repo_tree> {
 }
 
 impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
-    /// Instantiate a RootDirectory.
+    /// Instantiate a `RootDirectory`.
     fn new(
         config: &'config Config,
         repo_tree: &'repo_tree RepoTree,
-        maybe_tree_space: Option<TreeSpace>,
+        maybe_tree_space: Option<&TreeSpace>,
     ) -> Self {
         let mut directory: Directory<'repo_tree> = Directory::default();
 
         for (repository, workspace) in repo_tree.workspace_iter() {
-            if let Some(tree_space) = &maybe_tree_space
+            if let Some(tree_space) = maybe_tree_space
                 && workspace.tree_space() != Some(tree_space)
             {
                 continue;
@@ -321,12 +322,12 @@ impl<'config, 'repo_tree> RootDirectory<'config, 'repo_tree> {
     }
 }
 
-impl<'config, 'repo_tree> Display for RootDirectory<'config, 'repo_tree> {
+impl Display for RootDirectory<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.directory.display(
             self.config,
             f,
-            "".to_string(),
+            "",
             self.config.root.display(),
             DirState::Root,
         )
@@ -334,13 +335,13 @@ impl<'config, 'repo_tree> Display for RootDirectory<'config, 'repo_tree> {
 }
 
 /// Execute the `rt tree` command.
-pub fn run(ui: &Ui<'_>, config: &Config, args: TreeArgs) -> i32 {
+pub fn run(ui: &Ui<'_>, config: &Config, args: &TreeArgs) -> i32 {
     println!(
         "{}",
         RootDirectory::new(
             config,
             &RepoTree::load(ui, config, args.refresh_cache),
-            args.tree,
+            args.tree.as_ref(),
         )
     );
 

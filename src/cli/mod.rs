@@ -110,10 +110,10 @@ fn cwd_default_path(ui: &Ui, path: Option<String>) -> PathBuf {
         exit(1);
     }
 
-    if !ret.is_absolute() {
-        canonicalize(env::current_dir().unwrap().join(ret)).unwrap()
-    } else {
+    if ret.is_absolute() {
         ret
+    } else {
+        canonicalize(env::current_dir().unwrap().join(ret)).unwrap()
     }
 }
 
@@ -143,7 +143,7 @@ fn get_current_repo_or_main<'repo_tree>(
             config,
             repo_tree,
             Some(repo_id),
-            ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
+            &ResolveFilter::TreeSpaceKind(TreeSpaceKind::Main),
         )
     } else {
         Ok(repo_tree.get_workspace(&get_cwd(ui)))
@@ -156,8 +156,8 @@ pub async fn run() -> i32 {
 
     // `rt gh` hands all its arguments to gh: parsing them would take gh
     // options for rt ones, such as `-R`.
-    let argv: Vec<OsString> = env::args_os().collect();
-    if argv.get(1).is_some_and(|arg| arg == "gh") {
+    let raw_args: Vec<OsString> = env::args_os().collect();
+    if raw_args.get(1).is_some_and(|arg| arg == "gh") {
         let config = match Config::load() {
             Ok(c) => c,
             Err(err) => {
@@ -165,7 +165,7 @@ pub async fn run() -> i32 {
                 return 1;
             }
         };
-        return gh::run(&Ui::new(&config), &config, &argv[2..]);
+        return gh::run(&Ui::new(&config), &config, &raw_args[2..]);
     }
 
     let args = Args::parse();
@@ -186,19 +186,19 @@ pub async fn run() -> i32 {
 
     match args.action {
         Action::Resolve(args) => resolve::run(&ui, &config, args),
-        Action::ResolveUrl(args) => resolve_url::run(&ui, &config, args),
-        Action::List(args) => list::run(&ui, &config, args),
-        Action::Tree(args) => tree::run(&ui, &config, args),
-        Action::Clean(args) => clean::run(&mut ui, &config, args).await,
-        Action::Fetch(args) => fetch::run(&ui, &config, args),
+        Action::ResolveUrl(args) => resolve_url::run(&ui, &config, &args),
+        Action::List(args) => list::run(&ui, &config, &args),
+        Action::Tree(args) => tree::run(&ui, &config, &args),
+        Action::Clean(args) => clean::run(&mut ui, &config, &args),
+        Action::Fetch(args) => fetch::run(&ui, &config, &args),
         Action::Todo(args) => todo::run(&mut ui, &config, args).await,
         Action::Repo(args) => repo::run(&mut ui, &config, args).await,
-        Action::Workspace(args) => workspace::run(&ui, &config, args).await,
+        Action::Workspace(args) => workspace::run(&ui, &config, args),
         Action::Git(args) => git::run(&mut ui, &config, args).await,
         Action::Gh(args) => gh::run(&ui, &config, &args.args),
         Action::Identity(args) => identity::run(&mut ui, &config, args).await,
         Action::Clone(args) => clone::run(&mut ui, &config, args).await,
-        Action::Rm(args) => rm::run(&ui, &config, args).await,
+        Action::Rm(args) => rm::run(&ui, &config, args),
         Action::RefreshCache(args) => refresh_cache::run(&ui, &config, args),
         Action::Insert(args) => insert::run(&mut ui, &config, args).await,
         Action::Credential(args) => credential::run(&ui, &config, &args),

@@ -47,7 +47,7 @@ impl GitCommand {
         which("git").map(Command::new)
     }
 
-    /// See [Command::arg()]
+    /// See [`Command::arg()`]
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
         self.command.arg(arg.as_ref());
         self
@@ -76,9 +76,9 @@ impl GitCommand {
         }
 
         Ok(String::from_utf8(output.stdout)?
-            .split("\n")
+            .split('\n')
             .filter(|l| !l.is_empty())
-            .map(|l| l.to_string())
+            .map(String::from)
             .collect())
     }
 

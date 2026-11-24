@@ -15,7 +15,7 @@ use crate::ui::Ui;
 #[derive(Args)]
 pub struct ResolveArgs {
     /// Repository identifier to resolve into the actual path within the
-    /// repo_tree.
+    /// repo tree.
     #[arg(add=resolve_completer())]
     repo_id: Option<String>,
     /// Precise the tree-space from which you want the repository.
@@ -40,7 +40,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: ResolveArgs) -> i32 {
     };
 
     if let Some((_, workspace)) =
-        match resolve(ui, config, &repo_tree, args.repo_id, filter) {
+        match resolve(ui, config, &repo_tree, args.repo_id, &filter) {
             Ok(r) => r,
             Err(err) => {
                 ui.error(err);

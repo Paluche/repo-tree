@@ -1,5 +1,6 @@
 //! Enhanced git status.
 use std::error::Error;
+use std::fmt::Write;
 use std::path::Path;
 
 use clap::ArgAction;
@@ -7,6 +8,7 @@ use clap::Args;
 use clap_complete::PathCompleter;
 use clap_complete::engine::ArgValueCompleter;
 use colored::Colorize;
+use itertools::join;
 
 // XXX Potentially split between the git specific command which is
 // basically stand-alone from the rest of the tool, against what enters the
@@ -51,31 +53,34 @@ fn format_repo_status(
     let prefix = (0..level).map(|_| "        ┊ ").collect::<String>();
 
     if let Some(last_fetched) = status.last_fetched {
-        ret.push_str(&format!(
-            "┊ {}{} {}\n",
+        writeln!(
+            ret,
+            "┊ {}{} {}",
             prefix,
             "Last Fetched".green(),
             last_fetched
                 .strftime("%a %b %e %H:%M:%S %Y")
                 .to_string()
                 .green()
-        ));
+        )?;
     }
 
     let head_info = &status.head;
     let mut branch_info_line =
         format!("{} -> {}", head_info.oid.yellow(), head_info.branch.red());
     if let Some(upstream_info) = &head_info.upstream {
-        branch_info_line.push_str(&format!(
+        write!(
+            branch_info_line,
             " {}",
             upstream_info.display(git_status_config)
-        ));
+        )?;
     }
-    ret.push_str(&format!("┊ {prefix}{branch_info_line}\n"));
+    writeln!(ret, "┊ {prefix}{branch_info_line}")?;
 
     if status.nb_stash != 0 {
-        ret.push_str(&format!(
-            "┊ {}{} {}\n",
+        writeln!(
+            ret,
+            "┊ {}{} {}",
             prefix,
             status.nb_stash.to_string().bright_yellow(),
             (if status.nb_stash == 1 {
@@ -84,37 +89,26 @@ fn format_repo_status(
                 "stashes pending"
             })
             .bright_yellow()
-        ));
+        )?;
     }
 
     if !status.ongoing_operations.is_empty() {
-        ret.push_str(&format!(
-            "┊ {}{} {}\n",
+        writeln!(
+            ret,
+            "┊ {}{} {}",
             prefix,
-            status
-                .ongoing_operations
-                .iter()
-                .enumerate()
-                .map(|(i, value)| {
-                    let mut ret = String::new();
-                    if i != 0 {
-                        ret.push_str(", ");
-                    }
-                    ret.push_str(&format!("{value}"));
-                    ret
-                })
-                .collect::<String>()
-                .red(),
+            join(&status.ongoing_operations, ", ").red(),
             "ongoing".red()
-        ));
-    };
+        )?;
+    }
 
     for item in status.status {
-        ret.push_str(&format!(
-            "┊ {}{}\n",
+        writeln!(
+            ret,
+            "┊ {}{}",
             prefix,
             item.display(git_status_config, cwd, main_repo_path, rel_path)
-        ));
+        )?;
         if matches!(item.submodule_status, SubmoduleStatus::Submodule { .. }) {
             let mut repo_path = main_repo_path.to_path_buf();
             if let Some(rel_path) = rel_path {

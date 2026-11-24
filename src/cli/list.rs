@@ -7,7 +7,7 @@ use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::ui::Ui;
 
-/// List all repositories in the repo_tree.
+/// List all repositories in the repo tree.
 #[derive(Args)]
 pub struct ListArgs {
     /// Filter the repositories to list by their host. For example, "github" or
@@ -38,10 +38,9 @@ pub struct ListArgs {
 }
 
 /// Execute the `rt list` command.
-pub fn run(ui: &Ui<'_>, config: &Config, args: ListArgs) -> i32 {
-    for (_, workspace) in RepoTree::load(ui, config, args.refresh_cache)
+pub fn run(ui: &Ui<'_>, config: &Config, args: &ListArgs) -> i32 {
+    for (_, workspace) in &RepoTree::load(ui, config, args.refresh_cache)
         .filtered(ui, config, &args.hosts, &args.names, &args.trees)
-        .iter()
     {
         println!("{}", workspace.path().display());
     }

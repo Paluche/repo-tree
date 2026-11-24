@@ -41,7 +41,7 @@ impl VersionControlSystem {
     /// Returns the path to the root of the repository, the type of version
     /// control system it is, and if the repository is a git submodule or
     /// not.
-    pub fn discover_root(path: PathBuf) -> Option<(PathBuf, Self, bool)> {
+    pub fn discover_root(path: &Path) -> Option<(PathBuf, Self, bool)> {
         // The parent of a relative path ends with an empty path, which is not
         // to be searched as the current directory.
         path.ancestors()
@@ -55,8 +55,8 @@ impl VersionControlSystem {
 
     /// Try to load the current version control system used by the current
     /// repository. The path must correspond to the root of the repository.
-    /// Return a new instance of VersionControlSystem and a boolean to indicate
-    /// if the repository is a submodule or not.
+    /// Return a new instance of `VersionControlSystem` and a boolean to
+    /// indicate if the repository is a submodule or not.
     pub fn try_new(dir: &Path) -> Option<(Self, bool)> {
         fn exists(search_dir: &Path, dir: &str) -> (bool, bool) {
             let search_dir = search_dir.join(dir);
@@ -81,11 +81,19 @@ impl VersionControlSystem {
     }
 
     /// Find out if the version control system is a Git repository.
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "methods of VersionControlSystem consistently borrow it"
+    )]
     pub fn is_git(&self) -> bool {
         matches!(self, Self::Git | Self::JujutsuGit)
     }
 
     /// Find out if the version control system is a Jujutsu repository.
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "methods of VersionControlSystem consistently borrow it"
+    )]
     pub fn is_jujutsu(&self) -> bool {
         matches!(self, Self::Jujutsu | Self::JujutsuGit)
     }
@@ -101,6 +109,10 @@ impl VersionControlSystem {
 
     /// Get the struct to use to interact with a repository using this version
     /// control system.
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "methods of VersionControlSystem consistently borrow it"
+    )]
     pub fn get_repo<'repo_tree>(
         &self,
         workspace: &'repo_tree Workspace,
@@ -132,15 +144,15 @@ impl Display for VersionControlSystem {
 }
 
 /// Struct providing a display for a short representation of the
-/// VersionControlSystem struct.
+/// `VersionControlSystem` struct.
 pub struct ShortDisplay<'vcs, 'config> {
-    /// VersionControlSystem to display as a short representation.
+    /// `VersionControlSystem` to display as a short representation.
     vcs: &'vcs VersionControlSystem,
     /// Configuration of the rt tool.
     config: &'config Config,
 }
 
-impl<'vcs, 'config> Display for ShortDisplay<'vcs, 'config> {
+impl Display for ShortDisplay<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.vcs {
             VersionControlSystem::Git => {
@@ -184,18 +196,16 @@ impl VcsWorkspace {
     }
 }
 
-/// Implement the Display trait for VcsWorkspace, displaying the name of the
+/// Implement the Display trait for `VcsWorkspace`, displaying the name of the
 /// workspace.
 pub struct VcsWorkspaceDisplayName<'vcs_workspace, 'config> {
-    /// The VcsWorkspace struct to display.
+    /// The `VcsWorkspace` struct to display.
     vcs_workspace: &'vcs_workspace VcsWorkspace,
     /// The configuration dictating how to display.
     config: &'config Config,
 }
 
-impl<'vcs_workspace, 'config> Display
-    for VcsWorkspaceDisplayName<'vcs_workspace, 'config>
-{
+impl Display for VcsWorkspaceDisplayName<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -203,7 +213,7 @@ impl<'vcs_workspace, 'config> Display
             self.config
                 .prompt
                 .workspace
-                .colorize(format!("{}@", self.vcs_workspace.name))
+                .colorize(&format!("{}@", self.vcs_workspace.name))
         )
     }
 }
@@ -341,7 +351,7 @@ mod tests {
         fs::create_dir_all(&sub).expect("cannot create directory");
 
         assert_eq!(
-            VersionControlSystem::discover_root(sub),
+            VersionControlSystem::discover_root(&sub),
             Some((dir.path().to_path_buf(), VersionControlSystem::Git, false))
         );
     }
@@ -353,7 +363,7 @@ mod tests {
         fs::create_dir_all(sub.join(".jj")).expect("cannot create directory");
 
         assert_eq!(
-            VersionControlSystem::discover_root(sub.join("x")),
+            VersionControlSystem::discover_root(&sub.join("x")),
             Some((sub, VersionControlSystem::Jujutsu, false))
         );
     }
@@ -364,12 +374,12 @@ mod tests {
 
         // The temporary directory itself is not inside a repository.
         if let Some((root, _, _)) =
-            VersionControlSystem::discover_root(dir.path().to_path_buf())
+            VersionControlSystem::discover_root(dir.path())
         {
             assert!(!root.starts_with(dir.path()));
         }
         assert_eq!(
-            VersionControlSystem::discover_root(PathBuf::from("relative/x")),
+            VersionControlSystem::discover_root(Path::new("relative/x")),
             None
         );
     }

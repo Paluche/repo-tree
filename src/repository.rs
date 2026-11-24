@@ -47,8 +47,8 @@ impl TrackedFile {
         })
     }
 
-    /// Does the file have been modified compared to the last_modified value we
-    /// have.
+    /// Does the file have been modified compared to the `last_modified` value
+    /// we have.
     pub fn has_been_modified(&self) -> Result<bool, Box<dyn Error>> {
         Ok(self.last_modified != get_last_modified(&self.file)?)
     }
@@ -101,8 +101,7 @@ impl Workspace {
     /// Get the path to the workspace.
     pub fn path(&self) -> &PathBuf {
         match self {
-            Self::Tree(_, path) => path,
-            Self::Other(path) => path,
+            Self::Tree(_, path) | Self::Other(path) => path,
         }
     }
 
@@ -385,7 +384,7 @@ impl Repository {
         assert!(self.has_workspace(workspace));
 
         Ok(if self.vcs.is_git() {
-            git::submodules::get(workspace.path(), &self.id.remote)?
+            git::submodules::get(workspace.path(), self.id.remote.as_ref())?
         } else {
             Vec::new()
         })

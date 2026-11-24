@@ -61,7 +61,7 @@ impl JujutsuCommand {
         which("jj").map(Command::new)
     }
 
-    /// See [Command::arg()]
+    /// See [`Command::arg()`]
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Self {
         self.command.arg(arg);
         self
@@ -71,14 +71,14 @@ impl JujutsuCommand {
     fn exec(&mut self) -> Result<Output, Box<dyn Error>> {
         let output = self.command.output()?;
         let status = output.status;
-        if !status.success() {
+        if status.success() {
+            Ok(output)
+        } else {
             Err(Box::new(CommandError::new(
                 &self.command,
                 status,
                 Some(output),
             )))
-        } else {
-            Ok(output)
         }
     }
 
@@ -87,9 +87,9 @@ impl JujutsuCommand {
     pub fn output_lines(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
         let output = self.exec()?;
         Ok(String::from_utf8(output.stdout)?
-            .split("\n")
+            .split('\n')
             .filter(|l| !l.is_empty())
-            .map(|l| l.to_string())
+            .map(String::from)
             .collect())
     }
 
