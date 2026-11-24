@@ -100,6 +100,8 @@ None
   truncated at the first space. An unexpected output of `git status` is
   reported as an error naming the line, instead of making `rt` crash, and
   unknown headers of future git versions are ignored.
+- **git prompt**: Untracked files are displayed once, instead of once in the
+  staged and once in the unstaged colors.
 - **repo id**: A repository whose remote is a path on the local filesystem,
   or a `file://` URL, is now handled as a local repository. Such repositories
   could not be parsed and were ignored by the repositories search, which

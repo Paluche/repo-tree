@@ -875,8 +875,14 @@ impl GitStatus {
         let mut unstaged = SummarizeStatus::new();
         let mut submodules = SummarizeSubmoduleStatus::default();
 
-        for item in self.status.iter() {
-            staged.increment(&item.staged);
+        for item in &self.status {
+            // Untracked and ignored entries are not staged, count them once.
+            if !matches!(
+                item.staged,
+                EntryStatus::Untracked | EntryStatus::Ignored
+            ) {
+                staged.increment(&item.staged);
+            }
             unstaged.increment(&item.unstaged);
             submodules.increment(&item.submodule_status);
         }
