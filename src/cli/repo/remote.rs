@@ -79,7 +79,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: RemoteArgs) -> i32 {
     };
 
     if remotes.is_empty() {
-        eprintln!("No remote URL found for the repository");
+        ui.error("No remote URL found for the repository");
         1
     } else if remotes.len() == 1 {
         println!("{}", remotes[0].url);

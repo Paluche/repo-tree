@@ -46,7 +46,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: PromptArgs) -> i32 {
             if err.downcast_ref::<NoRepositoryError>().is_some() {
                 return 0;
             }
-            eprintln!("{err}");
+            ui.error(err);
             return 1;
         }
     };
@@ -62,7 +62,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: PromptArgs) -> i32 {
             0
         }
         Err(err) => {
-            eprintln!("{err}");
+            ui.error(err);
             1
         }
     }

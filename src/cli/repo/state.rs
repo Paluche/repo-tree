@@ -42,7 +42,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: StateArgs) -> i32 {
     {
         Ok(r) => r,
         Err(err) => {
-            eprintln!("Error: {err}");
+            ui.error(err);
             return 1;
         }
     };
@@ -78,7 +78,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: StateArgs) -> i32 {
     {
         Ok(v) => v,
         Err(err) => {
-            eprintln!("{err}");
+            ui.error(err);
             return 1;
         }
     };
