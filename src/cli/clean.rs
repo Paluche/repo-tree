@@ -15,6 +15,7 @@ use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
 use crate::repository::Workspace;
 use crate::ui::Ui;
+use crate::ui_error;
 
 /// Clean the repo_tree. Move the repositories where they belong and remove
 /// empty directories.
@@ -74,8 +75,13 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
                 ret = 1;
             }
 
-            if let Err(err) = rename(workspace.path(), expected_root) {
-                ui.error(err);
+            if let Err(err) = rename(workspace.path(), &expected_root) {
+                ui_error!(
+                    ui,
+                    "Cannot move {} to {}: {err}",
+                    workspace.path().display(),
+                    expected_root.display()
+                );
                 ret = 1;
             }
         }
@@ -111,7 +117,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
         for empty_dir in empty_dirs {
             println!("Removing empty directory: {}", empty_dir.display());
             if let Err(err) = remove_dir(&empty_dir) {
-                ui.error(err);
+                ui_error!(ui, "Cannot remove {}: {err}", empty_dir.display());
                 failed = true;
             }
         }
