@@ -1,6 +1,7 @@
 //! Definition of a repository tree. A repository tree is an remote-based
 //! organized storage of your repositories. Each tree,
 use std::error::Error;
+use std::ffi::OsString;
 use std::fs::File;
 use std::fs::create_dir_all;
 use std::fs::read_to_string;
@@ -210,11 +211,11 @@ pub struct RepoTree {
 impl RepoTree {
     /// Load the repository tree from the cache.
     fn from_cache() -> Result<Self, Box<dyn Error>> {
-        let cache_file = cache_file();
-        if !cache_file.is_file() {
-            Err(Box::new(NoCacheError()))
-        } else {
+        let cache_file = cache_file()?;
+        if cache_file.is_file() {
             Ok(toml::from_str::<Self>(&read_to_string(&cache_file)?)?)
+        } else {
+            Err(Box::new(NoCacheError()))
         }
     }
 
@@ -245,12 +246,7 @@ impl RepoTree {
                     }
                 }
                 Err(err) => {
-                    ui_error!(
-                        ui,
-                        "Failure to load cache {} {}",
-                        cache_file().display(),
-                        err
-                    );
+                    ui_error!(ui, "Failure to load the cache: {err}");
                 }
             }
         }
@@ -261,12 +257,7 @@ impl RepoTree {
         let repo_tree = Self { repositories };
 
         if let Err(err) = repo_tree.save() {
-            ui_error!(
-                ui,
-                "Unable to write the cache {}: {}",
-                cache_file().display(),
-                err
-            );
+            ui.error(err);
         }
 
         (repo_tree, Some(empty_dirs))
@@ -367,26 +358,52 @@ impl RepoTree {
 }
 
 /// Path to the repositories cache file.
-fn cache_file() -> PathBuf {
-    PathBuf::from(std::env::var("HOME").unwrap())
-        .join(".cache")
-        .join("repo-tree")
-        .join("repo-tree.toml")
+fn cache_file() -> Result<PathBuf, Box<dyn Error>> {
+    cache_file_from(
+        std::env::var_os("XDG_CACHE_HOME"),
+        std::env::var_os("HOME"),
+    )
+}
+
+/// Path to the repositories cache file from the values of the
+/// `XDG_CACHE_HOME` and `HOME` environment variables.
+///
+/// As required by the XDG Base Directory specification, an empty or relative
+/// `XDG_CACHE_HOME` is ignored.
+fn cache_file_from(
+    xdg_cache_home: Option<OsString>,
+    home: Option<OsString>,
+) -> Result<PathBuf, Box<dyn Error>> {
+    let base = match xdg_cache_home.map(PathBuf::from) {
+        Some(dir) if dir.is_absolute() => dir,
+        _ => PathBuf::from(home.filter(|home| !home.is_empty()).ok_or(
+            "cannot locate the cache file, neither XDG_CACHE_HOME nor HOME \
+             environment variables are set",
+        )?)
+        .join(".cache"),
+    };
+
+    Ok(base.join("repo-tree").join("repo-tree.toml"))
 }
 
 impl RepoTree {
     /// Write the repository tree into the cache file.
     fn save(&self) -> Result<(), Box<dyn Error>> {
-        let cache_file = cache_file();
+        let cache_file = cache_file()?;
+        let write = || -> Result<(), Box<dyn Error>> {
+            if let Some(parent) = cache_file.parent() {
+                create_dir_all(parent)?;
+            }
 
-        if let Some(parent) = cache_file.parent() {
-            create_dir_all(parent)?;
-        }
+            File::create(&cache_file)?
+                .write_all(toml::to_string(self)?.as_bytes())?;
+            Ok(())
+        };
 
-        File::create(&cache_file)?
-            .write_all(toml::to_string(self)?.as_bytes())?;
-
-        Ok(())
+        write().map_err(|err| {
+            format!("Unable to write the cache {}: {err}", cache_file.display())
+                .into()
+        })
     }
 }
 

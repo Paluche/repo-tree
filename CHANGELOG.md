@@ -96,6 +96,7 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **cache**: The cache is now located in `XDG_CACHE_HOME` when it is set.
 - **cache**: A missing or unreadable repo-tree root, or an unreadable directory
   in it, is reported as an error instead of making `rt` crash. A repository
   which cannot be loaded is reported, instead of being silently explored as a
