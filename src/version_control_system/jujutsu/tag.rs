@@ -147,40 +147,38 @@ impl TagRaw {
     /// Parse a line output by one of the templates.
     fn from_line(line: &str) -> Result<Self, Box<dyn Error>> {
         /// Parse a boolean template field.
-        fn bool_part(part: &str) -> Result<bool, Box<dyn Error>> {
+        fn bool_part(part: &str) -> Result<bool, String> {
             match part {
                 "true" => Ok(true),
                 "false" => Ok(false),
                 _ => Err(format!(
-                    "Unexpected boolean value \"{part}\" in tag line"
-                )
-                .into()),
+                    "Unexpected boolean value {part:?} in tag line"
+                )),
             }
         }
 
-        let mut parts = line.split('|');
-        let mut next = || {
-            parts
-                .next()
-                .ok_or_else(|| format!("Missing field in tag line \"{line}\""))
+        /// Turn an empty field into `None`.
+        fn option_string_part(part: &str) -> Option<String> {
+            (!part.is_empty()).then(|| part.to_string())
+        }
+
+        let parts: Vec<&str> = line.split('|').collect();
+        let [name, remote, target, synced, tracked, conflict] = parts[..]
+        else {
+            return Err(format!(
+                "Expected 6 fields in tag line {line:?}, got {}",
+                parts.len()
+            )
+            .into());
         };
 
-        let name = next()?.to_string();
-        let remote =
-            Some(next()?).filter(|p| !p.is_empty()).map(str::to_string);
-        let target =
-            Some(next()?).filter(|p| !p.is_empty()).map(str::to_string);
-        let synced = bool_part(next()?)?;
-        let tracked = bool_part(next()?)?;
-        let conflict = bool_part(next()?)?;
-
         Ok(Self {
-            name,
-            remote,
-            target,
-            synced,
-            tracked,
-            conflict,
+            name: name.to_string(),
+            remote: option_string_part(remote),
+            target: option_string_part(target),
+            synced: bool_part(synced)?,
+            tracked: bool_part(tracked)?,
+            conflict: bool_part(conflict)?,
         })
     }
 
