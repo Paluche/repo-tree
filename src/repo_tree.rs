@@ -15,6 +15,7 @@ use strum::IntoEnumIterator;
 
 use crate::config::Config;
 use crate::error::NoCacheError;
+use crate::error::NoRepositoryError;
 use crate::repository::Repository;
 use crate::repository::Workspace;
 use crate::tree_space::TreeSpace;
@@ -53,11 +54,12 @@ fn search_dir(
     for entry in entries.flatten() {
         empty_dir = false;
         let root = entry.path();
-        let repo = Repository::try_new(config, &root);
 
-        if let Ok(repo) = repo {
-            if tree_space_kind.is_workspace() {
-                if let Some(main_repo) =
+        match Repository::try_new(config, &root) {
+            Ok(repo) => {
+                if !tree_space_kind.is_workspace() {
+                    repositories.push(repo);
+                } else if let Some(main_repo) =
                     repositories.iter_mut().find(|r| r.id == repo.id)
                 {
                     main_repo.add_workspace(repo);
@@ -68,20 +70,25 @@ fn search_dir(
                          default associated in {}",
                         root.display()
                     );
-                    continue;
                 }
-            } else {
-                repositories.push(repo);
             }
-        } else {
-            search_dir(
+            Err(err) if err.downcast_ref::<NoRepositoryError>().is_some() => {
+                search_dir(
+                    ui,
+                    config,
+                    tree_space_kind,
+                    repositories,
+                    empty_dirs,
+                    &root,
+                );
+            }
+            // A repository which cannot be loaded is not to be explored as a
+            // directory of the tree.
+            Err(err) => ui_error!(
                 ui,
-                config,
-                tree_space_kind,
-                repositories,
-                empty_dirs,
-                &root,
-            );
+                "Unable to load the repository {}: {err}",
+                root.display()
+            ),
         }
     }
 

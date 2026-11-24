@@ -97,7 +97,10 @@ None
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
 - **cache**: A missing or unreadable repo-tree root, or an unreadable directory
-  in it, is reported as an error instead of making `rt` crash.
+  in it, is reported as an error instead of making `rt` crash. A repository
+  which cannot be loaded is reported, instead of being silently explored as a
+  directory of the tree, which reported and let `rt clean` remove the empty
+  directories of its `.git` directory.
 - **resolve**: Every repository can now be resolved by the shortest end of its
   name which identifies it. A local repository named as the last component of
   another repository could not be resolved at all, a third repository sharing a
