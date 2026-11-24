@@ -3,14 +3,11 @@
 use std::error::Error;
 use std::path::Path;
 
+use super::GIT_REMOTE;
 use super::command::JujutsuCommand;
 use super::revset::RevSetOrder;
 use super::revset::run_revset;
 use crate::config::JujutsuTagConfig;
-
-/// Name of the pseudo remote Jujutsu uses to represent the Git repository
-/// it is colocated with. Its tags mirror the local ones, so they are ignored.
-const GIT_REMOTE: &str = "git";
 
 /// Representation of a tag.
 pub struct Tag {

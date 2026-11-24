@@ -25,6 +25,11 @@ use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
 use crate::repository::Workspace;
 
+/// Name of the pseudo remote Jujutsu uses to represent the Git repository
+/// it is colocated with. Its bookmarks and tags mirror the local ones, so they
+/// are ignored.
+const GIT_REMOTE: &str = "git";
+
 /// Get the path to the jj directory from the repository root path.
 pub fn get_jj_dir(repo_path: &Path) -> PathBuf {
     repo_path.to_path_buf().join(".jj")
