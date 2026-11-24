@@ -29,7 +29,8 @@ fn choose_remote(remotes: &[VcsRemote]) -> &String {
     let default = remotes
         .iter()
         .find(|r| r.name == "origin")
-        .unwrap_or(remotes.first().unwrap());
+        .or_else(|| remotes.first())
+        .expect("choose_remote is called with several remotes");
     let mut choices: Vec<&VcsRemote> =
         remotes.iter().filter(|r| r.name != default.name).collect();
 
@@ -45,9 +46,10 @@ fn choose_remote(remotes: &[VcsRemote]) -> &String {
         );
     }
 
+    // Failing to read the choice selects the default remote.
     let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    if let Ok(choice) = input.trim().parse::<usize>()
+    if std::io::stdin().read_line(&mut input).is_ok()
+        && let Ok(choice) = input.trim().parse::<usize>()
         && choice < choices.len()
     {
         &choices[choice].url
