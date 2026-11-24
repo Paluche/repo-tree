@@ -90,16 +90,19 @@ async fn do_clone(
 pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CloneArgs) -> i32 {
     let vcs = args.vcs.unwrap_or(config.command.clone.default_vcs);
 
-    if let Ok(repo_id) = RepoId::from_remote_url(&args.url) {
-        match do_clone(ui, config, args.force_tree, &repo_id, &vcs).await {
-            Ok(()) => 0,
-            Err(err) => {
-                ui.error(err);
-                1
+    match RepoId::from_remote_url(&args.url) {
+        Ok(repo_id) => {
+            match do_clone(ui, config, args.force_tree, &repo_id, &vcs).await {
+                Ok(()) => 0,
+                Err(err) => {
+                    ui.error(err);
+                    1
+                }
             }
         }
-    } else {
-        ui.error("Error parsing the provided URL");
-        1
+        Err(err) => {
+            ui.error(err);
+            1
+        }
     }
 }

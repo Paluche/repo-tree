@@ -97,7 +97,8 @@ None
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
 - **clone**: Fail when the clone location exists and is not a repository,
-  instead of succeeding without printing the location.
+  instead of succeeding without printing the location. The error about an
+  invalid URL names the URL.
 - **clean**: `rt clean --dry-run` no longer loops forever when there are empty
   directories, it lists them as to be removed. `rt clean` stops with an error
   when an empty directory cannot be removed, instead of looping forever, and
