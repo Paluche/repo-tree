@@ -3,6 +3,7 @@
 use std::error::Error;
 use std::path::Path;
 
+use super::GIT_REMOTE;
 use super::command::JujutsuCommand;
 use super::revset::RevSetOrder;
 use super::revset::run_revset;
@@ -252,6 +253,10 @@ pub fn get_all_bookmarks(
     };
 
     for line in lines {
+        if line.remote.as_deref() == Some(GIT_REMOTE) {
+            continue;
+        }
+
         if line.remote.is_some()
             && line.tracked
             && let Some(bookmark) = ret.get_mut(&line.name)

@@ -96,6 +96,9 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **jj prompt**: In a repository colocated with Git, a bookmark existing only
+  locally is displayed as local, instead of as tracked by the `git` pseudo
+  remote.
 - **repository**: Looking for the repository of a relative path, as done by
   `rt insert`, no longer ends up with the repository of the current directory
   when the path is not inside a repository.
