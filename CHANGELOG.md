@@ -96,6 +96,10 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **repo id**: A repository whose remote is a path on the local filesystem,
+  or a `file://` URL, is now handled as a local repository. Such repositories
+  could not be parsed and were ignored by the repositories search, which
+  explored their `.git` directory instead.
 - **completion**: The completion of the `--host` options now proposes the host
   names starting with the typed text. It used to compare the text with the host
   URL, proposing for instance nothing for `kern` and `kernel` for `git`.

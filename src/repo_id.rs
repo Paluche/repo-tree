@@ -23,11 +23,10 @@ use crate::ui::Ui;
 ///   `https://oauth2:<token>@github.com/owner/repo.git`
 ///   `ssh://user@host:2222/owner/repo.git`
 ///   `git://host/owner/repo`
-///   `file:///path/to/repo.git`
 /// Captures: scheme, user (optional), host, port (optional), path.
 static RE_SCHEME: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(concat!(
-        r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
+        r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync))",
         r"://(?:(?P<user>[^@]+)@)?(?P<host>[^/:]+)",
         r":?(?:(?P<port>\d+))?/(~[^/]+/)?(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
     ))
@@ -45,8 +44,21 @@ static RE_SCP: LazyLock<Regex> = LazyLock::new(|| {
     .expect("hardcoded regular expression is valid")
 });
 
+/// Find out if a remote URL designates a repository on the local filesystem
+/// (a path or a `file://` URL), which has no host to organize it by.
+pub fn is_local_path_url(url: &str) -> bool {
+    url.starts_with("file://")
+        || url.starts_with('/')
+        || url.starts_with("./")
+        || url.starts_with("../")
+}
+
 /// Parse the remote URL, to capture the different parts.
 fn capture_url(url: &str) -> Result<regex::Captures<'_>, ParseUrlError> {
+    if is_local_path_url(url) {
+        return Err(ParseUrlError(url.to_string()));
+    }
+
     RE_SCHEME
         .captures(url)
         .or_else(|| RE_SCP.captures(url))
@@ -112,13 +124,16 @@ impl RepoId {
     /// Parse the provided repository remote URL into a host (as Remote struct)
     /// and the local path the repository should be located at in the repo
     /// tree based according to the URL.
-    /// This version (in regard to parse_url()) defaults to the local host
-    /// location configuration if the remote_url argument is None.
+    /// This version (in regard to `from_remote_url()`) defaults to a local
+    /// repository named after its directory if the `remote_url` argument is
+    /// None or designates a repository on the local filesystem.
     pub fn from_repo<P: AsRef<Path>>(
         repo_path: &P,
         remote_url: Option<&String>,
     ) -> Result<RepoId, ParseUrlError> {
-        if let Some(remote_url) = remote_url {
+        if let Some(remote_url) = remote_url
+            && !is_local_path_url(remote_url)
+        {
             Self::from_remote_url(remote_url)
         } else {
             Ok(Self {
