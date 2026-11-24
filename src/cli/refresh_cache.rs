@@ -11,6 +11,11 @@ pub struct RefreshCacheArgs {}
 
 /// Execute the `rt refresh-cache` command.
 pub fn run(ui: &Ui<'_>, config: &Config, _: RefreshCacheArgs) -> i32 {
-    RepoTree::load(ui, config, true);
-    0
+    match RepoTree::refresh(ui, config) {
+        Ok(_) => 0,
+        Err(err) => {
+            ui.error(err);
+            1
+        }
+    }
 }

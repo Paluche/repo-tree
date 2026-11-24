@@ -278,6 +278,17 @@ impl RepoTree {
         (repo_tree, empty_dirs, result)
     }
 
+    /// Refresh the cache, warning about the empty directories found in the
+    /// repo tree. Fails if the cache cannot be written.
+    pub fn refresh(
+        ui: &Ui<'_>,
+        config: &Config,
+    ) -> Result<Self, Box<dyn Error>> {
+        let (repo_tree, empty_dirs, result) = Self::search_and_save(ui, config);
+        warn_empty_dirs(ui, empty_dirs);
+        result.map(|()| repo_tree)
+    }
+
     /// Load the repo tree.
     /// Print a warning message if empty directories outside any repository are
     /// found in the repo tree.

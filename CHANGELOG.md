@@ -104,6 +104,7 @@ None
   which cannot be loaded is reported, instead of being silently explored as a
   directory of the tree, which reported and let `rt clean` remove the empty
   directories of its `.git` directory.
+- **refresh-cache**: Exit with an error when the cache cannot be written.
 - **resolve**: Every repository can now be resolved by the shortest end of its
   name which identifies it. A local repository named as the last component of
   another repository could not be resolved at all, a third repository sharing a
