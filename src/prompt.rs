@@ -154,3 +154,21 @@ impl Display for PromptListField {
         write!(f, "{}", join(self.list.iter(), self.separator))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prompt_list_field_skips_empty_items() {
+        let mut field = PromptListField::new(" ");
+        assert_eq!(field.to_string(), "");
+
+        field.push("a");
+        field.push("");
+        field.push(String::from("b"));
+        field.push(3);
+
+        assert_eq!(field.to_string(), "a b 3");
+    }
+}
