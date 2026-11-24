@@ -2,6 +2,7 @@
 use std::error::Error;
 use std::fmt::Display;
 use std::path::Path;
+use std::sync::LazyLock;
 
 use regex::Regex;
 use serde::Deserialize;
@@ -17,34 +18,39 @@ use crate::forge::ForgeApi;
 use crate::tree_space::TreeSpace;
 use crate::ui::Ui;
 
-/// Parse the remote URL, to capture the different parts.
-fn capture_url<'b>(url: &'b str) -> Result<regex::Captures<'b>, ParseUrlError> {
-    // scheme-based URLs, e.g.:
-    //   https://github.com/owner/repo.git
-    //   https://oauth2:<token>@github.com/owner/repo.git
-    //   ssh://user@host:2222/owner/repo.git
-    //   git://host/owner/repo
-    //   file:///path/to/repo.git
-    // Captures: scheme, user (optional), host, port (optional), path.
-    let re_scheme = Regex::new(concat!(
+/// Regular expression of scheme-based URLs, e.g.:
+///   `https://github.com/owner/repo.git`
+///   `https://oauth2:<token>@github.com/owner/repo.git`
+///   `ssh://user@host:2222/owner/repo.git`
+///   `git://host/owner/repo`
+///   `file:///path/to/repo.git`
+/// Captures: scheme, user (optional), host, port (optional), path.
+static RE_SCHEME: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(concat!(
         r"^(?P<scheme>(?:git|ssh|https?|git\+ssh|rsync|file))",
         r"://(?:(?P<user>[^@]+)@)?(?P<host>[^/:]+)",
         r":?(?:(?P<port>\d+))?/(~[^/]+/)?(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
     ))
-    .unwrap();
+    .expect("hardcoded regular expression is valid")
+});
 
-    // scp-like syntax, e.g.:
-    //   git@github.com:owner/repo.git
-    //   user@host:/absolute/path/to/repo.git
-    // Captures: user (optional), host, path.
-    let re_scp = Regex::new(
-        r"^(?:(?P<user>[^@:\s]+)@)?(?P<host>[^:\s]+):(?P<path>[^ \r\n]+?)(?:\.git)?/?$"
-    ).unwrap();
+/// Regular expression of scp-like URLs, e.g.:
+///   `git@github.com:owner/repo.git`
+///   `user@host:/absolute/path/to/repo.git`
+/// Captures: user (optional), host, path.
+static RE_SCP: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r"^(?:(?P<user>[^@:\s]+)@)?(?P<host>[^:\s]+):(?P<path>[^ \r\n]+?)(?:\.git)?/?$",
+    )
+    .expect("hardcoded regular expression is valid")
+});
 
-    re_scheme
+/// Parse the remote URL, to capture the different parts.
+fn capture_url(url: &str) -> Result<regex::Captures<'_>, ParseUrlError> {
+    RE_SCHEME
         .captures(url)
-        .or(re_scp.captures(url))
-        .ok_or(ParseUrlError(url.to_string()))
+        .or_else(|| RE_SCP.captures(url))
+        .ok_or_else(|| ParseUrlError(url.to_string()))
 }
 
 /// Representation of the URL of a remote.
