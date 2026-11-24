@@ -170,7 +170,9 @@ impl<'repo_tree> Directory<'repo_tree> {
 
         if let Some((r, w)) = &current.repository {
             let prefix = format!("{prefix}{}", dir_state.get_subdir_prefix(),);
-            let submodules = r.submodules(w).unwrap();
+            // Errors cannot be reported from a Display implementation, a
+            // repository whose submodules cannot be read is shown without them.
+            let submodules = r.submodules(w).unwrap_or_default();
             let workspace = r.get_vcs_repo(w).get_workspace().unwrap_or(None);
             if let Some(remote) = &r.id.remote {
                 writeln!(

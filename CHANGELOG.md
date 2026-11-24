@@ -97,7 +97,8 @@ None
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
 - **tree**: The short option to refresh the cache is `-R`, as for the other
-  commands, instead of `-r`.
+  commands, instead of `-r`. A repository whose submodules cannot be read is
+  displayed without them instead of making `rt tree` crash.
 - **resolve**: Resolving a repository with several workspaces no longer
   crashes when the tree-space selected with fzf is unknown.
 - **resolve-url**: Return the main workspace of the repository, or the one of
