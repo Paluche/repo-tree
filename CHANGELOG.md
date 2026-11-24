@@ -96,8 +96,13 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
-- **resolve**: The warning about an alias to an unknown repository now names
-  the alias.
+- **resolve**: Every repository can now be resolved by the shortest end of its
+  name which identifies it. A local repository named as the last component of
+  another repository could not be resolved at all, a third repository sharing a
+  short name with two others took over that short name, and two repositories
+  with the same full name were both dropped. A name shared by repositories of
+  different hosts now needs the host prefix. The warning about an alias to an
+  unknown repository now names the alias.
 - **tree**: The URL of a submodule configured relatively to the URL of its main
   repository (`../other.git`) is resolved as git does. One more path component
   was removed, and the URL of a main repository with a scp-like remote was

@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::io::Write;
-use std::iter::zip;
 use std::process::Command;
 use std::process::Stdio;
 
@@ -60,22 +59,6 @@ impl ResolveFilter {
     }
 }
 
-/// Find the shortest end-path to identify two path.
-fn reduce(path_a: &str, path_b: &str) -> Option<(String, String)> {
-    let mut ret_a = Vec::new();
-    let mut ret_b = Vec::new();
-    for (a, b) in zip(path_a.split('/').rev(), path_b.split('/').rev()) {
-        ret_a.insert(0, a);
-        ret_b.insert(0, b);
-
-        if a != b {
-            return Some((ret_a.join("/"), ret_b.join("/")));
-        }
-    }
-
-    None
-}
-
 /// Get the workspace associated with the repository candidate. Based on the
 /// filtering.
 fn get_workspace<'repo_tree>(
@@ -99,58 +82,83 @@ fn get_workspace<'repo_tree>(
     }
 }
 
-/// Reduce the name of the repositories to the shortest path that identifies
-/// each repositories individually.
+/// Shortest suffix of the path components `name` which is not a suffix of
+/// any of the `others` path components. `None` if there is none, which is the
+/// case when `name` is itself a suffix of one of the `others`.
+fn unique_suffix(name: &[&str], others: &[Vec<&str>]) -> Option<String> {
+    (1..=name.len())
+        .map(|length| &name[name.len() - length..])
+        .find(|suffix| !others.iter().any(|other| other.ends_with(suffix)))
+        .map(|suffix| suffix.join("/"))
+}
+
+/// Associate to the repositories the identifiers they can be resolved with:
+/// - their name prefixed by the name of their host (e.g. `github/owner/repo`),
+/// - their name (e.g. `owner/repo`),
+/// - the shortest end of their name which identifies them (e.g. `repo`).
 fn reduce_repo_names<'repo_tree>(
     ui: &Ui<'_>,
     config: &Config,
     repo_tree: &'repo_tree RepoTree,
     filter: &ResolveFilter,
 ) -> BTreeMap<String, &'repo_tree Repository> {
-    let mut ret: BTreeMap<String, &Repository> = BTreeMap::new();
-
+    // Keep the first repository of each full name.
+    let mut repositories: Vec<(String, &Repository, &Workspace)> = Vec::new();
     for repository in repo_tree.repo_iter() {
         let Some(workspace) = get_workspace(ui, repository, filter) else {
             continue;
         };
-
-        let name = repository.id.name.clone();
-        if let Some(full_name) = repository
+        let name = &repository.id.name;
+        let full_name = repository
             .id
             .remote_host_name(config)
-            .map(|remote_host_name| format!("{remote_host_name}/{name}"))
+            .map_or_else(|| name.clone(), |host| format!("{host}/{name}"));
+
+        if let Some((_, _, first)) =
+            repositories.iter().find(|(n, _, _)| *n == full_name)
         {
-            if let Some(conflict_repository) = ret.remove(&full_name) {
-                let conflict_workspace =
-                    get_workspace(ui, conflict_repository, filter).unwrap();
-
-                ui_warning!(
-                    ui,
-                    "Duplicated repository with name {name}: {0} and {1}\n
-                    {1} is ignored!",
-                    conflict_workspace.path().display(),
-                    workspace.path().display(),
-                );
-                continue;
-            }
-            ret.insert(full_name, repository);
+            ui_warning!(
+                ui,
+                "Duplicated repository with name {full_name}: {} and {}, the \
+                 latter is ignored",
+                first.path().display(),
+                workspace.path().display(),
+            );
+            continue;
         }
-        let short_name = String::from(name.split('/').next_back().unwrap());
+        repositories.push((full_name, repository, workspace));
+    }
 
-        if name != short_name {
-            ret.insert(name.clone(), repository);
-        }
+    let names: Vec<Vec<&str>> = repositories
+        .iter()
+        .map(|(_, repository, _)| repository.id.name.split('/').collect())
+        .collect();
 
-        if let Some(conflict_repository) = ret.remove(&short_name) {
-            if let Some((conflict_reduced_name, reduced_name)) =
-                reduce(&conflict_repository.id.name, &name)
-            {
-                ret.insert(conflict_reduced_name, conflict_repository);
-                ret.insert(reduced_name, repository);
-            }
-        } else {
-            ret.insert(short_name, repository);
+    let mut ret = BTreeMap::new();
+
+    // Short names first, so that they never hide the name of a repository.
+    for (index, (_, repository, _)) in repositories.iter().enumerate() {
+        let others: Vec<Vec<&str>> = names
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| *i != index)
+            .map(|(_, name)| name.clone())
+            .collect();
+        if let Some(short_name) = unique_suffix(&names[index], &others) {
+            ret.insert(short_name, *repository);
         }
+    }
+    for (index, (full_name, repository, _)) in repositories.iter().enumerate() {
+        // The name alone is ambiguous if several hosts have a repository with
+        // that name.
+        if !names
+            .iter()
+            .enumerate()
+            .any(|(i, name)| i != index && *name == names[index])
+        {
+            ret.insert(repository.id.name.clone(), *repository);
+        }
+        ret.insert(full_name.clone(), *repository);
     }
 
     ret
@@ -433,45 +441,4 @@ pub fn resolve_completer() -> ArgValueCompleter {
             })
             .collect::<Vec<CompletionCandidate>>()
     })
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[test]
-    fn test_reduce_same_length() {
-        assert_eq!(
-            reduce("foo/bar/dead/beaf/toutidou", "foo/bar/deaf/beaf/toutidou",),
-            Some((
-                "dead/beaf/toutidou".to_string(),
-                "deaf/beaf/toutidou".to_string(),
-            ))
-        )
-    }
-
-    #[test]
-    fn test_reduce_different_length_diff() {
-        assert_eq!(
-            reduce("foo/bar/dead/beaf/toutidou", "deaf/beaf/toutidou",),
-            Some((
-                "dead/beaf/toutidou".to_string(),
-                "deaf/beaf/toutidou".to_string(),
-            ))
-        )
-    }
-
-    #[test]
-    fn test_reduce_min_length_match() {
-        assert_eq!(
-            reduce("foo/bar/dead/beaf/toutidou", "dead/beaf/toutidou",),
-            None,
-            // TODO Should it actually be the following?
-            // Some((
-            //     "bar/dead/beaf/toutidou".to_string(),
-            //     "deaf/beaf/toutidou".to_string(),
-            // ))
-        )
-    }
 }
