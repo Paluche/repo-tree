@@ -66,13 +66,12 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
                 continue;
             }
 
-            let parent = expected_root.parent().unwrap();
-
-            if !parent.exists()
+            if let Some(parent) = expected_root.parent()
                 && let Err(err) = create_dir_all(parent)
             {
                 ui.error(err);
                 ret = 1;
+                continue;
             }
 
             if let Err(err) = rename(workspace.path(), &expected_root) {
