@@ -5,6 +5,7 @@ use std::ffi::OsString;
 use std::fs::File;
 use std::fs::create_dir_all;
 use std::fs::read_to_string;
+use std::fs::rename;
 use std::io::prelude::*;
 use std::path::Path;
 use std::path::PathBuf;
@@ -388,6 +389,10 @@ fn cache_file_from(
 
 impl RepoTree {
     /// Write the repository tree into the cache file.
+    ///
+    /// The cache is written to a temporary file which then replaces the
+    /// cache, so that a concurrent `rt` never reads a partially written
+    /// cache.
     fn save(&self) -> Result<(), Box<dyn Error>> {
         let cache_file = cache_file()?;
         let write = || -> Result<(), Box<dyn Error>> {
@@ -395,8 +400,11 @@ impl RepoTree {
                 create_dir_all(parent)?;
             }
 
-            File::create(&cache_file)?
+            let tmp_file = cache_file
+                .with_extension(format!("toml.{}", std::process::id()));
+            File::create(&tmp_file)?
                 .write_all(toml::to_string(self)?.as_bytes())?;
+            rename(&tmp_file, &cache_file)?;
             Ok(())
         };
 
