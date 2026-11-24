@@ -76,7 +76,7 @@ pub async fn run(
             .into_iter()
             .map(|(r, _)| r)
             .collect::<Vec<&Repository>>(),
-        &current_repository,
+        current_repository.as_ref(),
         reverse,
     ) {
         if repository.id.is_local() {

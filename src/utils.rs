@@ -28,11 +28,11 @@ pub fn get_last_modified(path: &Path) -> Result<DateTime<Utc>, Box<dyn Error>> {
 /// ignoring the starting point.
 pub fn into_iter_from<'a, T>(
     values: Vec<&'a T>,
-    start: &'a Option<T>,
+    start: Option<&'a T>,
     reverse: bool,
 ) -> Box<dyn Iterator<Item = &'a T> + 'a>
 where
-    T: PartialEq + Clone,
+    T: PartialEq,
 {
     if let Some(start) = start {
         if reverse {
@@ -40,9 +40,9 @@ where
                 values
                     .into_iter()
                     .cycle()
-                    .skip_while(|r| **r != start.clone())
+                    .skip_while(move |r| *r != start)
                     .skip(1)
-                    .take_while(|r| **r != start.clone()),
+                    .take_while(move |r| *r != start),
             )
         } else {
             Box::new(
@@ -50,9 +50,9 @@ where
                     .into_iter()
                     .rev()
                     .cycle()
-                    .skip_while(|r| **r != start.clone())
+                    .skip_while(move |r| *r != start)
                     .skip(1)
-                    .take_while(|r| **r != start.clone()),
+                    .take_while(move |r| *r != start),
             )
         }
     } else if reverse {
