@@ -26,7 +26,7 @@ pub struct WorkspaceRmArgs {
         add=WorkspaceTreeSpace::completer(),
     )]
     workspace: WorkspaceTreeSpace,
-    /// Force the removal of the workspace.
+    /// Remove the workspace without asking for confirmation.
     #[arg(short, long)]
     force: bool,
     /// Force recreating the cache.

@@ -96,8 +96,8 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
-- **rm**, **workspace**: Failing to read the confirmation aborts instead of
-  crashing.
+- **rm**, **workspace**: The help of `--force` tells that it skips the
+  confirmation. Failing to read the confirmation aborts instead of crashing.
 - **git prompt**: Display the current branch, only the other branches pointing
   at the same commit were displayed.
 - **prompt**: No longer display empty fields, for an empty status summary or a

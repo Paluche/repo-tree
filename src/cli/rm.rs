@@ -19,7 +19,7 @@ pub struct RmArgs {
     /// Repository identifier identifying the repository to remove.
     #[arg(add=resolve_completer())]
     repo_id: Option<String>,
-    /// Force the removal of the repository, even if it is not empty.
+    /// Remove the repository without asking for confirmation.
     #[arg(short, long)]
     force: bool,
     /// Force recreating the cache.
