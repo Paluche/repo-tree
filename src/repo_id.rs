@@ -59,10 +59,22 @@ fn capture_url(url: &str) -> Result<regex::Captures<'_>, ParseUrlError> {
         return Err(ParseUrlError(url.to_string()));
     }
 
-    RE_SCHEME
+    let captures = RE_SCHEME
         .captures(url)
         .or_else(|| RE_SCP.captures(url))
-        .ok_or_else(|| ParseUrlError(url.to_string()))
+        .ok_or_else(|| ParseUrlError(url.to_string()))?;
+
+    // The path is used to build the location of the repository in the tree,
+    // it must not be able to point outside of it.
+    let path = captures["path"].trim_start_matches('/');
+    if path
+        .split('/')
+        .any(|component| matches!(component, "" | "." | ".."))
+    {
+        return Err(ParseUrlError(url.to_string()));
+    }
+
+    Ok(captures)
 }
 
 /// Representation of the URL of a remote.
@@ -110,7 +122,7 @@ impl RepoId {
     pub fn from_remote_url(remote_url: &str) -> Result<RepoId, ParseUrlError> {
         let remote_cap = capture_url(remote_url)?;
         let host_url = &remote_cap["host"];
-        let name = remote_cap["path"].to_string();
+        let name = remote_cap["path"].trim_start_matches('/').to_string();
 
         Ok(Self {
             remote: Some(Remote {

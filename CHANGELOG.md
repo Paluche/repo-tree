@@ -99,7 +99,10 @@ None
 - **repo id**: A repository whose remote is a path on the local filesystem,
   or a `file://` URL, is now handled as a local repository. Such repositories
   could not be parsed and were ignored by the repositories search, which
-  explored their `.git` directory instead.
+  explored their `.git` directory instead. Remote URLs whose path contains `.`,
+  `..` or empty components are rejected, so they cannot designate a location
+  outside the repo-tree, and a scp-like URL with an absolute path no longer
+  leads to an absolute location.
 - **completion**: The completion of the `--host` options now proposes the host
   names starting with the typed text. It used to compare the text with the host
   URL, proposing for instance nothing for `kern` and `kernel` for `git`.
