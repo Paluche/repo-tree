@@ -55,8 +55,8 @@ pub struct ParseUrlError(pub String);
 pub struct NoRepositoryError(pub PathBuf);
 
 #[derive(Debug, Error)]
-#[error("Repository {0}, should not be in {0} tree-space")]
-/// No repository found.
+#[error("Repository {0} should not be in the {1} tree-space")]
+/// A repository cannot be placed in the given tree-space.
 pub struct UnexpectedTreeSpaceError(pub String, pub String);
 
 #[derive(Debug, Error)]
@@ -88,8 +88,8 @@ pub struct GetLastModifiedError(pub String);
 pub struct UnimplementedForgeApi(pub String);
 
 #[derive(Debug, Error)]
-#[error("No {0} repository in: {0}")]
-/// Error during the parsing of the configuration.
+#[error("No {0} repository in: {1}")]
+/// The directory is not a repository of the given version control system.
 pub struct NotARepositoryError(pub VersionControlSystem, pub String);
 
 #[derive(Debug, Error)]
