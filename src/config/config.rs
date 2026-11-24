@@ -127,18 +127,25 @@ impl Config {
     pub fn host_completer() -> ArgValueCompleter {
         ArgValueCompleter::new(|current: &OsStr| {
             Config::load().map_or(Vec::new(), |c| {
-                c.remote_hosts
-                    .iter()
-                    .filter(|(host, _)| {
-                        host.starts_with(current.to_str().unwrap_or(""))
-                    })
-                    .map(|(host, data)| {
-                        CompletionCandidate::new(data.category.name.clone())
-                            .help(Some(StyledStr::from(host)))
-                    })
-                    .collect::<Vec<CompletionCandidate>>()
+                c.host_candidates(current.to_str().unwrap_or(""))
             })
         })
+    }
+
+    /// Completion candidates for a host argument whose URL starts with
+    /// `current`: the names of the configured hosts, with their URL as help.
+    pub(super) fn host_candidates(
+        &self,
+        current: &str,
+    ) -> Vec<CompletionCandidate> {
+        self.remote_hosts
+            .iter()
+            .filter(|(host, _)| host.starts_with(current))
+            .map(|(host, data)| {
+                CompletionCandidate::new(data.category.name.clone())
+                    .help(Some(StyledStr::from(host)))
+            })
+            .collect()
     }
 
     /// Get the specified RemoteHost struct for a given host.
