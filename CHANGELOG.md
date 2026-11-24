@@ -97,7 +97,8 @@ None
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
 - **config**: A color given as an array with other than 3 values is now
-  reported as a configuration error instead of making `rt` crash.
+  reported as a configuration error instead of making `rt` crash. The `text`
+  and `color` of a colored text can now each be omitted.
 - **todo**: `rt todo next` now goes forward in the list of repositories and
   `rt todo prev` backward, from inside a repository as from outside of it. Both
   no longer hang when the current repository is not in the filtered list.

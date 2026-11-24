@@ -288,6 +288,7 @@ impl Color {
 
 /// Configuration for a colored text.
 #[derive(Default, Debug, Clone, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ColoredText {
     /// Text value.
     text: String,
