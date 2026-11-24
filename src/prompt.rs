@@ -84,6 +84,7 @@ impl<'prompt, 'repo, 'config> Display
 
         if let Some(repr) =
             self.prompt.repository.id.remote_host_repr(self.config)
+            && !repr.is_empty()
         {
             write!(f, "{}{}", self.config.prompt.separator, repr)?;
         }

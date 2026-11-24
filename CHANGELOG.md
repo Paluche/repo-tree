@@ -98,7 +98,8 @@ None
   `rt` and `jj` agree on the list of workspaces.
 - **git prompt**: Display the current branch, only the other branches pointing
   at the same commit were displayed.
-- **prompt**: No longer display empty fields, for an empty status summary.
+- **prompt**: No longer display empty fields, for an empty status summary or a
+  host without representation.
 - **fetch**: Report why a repository could not be fetched. The error of a
   Jujutsu fetch was silently ignored.
 - **tree**: The short option to refresh the cache is `-R`, as for the other
