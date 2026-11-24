@@ -209,37 +209,46 @@ impl TagRaw {
     }
 }
 
+impl Tags {
+    /// Build the tags of a repository from the raw tags listed by
+    /// `jj tag list --all-remotes`, merging each tracked remote tag into its
+    /// local tag.
+    fn from_raw(raw_tags: Vec<TagRaw>) -> Self {
+        let mut ret = Self { tags: Vec::new() };
+
+        for raw in raw_tags {
+            if raw.remote.as_deref() == Some(GIT_REMOTE) {
+                continue;
+            }
+
+            if raw.remote.is_some()
+                && raw.tracked
+                && let Some(tag) = ret.get_mut(&raw.name)
+            {
+                raw.merge_with_tag(tag);
+            } else {
+                ret.push(raw.into_tag());
+            }
+        }
+
+        ret
+    }
+}
+
 /// Get all the tags of the repository.
 pub fn get_all_tags(repo_path: &Path) -> Result<Tags, Box<dyn Error>> {
-    let lines = JujutsuCommand::repo(repo_path)?
-        .arg("tag")
-        .arg("list")
-        .arg("--all-remotes")
-        .arg("--template")
-        .arg(TagRaw::tag_list_template())
-        .output_lines()?
-        .iter()
-        .map(|l| TagRaw::from_line(l))
-        .collect::<Result<Vec<TagRaw>, _>>()?;
-
-    let mut ret = Tags { tags: Vec::new() };
-
-    for line in lines {
-        if line.remote.as_deref() == Some(GIT_REMOTE) {
-            continue;
-        }
-
-        if line.remote.is_some()
-            && line.tracked
-            && let Some(tag) = ret.get_mut(&line.name)
-        {
-            line.merge_with_tag(tag);
-        } else {
-            ret.push(line.into_tag());
-        }
-    }
-
-    Ok(ret)
+    Ok(Tags::from_raw(
+        JujutsuCommand::repo(repo_path)?
+            .arg("tag")
+            .arg("list")
+            .arg("--all-remotes")
+            .arg("--template")
+            .arg(TagRaw::tag_list_template())
+            .output_lines()?
+            .iter()
+            .map(|l| TagRaw::from_line(l))
+            .collect::<Result<Vec<TagRaw>, _>>()?,
+    ))
 }
 
 /// Get the tags set on the commits matching the revset.

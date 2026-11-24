@@ -15,12 +15,22 @@ pub const DEFAULT_WORKSPACE: &str = "default";
 pub fn list_workspaces(
     repo_path: &Path,
 ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
-    JujutsuCommand::repo(repo_path)?
-        .arg("workspace")
-        .arg("list")
-        .arg("--template")
-        .arg(r#"name ++ "\t" ++ root ++ "\n""#)
-        .output_lines()?
+    parse_workspace_list(
+        &JujutsuCommand::repo(repo_path)?
+            .arg("workspace")
+            .arg("list")
+            .arg("--template")
+            .arg(r#"name ++ "\t" ++ root ++ "\n""#)
+            .output_lines()?,
+    )
+}
+
+/// Parse the output of `jj workspace list`, with a template giving a
+/// workspace per line, with its name and root separated by a tab.
+fn parse_workspace_list(
+    lines: &[String],
+) -> Result<Vec<VcsWorkspace>, Box<dyn Error>> {
+    lines
         .iter()
         .map(|line| {
             let (name, path) = line.split_once('\t').ok_or_else(|| {

@@ -233,41 +233,50 @@ impl BookmarkRaw {
     }
 }
 
+impl Bookmarks {
+    /// Build the bookmarks of a repository from the raw bookmarks listed by
+    /// `jj bookmark list --all`, merging each tracked remote bookmark into
+    /// its local bookmark.
+    fn from_raw(raw_bookmarks: Vec<BookmarkRaw>) -> Self {
+        let mut ret = Self {
+            bookmarks: Vec::new(),
+        };
+
+        for raw in raw_bookmarks {
+            if raw.remote.as_deref() == Some(GIT_REMOTE) {
+                continue;
+            }
+
+            if raw.remote.is_some()
+                && raw.tracked
+                && let Some(bookmark) = ret.get_mut(&raw.name)
+            {
+                raw.merge_with_bookmark(bookmark);
+            } else {
+                ret.push(raw.into_bookmark());
+            }
+        }
+
+        ret
+    }
+}
+
 /// Get the bookmarks the repository currently have.
 pub fn get_all_bookmarks(
     repo_path: &Path,
 ) -> Result<Bookmarks, Box<dyn Error>> {
-    let lines = JujutsuCommand::repo(repo_path)?
-        .arg("bookmark")
-        .arg("list")
-        .arg("--all")
-        .arg("--template")
-        .arg(BookmarkRaw::bookmark_list_template())
-        .output_lines()?
-        .iter()
-        .map(|l| BookmarkRaw::from_line(l))
-        .collect::<Result<Vec<BookmarkRaw>, _>>()?;
-
-    let mut ret = Bookmarks {
-        bookmarks: Vec::new(),
-    };
-
-    for line in lines {
-        if line.remote.as_deref() == Some(GIT_REMOTE) {
-            continue;
-        }
-
-        if line.remote.is_some()
-            && line.tracked
-            && let Some(bookmark) = ret.get_mut(&line.name)
-        {
-            line.merge_with_bookmark(bookmark);
-        } else {
-            ret.push(line.into_bookmark());
-        }
-    }
-
-    Ok(ret)
+    Ok(Bookmarks::from_raw(
+        JujutsuCommand::repo(repo_path)?
+            .arg("bookmark")
+            .arg("list")
+            .arg("--all")
+            .arg("--template")
+            .arg(BookmarkRaw::bookmark_list_template())
+            .output_lines()?
+            .iter()
+            .map(|l| BookmarkRaw::from_line(l))
+            .collect::<Result<Vec<BookmarkRaw>, _>>()?,
+    ))
 }
 
 /// Get the bookmarks set on the commits matching the revset.

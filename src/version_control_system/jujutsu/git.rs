@@ -37,11 +37,21 @@ pub fn get_remote_url(
 
 /// Get the configured remotes of the repository.
 pub fn get_remotes(repo_path: &Path) -> Result<Vec<VcsRemote>, Box<dyn Error>> {
-    JujutsuCommand::repo(repo_path)?
-        .arg("git")
-        .arg("remote")
-        .arg("list")
-        .output_lines()?
+    parse_remote_list(
+        &JujutsuCommand::repo(repo_path)?
+            .arg("git")
+            .arg("remote")
+            .arg("list")
+            .output_lines()?,
+    )
+}
+
+/// Parse the output of `jj git remote list`, a remote per line, with its name
+/// and URL separated by a space.
+fn parse_remote_list(
+    lines: &[String],
+) -> Result<Vec<VcsRemote>, Box<dyn Error>> {
+    lines
         .iter()
         .map(|line| {
             let (name, url) = line.split_once(' ').ok_or_else(|| {
