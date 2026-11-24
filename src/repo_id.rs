@@ -212,6 +212,26 @@ impl RepoId {
         repo_path: Option<&Path>,
         strategy: ExpectedTreeStrategy,
     ) -> Result<TreeSpace, Box<dyn Error>> {
+        self.expected_tree_with_forge(
+            ui,
+            config,
+            repo_path,
+            strategy,
+            self.forge_api(config),
+        )
+        .await
+    }
+
+    /// In which tree the repository should be, based on its ID, using
+    /// `forge_api` to interact with the forge hosting the repository.
+    async fn expected_tree_with_forge(
+        &self,
+        ui: &mut Ui<'_>,
+        config: &Config,
+        repo_path: Option<&Path>,
+        strategy: ExpectedTreeStrategy,
+        forge_api: Result<Option<Box<dyn ForgeApi>>, Box<dyn Error>>,
+    ) -> Result<TreeSpace, Box<dyn Error>> {
         if self.remote.is_none() {
             return Ok(TreeSpace::Local);
         }
@@ -235,7 +255,7 @@ impl RepoId {
             })
         }
 
-        match self.forge_api(config) {
+        match forge_api {
             Ok(Some(forge_api)) => {
                 Ok(
                     // This is case where you might opt for the lazy approach.
