@@ -36,21 +36,19 @@ fn get_candidates<'repo_tree>(
     repo_tree: &'repo_tree RepoTree,
     maybe_tree_space: Option<&TreeSpace>,
 ) -> BTreeMap<&'repo_tree String, &'repo_tree PathBuf> {
-    BTreeMap::from_iter(repo_tree.workspace_iter().filter_map(
-        |(repository, workspace)| {
-            if let Some(tree_space) = maybe_tree_space
-                && repository.get_tree_workspace(ui, tree_space).is_none()
-            {
-                None
-            } else {
-                repository
-                    .id
-                    .remote
-                    .as_ref()
-                    .map(|r| (&r.url, workspace.path()))
-            }
-        },
-    ))
+    repo_tree
+        .repo_iter()
+        .filter_map(|repository| {
+            let url = &repository.id.remote.as_ref()?.url;
+            let workspace = match maybe_tree_space {
+                Some(tree_space) => {
+                    repository.get_tree_workspace(ui, tree_space)?
+                }
+                None => repository.get_main_workspace(ui),
+            };
+            Some((url, workspace.path()))
+        })
+        .collect()
 }
 
 /// Execute the `rt resolve-url` command.

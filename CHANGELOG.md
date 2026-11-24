@@ -98,6 +98,8 @@ None
   `rt` and `jj` agree on the list of workspaces.
 - **resolve**: Resolving a repository with several workspaces no longer
   crashes when the tree-space selected with fzf is unknown.
+- **resolve-url**: Return the main workspace of the repository, or the one of
+  the tree-space given with `--tree`, instead of the last workspace found.
 - **clone**: Fail when the clone location exists and is not a repository,
   instead of succeeding without printing the location. The error about an
   invalid URL names the URL.
