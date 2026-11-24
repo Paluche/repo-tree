@@ -43,7 +43,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: ResolveArgs) -> i32 {
         match resolve(ui, config, &repo_tree, args.repo_id, filter) {
             Ok(r) => r,
             Err(err) => {
-                eprintln!("{err}");
+                ui.error(err);
                 return 1;
             }
         }
