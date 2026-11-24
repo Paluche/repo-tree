@@ -55,7 +55,10 @@ fn format_repo_status(
             "┊ {}{} {}\n",
             prefix,
             "Last Fetched".green(),
-            last_fetched.format("%c").to_string().green()
+            last_fetched
+                .strftime("%a %b %e %H:%M:%S %Y")
+                .to_string()
+                .green()
         ));
     }
 

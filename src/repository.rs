@@ -6,8 +6,7 @@ use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
-use chrono::DateTime;
-use chrono::Utc;
+use jiff::Timestamp;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -32,7 +31,7 @@ pub struct TrackedFile {
     /// Path to the file.
     file: PathBuf,
     /// Last time the file was modified.
-    last_modified: DateTime<Utc>,
+    last_modified: Timestamp,
 }
 
 impl TrackedFile {
@@ -428,7 +427,7 @@ impl Repository {
             is_submodule: false,
             remote_config: TrackedFile {
                 file: PathBuf::from("/nonexistent/config"),
-                last_modified: DateTime::<Utc>::UNIX_EPOCH,
+                last_modified: Timestamp::UNIX_EPOCH,
             },
             workspace_store: None,
         }

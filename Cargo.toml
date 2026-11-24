@@ -16,7 +16,6 @@ path = "src/main.rs"
 [dependencies]
 enum_docs_derive = { path = "enum_docs_derive" }
 async-trait = "0.1.92"
-chrono = { version = "0.4.45", features = ["serde"] }
 clap = { version = "4.6.6", features = ["derive"] }
 clap_complete = { version = "4.6.9", features = ["unstable-dynamic"] }
 colored = "3.1.1"
@@ -26,6 +25,7 @@ git2 = { version = "0.21.0", default-features = false }
 globset = { version = "0.4.20", features = ["serde1"] }
 indoc = "2.0.7"
 itertools = "0.15.0"
+jiff = { version = "1.0.3", features = ["serde"] }
 pathdiff = "0.2.3"
 pollster = "1.0.1"
 regex = "1.13.1"

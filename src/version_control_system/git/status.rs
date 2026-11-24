@@ -6,8 +6,7 @@ use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
 
-use chrono::DateTime;
-use chrono::Utc;
+use jiff::Timestamp;
 use pathdiff::diff_paths;
 use strum::EnumIter;
 use strum::IntoEnumIterator;
@@ -777,7 +776,7 @@ impl HeadInfo {
 }
 
 /// Find out when the repository was last fetched.
-fn get_last_fetched(git_dir: &Path) -> Option<DateTime<Utc>> {
+fn get_last_fetched(git_dir: &Path) -> Option<Timestamp> {
     get_last_modified(&git_dir.join("FETCH_HEAD")).ok()
 }
 
@@ -869,7 +868,7 @@ pub struct GitStatus {
     /// Status of the items.
     pub status: Vec<ItemStatus>,
     /// Date the repository has been synchronized with the remote.
-    pub last_fetched: Option<DateTime<Utc>>,
+    pub last_fetched: Option<Timestamp>,
     /// List on currently ongoing operations.
     pub ongoing_operations: Vec<GitOperation>,
 }

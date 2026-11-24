@@ -3,23 +3,15 @@
 use std::error::Error;
 use std::fs::metadata;
 use std::path::Path;
-use std::time::SystemTime;
 
-use chrono::DateTime;
-use chrono::Utc;
+use jiff::Timestamp;
 
 use crate::error::GetLastModifiedError;
 
 /// Get the last time a file has been modified.
-pub fn get_last_modified(path: &Path) -> Result<DateTime<Utc>, Box<dyn Error>> {
-    DateTime::from_timestamp_millis(
-        metadata(path)?
-            .modified()?
-            .duration_since(SystemTime::UNIX_EPOCH)?
-            .as_millis()
-            .try_into()?,
-    )
-    .ok_or(Box::new(GetLastModifiedError(path.display().to_string())))
+pub fn get_last_modified(path: &Path) -> Result<Timestamp, Box<dyn Error>> {
+    Timestamp::try_from(metadata(path)?.modified()?)
+        .map_err(|_| GetLastModifiedError(path.display().to_string()).into())
 }
 
 /// Iterate over `values` starting after `start`, wrapping around, and
@@ -53,6 +45,7 @@ where
 mod tests {
     use std::fs::File;
     use std::time::Duration;
+    use std::time::SystemTime;
 
     use super::*;
 
@@ -111,7 +104,7 @@ mod tests {
         let last_modified =
             get_last_modified(&path).expect("cannot get modification time");
 
-        assert_eq!(last_modified.timestamp_millis(), 1_700_000_123);
+        assert_eq!(last_modified.as_millisecond(), 1_700_000_123);
     }
 
     #[test]
