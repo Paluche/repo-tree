@@ -73,7 +73,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: ResolveUrlArgs) -> i32 {
 
     if matches.is_empty() {
         eprintln!("No match for {}", args.repo_id);
-        return 1;
+        return 2;
     }
 
     matches.dedup_by_key(|(_, name)| candidates.get(*name).unwrap().to_str());
