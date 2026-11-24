@@ -96,6 +96,9 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **todo**: `rt todo next` now goes forward in the list of repositories and
+  `rt todo prev` backward, from inside a repository as from outside of it. Both
+  no longer hang when the current repository is not in the filtered list.
 - **errors**: The errors about a repository in an unexpected tree-space and
   about a directory which is not a repository now name the tree-space and the
   directory instead of repeating the repository or the version control system.
