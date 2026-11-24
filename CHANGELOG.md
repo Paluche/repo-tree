@@ -96,6 +96,8 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **resolve**: The warning about an alias to an unknown repository now names
+  the alias.
 - **tree**: The URL of a submodule configured relatively to the URL of its main
   repository (`../other.git`) is resolved as git does. One more path component
   was removed, and the URL of a main repository with a scp-like remote was

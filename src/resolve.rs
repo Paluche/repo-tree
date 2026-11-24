@@ -172,7 +172,8 @@ fn get_candidates<'repo_tree>(
         } else if filter.is_all() {
             // This warning is no more reliable when there is filtering. So
             // print it only if there is no filtering.
-            ui.warning(
+            ui_warning!(
+                ui,
                 "Configured alias \"{alias}\" => \"{repo_name}\", does not \
                  correspond to any existing repository.",
             );
