@@ -376,14 +376,21 @@ pub fn resolve<'repo_tree>(
 > {
     if let Some(repo) = resolve_repo(ui, config, repo_tree, repo_id, &filter)? {
         let workspace = if filter.is_all() && repo.workspaces.len() != 1 {
-            if let Some(tree_space) = fzf_ask(
-                repo.workspaces
-                    .iter()
-                    .map(|w| w.tree_space().unwrap().name(config)),
-            )?
-            .map(|name| TreeSpace::from_name(config, &name).unwrap())
-            {
-                repo.get_tree_workspace(ui, &tree_space).unwrap()
+            let names = repo
+                .workspaces
+                .iter()
+                .filter_map(Workspace::tree_space)
+                .map(|tree_space| tree_space.name(config));
+            if let Some(name) = fzf_ask(names)? {
+                let tree_space = TreeSpace::from_name(config, &name)
+                    .ok_or_else(|| format!("Unknown tree-space {name:?}"))?;
+                repo.get_tree_workspace(ui, &tree_space).ok_or_else(|| {
+                    format!(
+                        "The repository {} has no workspace in the {name} \
+                         tree-space",
+                        repo.id.name
+                    )
+                })?
             } else {
                 ui.hint(
                     "No tree space specified, defaulting to the default \
@@ -392,7 +399,10 @@ pub fn resolve<'repo_tree>(
                 repo.get_main_workspace(ui)
             }
         } else {
-            get_workspace(ui, repo, &filter).unwrap()
+            get_workspace(ui, repo, &filter).expect(
+                "resolve_repo only returns repositories with a workspace \
+                 matching the filter",
+            )
         };
         Ok(Some((repo, workspace)))
     } else {

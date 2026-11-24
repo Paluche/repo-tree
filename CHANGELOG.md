@@ -96,6 +96,8 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **resolve**: Resolving a repository with several workspaces no longer
+  crashes when the tree-space selected with fzf is unknown.
 - **clone**: Fail when the clone location exists and is not a repository,
   instead of succeeding without printing the location. The error about an
   invalid URL names the URL.
