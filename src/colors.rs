@@ -543,6 +543,13 @@ mod tests {
     }
 
     #[test]
+    fn colorize_empty_text_stays_empty() {
+        let _colors = colors();
+
+        assert_eq!(Color::red().colorize(""), "");
+    }
+
+    #[test]
     fn colorize_respects_disabled_colors() {
         let _colors = no_colors();
 
