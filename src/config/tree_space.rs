@@ -4,6 +4,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use super::TreeCategory;
+use super::tree_category::PartialTreeCategory;
 use crate::colors::Color;
 use crate::colors::ColoredText;
 
@@ -28,6 +29,7 @@ pub struct TreeSpaceConfig {
 /// Configuration for the dev tree-space, the default tree-space for
 /// repositories which has remote and are non-archived.
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(from = "PartialTreeCategory")]
 pub struct DevTreeSpace {
     /// Tree category information for the tree-space.
     #[serde(flatten)]
@@ -49,6 +51,7 @@ impl Default for DevTreeSpace {
 /// Configuration for the tree-space that will contain the repositories which
 /// has no associated remote, therefore existing only locally.
 #[derive(Serialize, Deserialize)]
+#[serde(from = "PartialTreeCategory")]
 pub struct LocalTreeSpace {
     /// Tree category information for the tree-space.
     #[serde(flatten)]
@@ -69,6 +72,7 @@ impl Default for LocalTreeSpace {
 
 /// Configuration for the tree-space that will contain archived repositories.
 #[derive(Serialize, Deserialize)]
+#[serde(from = "PartialTreeCategory")]
 pub struct ArchiveTreeSpace {
     /// Tree category information for the tree-space.
     #[serde(flatten)]
@@ -91,6 +95,7 @@ impl Default for ArchiveTreeSpace {
 /// workspaces where agents will work to dissociate them from the workspaces
 /// where the human develop.
 #[derive(Serialize, Deserialize)]
+#[serde(from = "PartialTreeCategory")]
 pub struct AgentTreeSpace {
     /// Tree category information for the tree-space.
     #[serde(flatten)]
@@ -108,3 +113,26 @@ impl Default for AgentTreeSpace {
         }
     }
 }
+
+/// Implement the deserialization of a tree-space configuration, as an
+/// override of its default configuration.
+macro_rules! impl_from_partial {
+    ($($tree_space:ident),*) => {
+        $(
+            impl From<PartialTreeCategory> for $tree_space {
+                fn from(partial: PartialTreeCategory) -> Self {
+                    Self {
+                        category: partial.apply(Self::default().category),
+                    }
+                }
+            }
+        )*
+    };
+}
+
+impl_from_partial!(
+    DevTreeSpace,
+    LocalTreeSpace,
+    ArchiveTreeSpace,
+    AgentTreeSpace
+);

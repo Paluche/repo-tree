@@ -44,6 +44,29 @@ impl TreeCategory {
     }
 }
 
+/// Partial representation of a category, as written in the configuration
+/// to override some fields of a default category.
+#[derive(Deserialize)]
+pub struct PartialTreeCategory {
+    /// Name of the category.
+    name: Option<String>,
+    /// Name of the directory for that object in the repo tree.
+    dir_name: Option<String>,
+    /// Short representation of the category.
+    repr: Option<ColoredText>,
+}
+
+impl PartialTreeCategory {
+    /// Override the fields of `default` with the ones defined.
+    pub fn apply(self, default: TreeCategory) -> TreeCategory {
+        TreeCategory {
+            name: self.name.unwrap_or(default.name),
+            dir_name: self.dir_name.or(default.dir_name),
+            repr: self.repr.unwrap_or(default.repr),
+        }
+    }
+}
+
 impl Display for TreeCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.repr.is_empty() {
