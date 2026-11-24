@@ -96,6 +96,10 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **tree**: The URL of a submodule configured relatively to the URL of its main
+  repository (`../other.git`) is resolved as git does. One more path component
+  was removed, and the URL of a main repository with a scp-like remote was
+  converted into a `ssh://` URL.
 - **jj prompt**: In a repository colocated with Git, a bookmark existing only
   locally is displayed as local, instead of as tracked by the `git` pseudo
   remote.

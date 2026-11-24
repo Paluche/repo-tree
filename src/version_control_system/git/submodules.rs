@@ -1,135 +1,86 @@
 //! Functions related to git submodules.
 use std::error::Error;
-use std::fs::canonicalize;
 use std::path::Path;
 use std::path::PathBuf;
 
 use git2::Oid;
-use regex::Regex;
-use url::Url;
 
 use crate::repo_id::Remote;
 
-/// Resolve a submodule URL that may be relative into an absolute URL,
-/// using the repository's remote URL as the base.
+/// Resolve a submodule URL that may be relative into an absolute URL, the
+/// way git does when initializing the submodule.
 ///
-/// This handles:
-/// - absolute URLs (http://, https://, ssh://, git://, file://, etc.) =>
-///   returned as-is.
-/// - scp-style urls (git@host:owner/repo.git). If `submodule_url` is relative
-///   (starts with ./ or ../), it is resolved against the base scp path.
-/// - relative pathlike urls (../foo/bar) resolved against the base remote path.
+/// A URL starting with `./` or `../` is relative to the URL of the remote of
+/// the main repository (its "origin" remote or, if none, the first one), the
+/// main repository root directory being used when it has no remote. As for
+/// git, the remote URL is considered a directory: each leading `../` removes
+/// a component of it, and the remaining URL is appended. Other URLs are
+/// returned unchanged.
 ///
-/// Notes / caveats:
-/// - Mirrors typical git behavior but is not an exact implementation of all git
-///   heuristics, the remote being deduced in order as:
-///     1) "origin"
-///     2) the first remote defined
-/// - Git has more subtle behavior (e.g. remote used for the branch you fetch
-///   from, config fallbacks).
-/// - scp-style handling is implemented heuristically by converting the scp url
-///   into an ssh:// URL for path joining.
-/// - This helper focuses on the common cases; for complete fidelity to `git`
-///   behavior, call git itself or replicate git's source logic.
+/// Returns `None` if the relative URL goes above the root of the remote URL.
 fn resolve_url<P: AsRef<Path>>(
     main_repo_root: P,
     main_repo_remote: &Option<Remote>,
     submodule_url: &str,
-) -> Result<Option<String>, Box<dyn Error>> {
-    // If it already looks like an absolute URL with a scheme, return as-is.
-    if submodule_url.contains("://") {
-        return Ok(Some(submodule_url.to_string()));
+) -> Option<String> {
+    if !(submodule_url.starts_with("./") || submodule_url.starts_with("../")) {
+        return Some(submodule_url.to_string());
     }
 
-    // If it's an absolute filesystem path, return as-is.
-    if Path::new(submodule_url).is_absolute() {
-        return Ok(Some(submodule_url.to_string()));
-    }
+    let base = main_repo_remote.as_ref().map_or_else(
+        || main_repo_root.as_ref().to_string_lossy().into_owned(),
+        |remote| remote.url.clone(),
+    );
 
-    // Pick a base remote to resolve against.
-    // If base remote is scp-like (user@host:path) convert it to
-    // ssh://user@host/ for joining.
-    let scp_re =
-        Regex::new(r"^(?:(?P<user>[^@]+)@)?(?P<host>[^:]+):(?P<path>.+)$")
-            .unwrap();
-
-    Ok(if let Some(main_remote) = main_repo_remote {
-        // Try to parse base as a normal URL (http/https/git/file).
-        if let Ok(mut base) = Url::parse(&main_remote.url) {
-            // We want to join against the parent directory of the repository's
-            // path component e.g. base path: /owner/repo.git -> parent: /owner/
-            let base_path = base.path();
-            let base_parent = Path::new(base_path)
-                .parent()
-                .map(|p| p.to_string_lossy())
-                .unwrap_or_else(|| "".into());
-
-            // Build a base URL whose path is the base_parent, so joining
-            // 'submodule_url' works.
-            // Ensure trailing slash to treat it as a directory for Url::join.
-            base.set_path(&format!("{}/", base_parent.trim_end_matches('/')));
-
-            let joined = base.join(submodule_url)?;
-            Some(joined.to_string())
-        } else if scp_re.is_match(&main_remote.url) {
-            // Parse base as scp-like.
-            let caps = scp_re.captures(&main_remote.url).unwrap();
-            let user = caps.name("user").map(|m| m.as_str());
-            let host = caps.name("host").unwrap().as_str();
-            let base_path = caps.name("path").unwrap().as_str();
-
-            // Convert base to ssh:// URL so we can use url::Url for path
-            // manipulation.
-            let mut base_ssh = if let Some(u) = user {
-                format!("ssh://{}@{}/", u, host)
-            } else {
-                format!("ssh://{}/", host)
-            };
-            // Ensure base_path is treated as path and not as host; join parent
-            // directory of base_path e.g. base_path = "owner/repo.git" ->
-            // base_dir = "owner".
-            let base_parent = Path::new(base_path)
-                .parent()
-                .map(|p| p.to_string_lossy())
-                .unwrap_or_else(|| "".into());
-            if !base_parent.is_empty() {
-                // Note: url::Url::join works with trailing slashes; ensure one
-                // exists.
-                base_ssh.push_str(&format!("{}/", base_parent));
-            }
-
-            // Now join the relative submodule_url to this base_ssh.
-            let base = Url::parse(&base_ssh)?;
-            let joined = base.join(submodule_url)?;
-            // Convert ssh://user@host/... back to scp-like (optional). We will
-            // return ssh:// form which is valid.
-            Some(joined.to_string())
-        } else {
-            // Fallback: if base_remote_url is just a local path or otherwise
-            // unparsable, resolve path-like by treating base_remote_url as a
-            // directory.
-            resolve_url_as_relpath(&main_remote.url, submodule_url)
-        }
-    } else {
-        resolve_url_as_relpath(main_repo_root, submodule_url)
-    })
+    join_relative_url(&base, submodule_url)
 }
 
-/// Resolve the submodule URL which is configured as a relative path / URL.
-fn resolve_url_as_relpath<P: AsRef<Path>>(
-    repo_path: P,
-    submodule_url: &str,
-) -> Option<String> {
-    canonicalize(
-        repo_path
-            .as_ref()
-            .parent()
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| Path::new("").to_path_buf())
-            .join(submodule_url),
-    )
-    .ok()
-    .map(|p| p.to_string_lossy().to_string())
+/// Join the relative URL `url` to `base`, following git rules: `base` is
+/// considered as a directory, each leading `../` of `url` removes one
+/// component of it and each leading `./` is ignored.
+///
+/// The scheme and host of a URL (`https://host`), or the host of a scp-like
+/// URL (`user@host:`), are never removed. Returns `None` if `url` would go
+/// above them.
+fn join_relative_url(base: &str, url: &str) -> Option<String> {
+    // Length of the part of the base which cannot be removed.
+    let protected = if let Some(scheme_end) = base.find("://") {
+        let host_start = scheme_end + 3;
+        base[host_start..]
+            .find('/')
+            .map_or(base.len(), |i| host_start + i)
+    } else if let Some(colon) = base.find(':')
+        && !base[..colon].contains('/')
+    {
+        colon + 1
+    } else {
+        usize::from(base.starts_with('/'))
+    };
+
+    let mut base = base.trim_end_matches('/').to_string();
+    let mut url = url;
+    loop {
+        if let Some(rest) = url.strip_prefix("./") {
+            url = rest;
+        } else if let Some(rest) = url.strip_prefix("../") {
+            if base.len() <= protected {
+                return None;
+            }
+            let last = base[protected..]
+                .rfind('/')
+                .map_or(protected, |i| protected + i);
+            base.truncate(last);
+            url = rest;
+        } else {
+            break;
+        }
+    }
+
+    Some(if base.ends_with(':') || base.is_empty() {
+        format!("{base}{url}")
+    } else {
+        format!("{base}/{url}")
+    })
 }
 
 /// Information on a submodule.
@@ -198,7 +149,7 @@ pub fn get<P: AsRef<Path>>(
                 ahead,
                 behind,
                 config_url: Some(conf_url.to_string()),
-                url: resolve_url(&main_repo_root, main_repo_remote, conf_url)?,
+                url: resolve_url(&main_repo_root, main_repo_remote, conf_url),
             }
         } else {
             SubmoduleInfo {
