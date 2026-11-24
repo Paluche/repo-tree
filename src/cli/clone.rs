@@ -62,12 +62,11 @@ async fn do_clone(
                 );
             }
         } else {
-            ui_hint!(
-                ui,
-                "Clone location {} already exists",
+            return Err(format!(
+                "Clone location {} already exists and is not a repository",
                 location.display()
-            );
-            return Ok(());
+            )
+            .into());
         }
     } else {
         let remote_url = &repo_id
