@@ -92,7 +92,7 @@ impl GitUpstreamConfig {
     }
 
     pub fn ahead(&self) -> String {
-        self.color.colorize(&self.up_to_date)
+        self.color.colorize(&self.ahead)
     }
 
     pub fn behind(&self) -> String {

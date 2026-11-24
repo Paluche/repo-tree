@@ -96,6 +96,8 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **git prompt**: Display the "ahead" symbol, instead of the "up-to-date" one,
+  when the current branch is ahead of its upstream.
 - **config**: A missing `root` without `REPO_TREE_DIR`, or a relative
   `REPO_TREE_DIR`, is now reported as an error instead of making `rt` crash.
   An empty or relative `XDG_CONFIG_HOME` is ignored, as required by the XDG
