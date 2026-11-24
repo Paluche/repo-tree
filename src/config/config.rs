@@ -105,17 +105,22 @@ impl Config {
     /// Load the configuration.
     pub fn load() -> Result<Self, Box<dyn Error>> {
         let config_path = config_dir()?.join("config.toml");
-
-        let repo_tree_dir = env::var_os("REPO_TREE_DIR");
-
-        Ok(if config_path.is_file() {
-            Self::load_internal(
-                &fs::read_to_string(&config_path)?,
-                repo_tree_dir,
-            )?
+        let content = if config_path.is_file() {
+            fs::read_to_string(&config_path).map_err(|e| {
+                ConfigError(format!(
+                    "cannot read {}: {e}",
+                    config_path.display()
+                ))
+            })?
         } else {
-            Self::load_internal("", repo_tree_dir)?
-        })
+            String::new()
+        };
+
+        Self::load_internal(&content, env::var_os("REPO_TREE_DIR")).map_err(
+            |e| -> Box<dyn Error> {
+                format!("{}: {e}", config_path.display()).into()
+            },
+        )
     }
 
     /// Obtain the auto-completion candidates for a host argument.
