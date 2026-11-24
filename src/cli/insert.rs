@@ -50,24 +50,17 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: InsertArgs) -> i32 {
     let workspace = repository.get_latest_workspace();
 
     let expected_root = match repository
-        .expected_root(
-            ui,
-            config,
-            repository.get_latest_workspace(),
-            args.force_tree.into(),
-        )
+        .expected_root(ui, config, workspace, args.force_tree.into())
         .await
     {
-        Ok(value) => match value {
-            Some(value) => value,
-            None => {
-                eprintln!(
-                    "Repository is a submodule, cannot insert it into the \
-                     repo tree."
-                );
-                return 1;
-            }
-        },
+        Ok(Some(value)) => value,
+        Ok(None) => {
+            eprintln!(
+                "Repository is a submodule, cannot insert it into the repo \
+                 tree."
+            );
+            return 1;
+        }
         Err(err) => {
             eprintln!("{err}");
             return 1;
