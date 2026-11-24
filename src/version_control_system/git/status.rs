@@ -692,10 +692,51 @@ pub struct HeadInfo {
     pub tags: Vec<String>,
 }
 
+impl UpstreamInfo {
+    /// Parse the upstream information from the branch headers of the
+    /// porcelain v2 output of git status. Returns `None` if the current
+    /// branch has no upstream.
+    fn parse(
+        branch_info: &HashMap<String, String>,
+    ) -> Result<Option<Self>, GitStatusParseError> {
+        let Some(name) = branch_info.get("branch.upstream").cloned() else {
+            return Ok(None);
+        };
+
+        // Git omits the ahead / behind header when the upstream is gone.
+        let Some(ab) = branch_info.get("branch.ab") else {
+            return Ok(Some(Self {
+                name,
+                ahead: 0,
+                behind: 0,
+                gone: true,
+            }));
+        };
+
+        let invalid = || {
+            GitStatusParseError::new(
+                &format!("# branch.ab {ab}"),
+                "invalid value",
+            )
+        };
+        let (ahead, behind) = ab
+            .strip_prefix('+')
+            .and_then(|ab| ab.split_once(" -"))
+            .ok_or_else(invalid)?;
+
+        Ok(Some(Self {
+            name,
+            ahead: ahead.parse().map_err(|_| invalid())?,
+            behind: behind.parse().map_err(|_| invalid())?,
+            gone: false,
+        }))
+    }
+}
+
 impl HeadInfo {
-    /// Initialize a new HeadInfo struct.
+    /// Initialize a new `HeadInfo` struct.
     fn new<S>(
-        branch_info: HashMap<String, String>,
+        branch_info: &HashMap<String, String>,
         repo_path: &S,
     ) -> Result<Self, Box<dyn Error>>
     where
@@ -703,32 +744,12 @@ impl HeadInfo {
     {
         let oid = branch_info
             .get("branch.oid")
-            .map_or("unknown".to_string(), |s| s.to_owned());
+            .map_or("unknown".to_string(), ToOwned::to_owned);
 
         let branch = branch_info
             .get("branch.head")
-            .map_or("unknown".to_string(), |s| s.to_owned());
-        let upstream =
-            if let Some(name) = branch_info.get("branch.upstream").cloned() {
-                let (ahead, behind, gone) = if let Some((ahead, behind)) =
-                    branch_info
-                        .get("branch.ab")
-                        .map(|s| s.split_once(" -").expect("Invalid ab value"))
-                {
-                    (ahead.parse().unwrap(), behind.parse().unwrap(), false)
-                } else {
-                    (0, 0, true)
-                };
-
-                Some(UpstreamInfo {
-                    name,
-                    ahead,
-                    behind,
-                    gone,
-                })
-            } else {
-                None
-            };
+            .map_or("unknown".to_string(), ToOwned::to_owned);
+        let upstream = UpstreamInfo::parse(branch_info)?;
 
         let mut branches = get_branches_pointing_at(repo_path, "HEAD")?;
         branches.retain(|b| !(b == &branch || b == "(no branch)"));
@@ -904,7 +925,7 @@ where
     let ongoing_operations = get_ongoing_operations(&git_dir);
 
     Ok(GitStatus {
-        head: HeadInfo::new(branch_raw, repo_path)?,
+        head: HeadInfo::new(&branch_raw, repo_path)?,
         nb_stash,
         status,
         last_fetched,
