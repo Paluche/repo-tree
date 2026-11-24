@@ -254,16 +254,28 @@ impl RepoTree {
             }
         }
 
-        ui.hint("Refreshing repositories cache...");
-
-        let (repositories, empty_dirs) = search(ui, config);
-        let repo_tree = Self { repositories };
-
-        if let Err(err) = repo_tree.save() {
+        let (repo_tree, empty_dirs, result) = Self::search_and_save(ui, config);
+        if let Err(err) = result {
             ui.error(err);
         }
 
         (repo_tree, Some(empty_dirs))
+    }
+
+    /// Search the repositories of the repo tree and write the cache. Returns
+    /// the repositories, the empty directories found and the result of
+    /// writing the cache.
+    fn search_and_save(
+        ui: &Ui<'_>,
+        config: &Config,
+    ) -> (Self, Vec<PathBuf>, Result<(), Box<dyn Error>>) {
+        ui.hint("Refreshing repositories cache...");
+
+        let (repositories, empty_dirs) = search(ui, config);
+        let repo_tree = Self { repositories };
+        let result = repo_tree.save();
+
+        (repo_tree, empty_dirs, result)
     }
 
     /// Load the repo tree.
@@ -274,13 +286,7 @@ impl RepoTree {
             Self::load_silent_with_empty_dirs(ui, config, refresh_cache);
 
         if let Some(empty_dirs) = empty_dirs {
-            for empty_dir in empty_dirs {
-                ui_warning!(
-                    ui,
-                    "Empty directory in repo tree: {}",
-                    empty_dir.display()
-                );
-            }
+            warn_empty_dirs(ui, empty_dirs);
         }
 
         repositories
@@ -357,6 +363,17 @@ impl RepoTree {
     ) -> Option<(&Repository, &Workspace)> {
         self.workspace_iter()
             .find(|(_, w)| w.path() == workspace_path)
+    }
+}
+
+/// Warn about each of the empty directories found in the repo tree.
+fn warn_empty_dirs(ui: &Ui<'_>, empty_dirs: Vec<PathBuf>) {
+    for empty_dir in empty_dirs {
+        ui_warning!(
+            ui,
+            "Empty directory in repo tree: {}",
+            empty_dir.display()
+        );
     }
 }
 
