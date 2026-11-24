@@ -18,6 +18,7 @@ mod tree_space;
 mod ui;
 
 use std::error::Error;
+use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -30,12 +31,38 @@ pub use prompt::JujutsuBookmarkConfig;
 pub use prompt::JujutsuTagConfig;
 pub use tree_category::TreeCategory;
 
+use crate::error::ConfigError;
+
 /// Path to the repo-tree configuration directory.
 pub fn config_dir() -> Result<PathBuf, Box<dyn Error>> {
-    Ok(std::env::var("XDG_CONFIG_HOME")
-        .map_or(
-            std::env::var("HOME").map(|x| Path::new(&x).join(".config")),
-            |x| Ok(PathBuf::from(x)),
-        )?
-        .join("repo-tree"))
+    config_dir_from(
+        std::env::var_os("XDG_CONFIG_HOME"),
+        std::env::var_os("HOME"),
+    )
+}
+
+/// Path to the repo-tree configuration directory from the values of the
+/// `XDG_CONFIG_HOME` and `HOME` environment variables.
+///
+/// As required by the XDG Base Directory specification, an empty or relative
+/// `XDG_CONFIG_HOME` is ignored.
+fn config_dir_from(
+    xdg_config_home: Option<OsString>,
+    home: Option<OsString>,
+) -> Result<PathBuf, Box<dyn Error>> {
+    let base = match xdg_config_home.map(PathBuf::from) {
+        Some(dir) if dir.is_absolute() => dir,
+        _ => Path::new(&home.filter(|home| !home.is_empty()).ok_or_else(
+            || {
+                ConfigError(
+                    "cannot locate the configuration file, neither \
+                     XDG_CONFIG_HOME nor HOME environment variables are set"
+                        .to_string(),
+                )
+            },
+        )?)
+        .join(".config"),
+    };
+
+    Ok(base.join("repo-tree"))
 }

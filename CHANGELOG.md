@@ -98,6 +98,8 @@ None
   `rt` and `jj` agree on the list of workspaces.
 - **config**: A missing `root` without `REPO_TREE_DIR`, or a relative
   `REPO_TREE_DIR`, is now reported as an error instead of making `rt` crash.
+  An empty or relative `XDG_CONFIG_HOME` is ignored, as required by the XDG
+  Base Directory specification.
 - **config**: A color given as an array with other than 3 values is now
   reported as a configuration error instead of making `rt` crash. The `text`
   and `color` of a colored text can now each be omitted.
