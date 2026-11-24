@@ -80,11 +80,17 @@ impl<'de> Deserialize<'de> for Color {
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                Ok(Color::from((
-                    seq.next_element()?.unwrap(),
-                    seq.next_element()?.unwrap(),
-                    seq.next_element()?.unwrap(),
-                )))
+                let mut component = |index| {
+                    seq.next_element::<u8>()?.ok_or_else(|| {
+                        serde::de::Error::invalid_length(index, &self)
+                    })
+                };
+                let color =
+                    Color::from((component(0)?, component(1)?, component(2)?));
+                if seq.next_element::<serde::de::IgnoredAny>()?.is_some() {
+                    return Err(serde::de::Error::invalid_length(4, &self));
+                }
+                Ok(color)
             }
 
             fn expecting(
