@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
 use crate::ui::Ui;
+use crate::ui_error;
 
 /// Fetch all the repositories within the repo_tree.
 #[derive(Args)]
@@ -60,11 +61,14 @@ pub fn fetch_repo(
         );
     }
 
-    ok += if repository.get_vcs_repo(workspace).fetch(quiet).is_ok() {
-        1
-    } else {
-        0
-    };
+    match repository.get_vcs_repo(workspace).fetch(quiet) {
+        Ok(()) => ok += 1,
+        Err(err) => ui_error!(
+            ui,
+            "Unable to fetch {}: {err}",
+            repository.id.display(config)
+        ),
+    }
     total += 1;
 
     Ok((ok, total))
