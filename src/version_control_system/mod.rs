@@ -39,18 +39,15 @@ impl VersionControlSystem {
     /// control system it is, and if the repository is a git submodule or
     /// not.
     pub fn discover_root(path: PathBuf) -> Option<(PathBuf, Self, bool)> {
-        let mut current_path = Some(path);
-        while current_path.is_some() {
-            let root = current_path.clone().unwrap();
-            if let Some((vcs, is_submodule)) =
-                VersionControlSystem::try_new(&root)
-            {
-                return current_path.map(|cp| (cp, vcs, is_submodule));
-            }
-            current_path = current_path
-                .and_then(|cp| cp.parent().map(|p| p.to_path_buf()));
-        }
-        None
+        // The parent of a relative path ends with an empty path, which is not
+        // to be searched as the current directory.
+        path.ancestors()
+            .take_while(|dir| !dir.as_os_str().is_empty())
+            .find_map(|dir| {
+                Self::try_new(dir).map(|(vcs, is_submodule)| {
+                    (dir.to_path_buf(), vcs, is_submodule)
+                })
+            })
     }
 
     /// Try to load the current version control system used by the current

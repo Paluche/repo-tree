@@ -96,6 +96,9 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **repository**: Looking for the repository of a relative path, as done by
+  `rt insert`, no longer ends up with the repository of the current directory
+  when the path is not inside a repository.
 - **git status**: The path of a conflicted file containing a space is no longer
   truncated at the first space. An unexpected output of `git status` is
   reported as an error naming the line, instead of making `rt` crash, and
