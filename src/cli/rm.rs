@@ -2,6 +2,7 @@
 
 use clap::Args;
 
+use crate::cli::confirm;
 use crate::config::Config;
 use crate::error::NotImplementedError;
 use crate::repo_tree::RepoTree;
@@ -69,14 +70,11 @@ pub async fn run(ui: &Ui<'_>, config: &Config, args: RmArgs) -> i32 {
 
     if !args.force {
         // Ask the user for confirmation before removing the repository.
-        println!(
+        if !confirm(&format!(
             "Are you sure you want to remove the repository {} from the \
-             repo-tree? [y/N]",
+             repo-tree?",
             repository.id.display(config),
-        );
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        if input.trim().to_lowercase() != "y" {
+        )) {
             println!("Aborting.");
             return 1;
         }

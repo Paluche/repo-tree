@@ -109,6 +109,15 @@ fn cwd_default_path(ui: &Ui, path: Option<String>) -> PathBuf {
     }
 }
 
+/// Ask the user to confirm the `question` on the standard input. Anything but
+/// "y" or "Y" is a refusal.
+fn confirm(question: &str) -> bool {
+    println!("{question} [y/N]");
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    input.trim().eq_ignore_ascii_case("y")
+}
+
 /// Get the repository in the current working directory or, if a repository ID
 /// is provided get the asked repository.
 fn get_current_repo_or_main<'repo_tree>(

@@ -1,6 +1,7 @@
 //! Remove a workspace repository from a specified workspace tree-space.
 use clap::Args;
 
+use super::super::confirm;
 use super::super::get_current_repo_or_main;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
@@ -66,15 +67,12 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceRmArgs) -> i32 {
 
     if !args.force {
         // Ask the user for confirmation before removing the repository.
-        println!(
+        if !confirm(&format!(
             "Are you sure you want to remove the workspace {} of the \
-             repository {} from the repo-tree? [y/N]",
+             repository {} from the repo-tree?",
             workspace.path().display(),
             repository.id.display(config),
-        );
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        if input.trim().to_lowercase() != "y" {
+        )) {
             println!("Aborting.");
             return 1;
         }
