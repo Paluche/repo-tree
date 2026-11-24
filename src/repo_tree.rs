@@ -24,7 +24,7 @@ use crate::ui_error;
 use crate::ui_warning;
 
 /// Search recursively repositories in a directory.
-fn _search(
+fn search_dir(
     config: &Config,
     tree_space_kind: &TreeSpaceKind,
     repositories: &mut Vec<Repository>,
@@ -60,7 +60,13 @@ fn _search(
                 repositories.push(repo);
             }
         } else {
-            _search(config, tree_space_kind, repositories, empty_dirs, &root);
+            search_dir(
+                config,
+                tree_space_kind,
+                repositories,
+                empty_dirs,
+                &root,
+            );
         }
     }
 
@@ -87,7 +93,7 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
             if tree_space.kind().is_workspace() {
                 continue;
             }
-            _search(
+            search_dir(
                 config,
                 &tree_space.kind(),
                 &mut repositories,
@@ -107,7 +113,7 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
         TreeSpace::iter().filter(|tree_space| tree_space.kind().is_workspace())
     {
         let dir_path = config.root.join(tree_space.category(config).dir_name());
-        _search(
+        search_dir(
             config,
             &tree_space.kind(),
             &mut repositories,
