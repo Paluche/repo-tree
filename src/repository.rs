@@ -303,14 +303,16 @@ impl Repository {
             .filter(|workspace| workspace.is_main_workspace())
             .collect();
 
-        if res.is_empty() {
-            panic!();
-        } else {
-            if res.len() != 1 {
-                ui.warning("Found several copies of a same main repository.");
-            }
-            res[0]
+        if res.len() > 1 {
+            ui.warning("Found several copies of a same main repository.");
         }
+        // Without main workspace, which only happens with a modified cache,
+        // fall back to the first workspace.
+        res.first().copied().unwrap_or_else(|| {
+            self.workspaces
+                .first()
+                .expect("a repository always has at least one workspace")
+        })
     }
 
     /// Get the workspace which has been added to the repository last. Should
