@@ -1,16 +1,14 @@
 //! Test of the configuration.
 
-use std::env;
 use std::error::Error;
+use std::ffi::OsString;
 
 use super::config::Config;
 
 #[test]
 fn default_config() -> Result<(), Box<dyn Error>> {
-    unsafe {
-        env::set_var("REPO_TREE_DIR", "/home/user/work");
-    }
-    let config = Config::load_internal("")?;
+    let config =
+        Config::load_internal("", Some(OsString::from("/home/user/work")))?;
 
     // Check the serialized output if the expected one.
     insta::assert_snapshot!(toml::to_string(&config)?, @r#"

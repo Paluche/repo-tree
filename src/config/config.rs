@@ -3,6 +3,7 @@
 use std::env;
 use std::error::Error;
 use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -25,27 +26,12 @@ use super::tree_space::TreeSpaceConfig;
 use super::ui::UiConfig;
 use crate::error::ConfigError;
 
-/// Obtain a default value for the repo tree root.
-fn default_root() -> PathBuf {
-    let repo_tree_dir = PathBuf::from(&env::var("REPO_TREE_DIR").expect(
-        "Missing \"root\" in configuration file, and REPO_TREE_DIR \
-         environment variable",
-    ));
-
-    assert!(
-        repo_tree_dir.is_absolute(),
-        "REPO_TREE_DIR environment variable value must be an absolute path"
-    );
-
-    repo_tree_dir
-}
-
 /// Configuration of the rt executable.
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
     /// Path the root of the repo tree. Default value obtained through
-    /// the environment variable REPO_TREE_DIR.
-    #[serde(default = "default_root")]
+    /// the environment variable `REPO_TREE_DIR`.
+    #[serde(default)]
     pub root: PathBuf,
     /// Configuration for the user interface.
     #[serde(default)]
@@ -74,11 +60,31 @@ pub struct Config {
 }
 
 impl Config {
-    /// Internal loading of the configuration, from a configuration content.
-    pub(super) fn load_internal(content: &str) -> Result<Self, Box<dyn Error>> {
+    /// Internal loading of the configuration, from a configuration content
+    /// and the value of the `REPO_TREE_DIR` environment variable, used when
+    /// the root is not configured.
+    pub(super) fn load_internal(
+        content: &str,
+        repo_tree_dir: Option<OsString>,
+    ) -> Result<Self, Box<dyn Error>> {
         let mut ret: Config = toml::from_str(content)?;
 
-        if !ret.root.is_absolute() {
+        if ret.root.as_os_str().is_empty() {
+            ret.root = repo_tree_dir.map(PathBuf::from).ok_or_else(|| {
+                ConfigError(
+                    "missing \"root\" in the configuration file, and \
+                     REPO_TREE_DIR environment variable not set"
+                        .to_string(),
+                )
+            })?;
+            if !ret.root.is_absolute() {
+                return Err(Box::new(ConfigError(
+                    "REPO_TREE_DIR environment variable value must be an \
+                     absolute path"
+                        .to_string(),
+                )));
+            }
+        } else if !ret.root.is_absolute() {
             return Err(Box::new(ConfigError(
                 "\"root\" value in configuration file must be an absolute path"
                     .to_string(),
@@ -100,10 +106,15 @@ impl Config {
     pub fn load() -> Result<Self, Box<dyn Error>> {
         let config_path = config_dir()?.join("config.toml");
 
+        let repo_tree_dir = env::var_os("REPO_TREE_DIR");
+
         Ok(if config_path.is_file() {
-            Self::load_internal(&fs::read_to_string(&config_path)?)?
+            Self::load_internal(
+                &fs::read_to_string(&config_path)?,
+                repo_tree_dir,
+            )?
         } else {
-            Self::load_internal("")?
+            Self::load_internal("", repo_tree_dir)?
         })
     }
 
