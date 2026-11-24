@@ -96,6 +96,9 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **completion**: The completion of the `--host` options now proposes the host
+  names starting with the typed text. It used to compare the text with the host
+  URL, proposing for instance nothing for `kern` and `kernel` for `git`.
 - **git prompt**: Display the "ahead" symbol, instead of the "up-to-date" one,
   when the current branch is ahead of its upstream.
 - **config**: A missing `root` without `REPO_TREE_DIR`, or a relative
