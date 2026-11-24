@@ -1,7 +1,7 @@
 //! Insert a repository existing outside the repo tree, within it.
+use std::fs::canonicalize;
 use std::fs::create_dir_all;
 use std::fs::rename;
-use std::path::PathBuf;
 
 use clap::Args;
 use clap_complete::ArgValueCompleter;
@@ -40,14 +40,20 @@ fn refresh_cache(ui: &Ui<'_>, config: &Config, refresh_cache: bool) {
 
 /// Execute the `rt insert` command.
 pub async fn run(ui: &mut Ui<'_>, config: &Config, args: InsertArgs) -> i32 {
-    let repository =
-        match Repository::discover_silent(config, &PathBuf::from(args.path)) {
-            Ok(r) => r,
-            Err(err) => {
-                ui.error(err);
-                return 1;
-            }
-        };
+    let path = match canonicalize(&args.path) {
+        Ok(path) => path,
+        Err(err) => {
+            ui_error!(ui, "Invalid path {}: {err}", args.path);
+            return 1;
+        }
+    };
+    let repository = match Repository::discover_silent(config, &path) {
+        Ok(r) => r,
+        Err(err) => {
+            ui.error(err);
+            return 1;
+        }
+    };
 
     let workspace = repository.get_latest_workspace();
 

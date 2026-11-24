@@ -101,7 +101,8 @@ None
   invalid URL names the URL.
 - **insert**: Removing the directories left empty by the move of a repository
   no longer goes up outside of the repo-tree, it could remove empty directories
-  of the user up to the root of the filesystem.
+  of the user up to the root of the filesystem. `rt insert .` and relative paths
+  no longer make `rt` crash.
 - **clean**: `rt clean --dry-run` no longer loops forever when there are empty
   directories, it lists them as to be removed. `rt clean` stops with an error
   when an empty directory cannot be removed, instead of looping forever, and
