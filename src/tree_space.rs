@@ -515,16 +515,11 @@ mod tests {
 
     #[test]
     fn check_tree_space_into_force_tree_space() {
-        for tree_space in TreeSpace::iter().filter(|t| t.kind().is_workspace())
-        {
-            match <TreeSpace as TryInto<WorkspaceTreeSpace>>::try_into(
-                tree_space,
-            ) {
-                Ok(_) => (),
-                Err(err) => {
-                    panic!("{err}");
-                }
-            }
+        for tree_space in [TreeSpace::Dev, TreeSpace::Archive] {
+            let force_tree_space = ForceTreeSpace::try_from(tree_space.clone())
+                .unwrap_or_else(|err| panic!("{err}"));
+
+            assert_eq!(TreeSpace::from(force_tree_space), tree_space);
         }
     }
 }
