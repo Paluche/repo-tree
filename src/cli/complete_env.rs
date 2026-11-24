@@ -322,7 +322,11 @@ pub fn complete() {
     {
         exit(
             if var_os("_CLAP_COMPLETE_INDEX").is_some()
-                || complete_utils(shell.unwrap(), var, bin)
+                || shell
+                    .ok_or_else(|| {
+                        Error::other(format!("unsupported shell in {var}"))
+                    })
+                    .and_then(|shell| complete_utils(shell, var, bin))
                     .inspect_err(|e| {
                         eprintln!("Failed to generate {bin} utils: {e}")
                     })
