@@ -320,7 +320,11 @@ impl RepoTree {
                             Ok(Some(remote_host)) => host
                                 .compile_matcher()
                                 .is_match(&remote_host.category.name),
-                            Ok(None) => false,
+                            // Repositories without remote are matched
+                            // as hosted by the local tree-space.
+                            Ok(None) => host
+                                .compile_matcher()
+                                .is_match(&config.tree.local.category.name),
                             Err(err) => {
                                 ui.error(err);
                                 false

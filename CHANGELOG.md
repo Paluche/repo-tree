@@ -99,6 +99,8 @@ None
 - **tree**: The short option to refresh the cache is `-R`, as for the other
   commands, instead of `-r`. A repository whose submodules cannot be read is
   displayed without them instead of making `rt tree` crash.
+- **list**, **todo**: The `--host local` filter, suggested by the help, now
+  selects the repositories without remote. It matched nothing.
 - **resolve**: Resolving a repository with several workspaces no longer
   crashes when the tree-space selected with fzf is unknown.
 - **resolve-url**: Return the main workspace of the repository, or the one of
