@@ -246,6 +246,8 @@ impl RepoTree {
                         return (repo_tree, None);
                     }
                 }
+                // Not having a cache yet is expected, on the first run.
+                Err(err) if err.downcast_ref::<NoCacheError>().is_some() => (),
                 Err(err) => {
                     ui_error!(ui, "Failure to load the cache: {err}");
                 }

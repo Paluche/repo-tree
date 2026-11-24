@@ -98,6 +98,7 @@ None
   `rt` and `jj` agree on the list of workspaces.
 - **cache**: The cache is now located in `XDG_CACHE_HOME` when it is set, and
   is written atomically so that a concurrent `rt` never reads a partial cache.
+  The first run no longer reports an error about the missing cache.
 - **cache**: A missing or unreadable repo-tree root, or an unreadable directory
   in it, is reported as an error instead of making `rt` crash. A repository
   which cannot be loaded is reported, instead of being silently explored as a
