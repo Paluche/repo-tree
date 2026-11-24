@@ -98,11 +98,16 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
         }
         first = false;
 
+        if args.dry_run {
+            for empty_dir in empty_dirs {
+                println!("Empty directory to remove: {}", empty_dir.display());
+            }
+            break;
+        }
+
         for empty_dir in empty_dirs {
             println!("Removing empty directory: {}", empty_dir.display());
-            if !args.dry_run
-                && let Err(err) = remove_dir(empty_dir)
-            {
+            if let Err(err) = remove_dir(empty_dir) {
                 ui.error(err);
                 ret = 1;
                 break;
