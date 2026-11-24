@@ -508,14 +508,7 @@ fn parse_line(line: String) -> ParseOutput {
                 let orig_path = chars.collect::<String>();
                 (path, Some(orig_path))
             }
-            'u' => {
-                // <h2>        The object name in stage 2.
-                let chars = chars.take_while(|c| c != &' ');
-                // <h3>        The object name in stage 3.
-                let chars = chars.take_while(|c| c != &' ');
-                // <path>      The pathname.
-                (chars.collect::<String>(), None)
-            }
+            'u' => (chars.collect::<String>(), None),
             _ => panic!("Unexpected entry type"),
         };
         ParseOutput::ItemStatus(ItemStatus {

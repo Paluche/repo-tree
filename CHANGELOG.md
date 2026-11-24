@@ -96,6 +96,8 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **git status**: The path of a conflicted file containing a space is no longer
+  truncated at the first space.
 - **repo id**: A repository whose remote is a path on the local filesystem,
   or a `file://` URL, is now handled as a local repository. Such repositories
   could not be parsed and were ignored by the repositories search, which
