@@ -16,7 +16,7 @@ pub struct RootArgs {
     #[arg(long, short)]
     parent: bool,
 
-    /// Also display repository types. The output will then have 4 words:
+    /// Also display repository types. The output will then have 3 lines:
     /// <Root of the repository> <is_git> <is_jj>.
     #[arg(long)]
     print_type: bool,
