@@ -73,3 +73,36 @@ impl Display for RepoState {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::no_colors;
+
+    #[test]
+    fn repo_state_display_and_is_ok() {
+        let _colors = no_colors();
+
+        for (unpushed, restack, conflicts, expected) in [
+            (false, false, false, "OK"),
+            (true, false, false, "unpushed commits"),
+            (false, true, false, "needs restack"),
+            (false, false, true, "has conflicts"),
+            (true, true, false, "unpushed commits, needs restack"),
+            (false, true, true, "needs restack, has conflicts"),
+            (true, false, true, "unpushed commits, has conflicts"),
+            (
+                true,
+                true,
+                true,
+                "unpushed commits, needs restack, has conflicts",
+            ),
+        ] {
+            let state = RepoState::new(unpushed, restack, conflicts);
+
+            assert_eq!(state.to_string(), expected);
+            assert_eq!(state.is_ok(), expected == "OK");
+            assert_eq!(state.has_unpushed_commits(), unpushed);
+        }
+    }
+}
