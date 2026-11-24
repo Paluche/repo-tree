@@ -100,6 +100,8 @@ None
   at the same commit were displayed.
 - **prompt**: No longer display empty fields, for an empty status summary or a
   host without representation.
+- **repo**: The errors of `rt repo remote` are printed on the standard error
+  instead of the standard output, which is meant for the remote URL.
 - **fetch**: Report why a repository could not be fetched. The error of a
   Jujutsu fetch was silently ignored.
 - **tree**: The short option to refresh the cache is `-R`, as for the other

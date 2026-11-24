@@ -73,7 +73,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: RemoteArgs) -> i32 {
     {
         Ok(r) => r,
         Err(err) => {
-            println!("{err}");
+            ui.error(err);
             return 1;
         }
     };
