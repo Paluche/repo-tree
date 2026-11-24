@@ -579,6 +579,10 @@ impl<'summarize_status, 'config> Display
             write!(f, "{}", self.config.untracked)?;
         }
 
+        if *map.get(&EntryStatus::Updated).unwrap() != 0 {
+            write!(f, "{}", self.config.conflicted)?;
+        }
+
         Ok(())
     }
 }

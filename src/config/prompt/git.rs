@@ -155,10 +155,14 @@ pub struct GitSummarizeStatusConfig {
     /// previously, tracked file has been deleted.
     #[serde(default = "GitSummarizeStatusConfig::default_deleted")]
     pub deleted: char,
-    /// Representation that shows that the repository has at least one of the,
-    /// previously, tracked file has been deleted.
+    /// Representation that shows that the repository has at least one
+    /// untracked file.
     #[serde(default = "GitSummarizeStatusConfig::default_untracked")]
     pub untracked: char,
+    /// Representation that shows that the repository has at least one file
+    /// with unresolved conflicts.
+    #[serde(default = "GitSummarizeStatusConfig::default_conflicted")]
+    pub conflicted: char,
 }
 
 #[allow(clippy::missing_docs_in_private_items)]
@@ -190,6 +194,10 @@ impl GitSummarizeStatusConfig {
     fn default_untracked() -> char {
         ''
     }
+
+    fn default_conflicted() -> char {
+        '\u{f071}'
+    }
 }
 
 impl Default for GitSummarizeStatusConfig {
@@ -202,6 +210,7 @@ impl Default for GitSummarizeStatusConfig {
             renamed: Self::default_renamed(),
             deleted: Self::default_deleted(),
             untracked: Self::default_untracked(),
+            conflicted: Self::default_conflicted(),
         }
     }
 }

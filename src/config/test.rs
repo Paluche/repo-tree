@@ -166,6 +166,7 @@ fn default_config() -> Result<(), Box<dyn Error>> {
     renamed = ""
     deleted = ""
     untracked = ""
+    conflicted = ""
 
     [prompt.git.submodule_status]
     color = "red"
