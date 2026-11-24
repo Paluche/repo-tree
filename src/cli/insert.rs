@@ -13,6 +13,7 @@ use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
 use crate::tree_space::ForceTreeSpace;
 use crate::ui::Ui;
+use crate::ui_error;
 
 /// Clone a repository within the repo tree.
 #[derive(Args)]
@@ -42,7 +43,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: InsertArgs) -> i32 {
         match Repository::discover_silent(config, &PathBuf::from(args.path)) {
             Ok(r) => r,
             Err(err) => {
-                eprintln!("{err}");
+                ui.error(err);
                 return 1;
             }
         };
@@ -55,37 +56,40 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: InsertArgs) -> i32 {
     {
         Ok(Some(value)) => value,
         Ok(None) => {
-            eprintln!(
+            ui.error(
                 "Repository is a submodule, cannot insert it into the repo \
-                 tree."
+                 tree.",
             );
             return 1;
         }
         Err(err) => {
-            eprintln!("{err}");
+            ui.error(err);
             return 1;
         }
     };
 
     let root = workspace.path();
     if root == &expected_root {
-        eprintln!("Repository already at the correct location");
+        ui.info("Repository already at the correct location");
         refresh_cache(ui, config, args.refresh_cache);
         return 0;
     }
 
-    let parent = expected_root.parent().unwrap();
-
-    if !parent.exists()
+    if let Some(parent) = expected_root.parent()
         && let Err(err) = create_dir_all(parent)
     {
-        ui.error(err);
+        ui_error!(ui, "Cannot create {}: {err}", parent.display());
         refresh_cache(ui, config, args.refresh_cache);
         return 1;
     }
 
     if let Err(err) = rename(root, &expected_root) {
-        ui.error(err);
+        ui_error!(
+            ui,
+            "Cannot move {} to {}: {err}",
+            root.display(),
+            expected_root.display()
+        );
         refresh_cache(ui, config, args.refresh_cache);
         return 1;
     }
@@ -105,7 +109,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: InsertArgs) -> i32 {
         }
 
         if let Err(err) = remove_dir(next) {
-            eprintln!("{err}");
+            ui_error!(ui, "Cannot remove {}: {err}", next.display());
             break;
         }
         current = next;
