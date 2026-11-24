@@ -1,6 +1,7 @@
 //! Module for retrieving JuJutsu information.
 mod bookmark;
 mod command;
+mod config;
 mod git;
 mod prompt;
 mod repo_state;
@@ -19,7 +20,9 @@ pub use git::init_colocate;
 use super::VcsRemote;
 use super::VcsRepository;
 use super::VcsWorkspace;
+use super::identity::ConfigChange;
 use crate::config::Config;
+use crate::config::ResolvedIdentity;
 use crate::error::NotARepositoryError;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
@@ -66,6 +69,13 @@ impl<'repo_tree> JujutsuVcs<'repo_tree> {
             colocated,
         }
     }
+
+    /// Open the Git repository backing the Jujutsu repository.
+    fn get_git_repository(&self) -> Result<git2::Repository, Box<dyn Error>> {
+        Ok(git2::Repository::open(git::get_git_dir(
+            self.workspace.path(),
+        )?)?)
+    }
 }
 
 impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
@@ -87,8 +97,23 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         git::get_remotes(self.workspace.path())
     }
 
-    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>> {
-        git::clone(remote_url, self.workspace.path(), self.colocated)
+    fn clone(
+        &self,
+        remote_url: &str,
+        identity: Option<&ResolvedIdentity>,
+    ) -> Result<(), Box<dyn Error>> {
+        git::clone(
+            remote_url,
+            self.workspace.path(),
+            self.colocated,
+            identity,
+        )?;
+
+        if let Some(identity) = identity {
+            self.apply_config(&self.identity_changes(identity)?)?;
+        }
+
+        Ok(())
     }
 
     fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>> {
@@ -177,6 +202,39 @@ impl<'repo_tree> VcsRepository for JujutsuVcs<'repo_tree> {
         }
 
         Ok(missing)
+    }
+
+    fn identity_changes(
+        &self,
+        identity: &ResolvedIdentity,
+    ) -> Result<Vec<ConfigChange>, Box<dyn Error>> {
+        let mut changes =
+            config::identity_changes(self.workspace.path(), identity)?;
+
+        if self.colocated {
+            changes.extend(super::git::config::identity_changes(
+                &self.get_git_repository()?,
+                identity,
+            )?);
+        }
+
+        Ok(changes)
+    }
+
+    fn apply_config(
+        &self,
+        changes: &[ConfigChange],
+    ) -> Result<(), Box<dyn Error>> {
+        let (git, jj): (Vec<ConfigChange>, Vec<ConfigChange>) =
+            changes.iter().cloned().partition(|c| c.vcs == "git");
+
+        config::apply(self.workspace.path(), &jj)?;
+
+        if !git.is_empty() {
+            super::git::config::apply(&self.get_git_repository()?, &git)?;
+        }
+
+        Ok(())
     }
 }
 

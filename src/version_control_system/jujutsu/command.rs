@@ -67,8 +67,8 @@ impl JujutsuCommand {
         self
     }
 
-    /// Get the output lines of the command.
-    fn output(&mut self) -> Result<Output, Box<dyn Error>> {
+    /// Execute the command.
+    fn exec(&mut self) -> Result<Output, Box<dyn Error>> {
         let output = self.command.output()?;
         let status = output.status;
         if !status.success() {
@@ -85,7 +85,7 @@ impl JujutsuCommand {
     /// Get the output lines of the command. Managing the case where the
     /// workspace is now stalled and needs to be updated.
     pub fn output_lines(&mut self) -> Result<Vec<String>, Box<dyn Error>> {
-        let output = self.output()?;
+        let output = self.exec()?;
         Ok(String::from_utf8(output.stdout)?
             .split("\n")
             .filter(|l| !l.is_empty())
@@ -93,9 +93,16 @@ impl JujutsuCommand {
             .collect())
     }
 
+    /// Get the output of the command. Managing the case where the workspace is
+    /// now stalled and needs to be updated.
+    pub fn output(&mut self) -> Result<String, Box<dyn Error>> {
+        // XXX rework this when String::trim_suffix() is stable.
+        Ok(self.output_lines()?.join("\n"))
+    }
+
     /// Execute the command and checks it succeeds. Managing the case where
     /// the workspace is now stalled and needs to be updated.
     pub fn status(&mut self) -> Result<(), Box<dyn Error>> {
-        self.output().map(|_| ())
+        self.exec().map(|_| ())
     }
 }

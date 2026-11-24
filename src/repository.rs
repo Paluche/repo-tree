@@ -11,6 +11,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::config::ResolvedIdentity;
 use crate::error::NoRepositoryError;
 use crate::repo_id::ExpectedTreeStrategy;
 use crate::repo_id::RepoId;
@@ -23,6 +24,7 @@ use crate::version_control_system::VcsRepository;
 use crate::version_control_system::VersionControlSystem;
 use crate::version_control_system::git::SubmoduleInfo;
 use crate::version_control_system::git::{self};
+use crate::version_control_system::identity::ConfigChange;
 
 /// Metadata about a file which, when modified, invalidates the cached
 /// information about the repository.
@@ -36,7 +38,7 @@ pub struct TrackedFile {
 
 impl TrackedFile {
     /// Create a new `TrackedFile` structure.
-    fn new(file: PathBuf) -> Result<Self, Box<dyn Error>> {
+    pub fn new(file: PathBuf) -> Result<Self, Box<dyn Error>> {
         let last_modified = get_last_modified(&file)?;
 
         Ok(Self {
@@ -146,6 +148,14 @@ pub fn remove_empty_parents(
     }
 
     Ok(removed)
+}
+
+/// Identity a repository should use, and how its configuration differs.
+pub struct IdentityStatus {
+    /// Identity the repository should use.
+    pub identity: ResolvedIdentity,
+    /// Changes the repository configuration needs to use the identity.
+    pub changes: Vec<ConfigChange>,
 }
 
 /// Representation of a repository.
@@ -409,6 +419,56 @@ impl Repository {
         // &workspace_root));
 
         Ok(())
+    }
+
+    /// Get the identity the repository should use, and the changes its
+    /// configuration needs to use it. `None` when no identity is configured.
+    pub fn identity_changes(
+        &self,
+        config: &Config,
+    ) -> Result<Option<IdentityStatus>, Box<dyn Error>> {
+        let Some(identity) = config.identities.resolve(&self.id) else {
+            return Ok(None);
+        };
+        // The configuration is shared by all the workspaces.
+        let Some(workspace) = self.workspaces.first() else {
+            return Ok(None);
+        };
+
+        let changes =
+            self.get_vcs_repo(workspace).identity_changes(&identity)?;
+
+        Ok(Some(IdentityStatus { identity, changes }))
+    }
+
+    /// Track again the files the repository depends on, after rt changed
+    /// them itself, so that its own changes do not make the cache look
+    /// outdated.
+    pub fn update_tracked_files(&mut self) -> Result<(), Box<dyn Error>> {
+        self.remote_config = TrackedFile::new(self.remote_config.file.clone())?;
+        Ok(())
+    }
+
+    /// Set the identity the repository should use in its configuration.
+    /// Return the changes made.
+    pub fn apply_identity(
+        &self,
+        config: &Config,
+    ) -> Result<Vec<ConfigChange>, Box<dyn Error>> {
+        let Some(IdentityStatus { changes, .. }) =
+            self.identity_changes(config)?
+        else {
+            return Ok(Vec::new());
+        };
+        let Some(workspace) = self.workspaces.first() else {
+            return Ok(Vec::new());
+        };
+
+        if !changes.is_empty() {
+            self.get_vcs_repo(workspace).apply_config(&changes)?;
+        }
+
+        Ok(changes)
     }
 }
 

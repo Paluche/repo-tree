@@ -272,6 +272,19 @@ fn generate_todo(
     generate_sub_completer("todo", var, completer, &["todo"], buf)
 }
 
+/// Generate the `gh` function, running the GitHub CLI through `rt gh` so
+/// that it uses the API token of the identity of the repository. Being a
+/// function named `gh`, the completion of `gh` still applies.
+fn generate_gh_zsh(buf: &mut dyn Write) -> Result<(), Error> {
+    let script = indoc! { r#"
+        function gh()
+        {
+            rt gh "$@"
+        }
+    "#};
+    writeln!(buf, "{script}\n")
+}
+
 /// Generate utils for ZSH syntax.
 fn complete_utils_zsh(
     var: &str,
@@ -283,6 +296,7 @@ fn complete_utils_zsh(
     generate_gtr_zsh(buf)?;
     generate_gs_zsh(var, completer, buf)?;
     generate_todo(var, completer, buf)?;
+    generate_gh_zsh(buf)?;
 
     Ok(())
 }

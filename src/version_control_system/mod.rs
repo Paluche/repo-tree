@@ -1,5 +1,6 @@
 //! Enumeration listing the different type of Version Control System we support.
 pub mod git;
+pub mod identity;
 pub mod jujutsu;
 use std::error::Error;
 use std::fmt::Display;
@@ -7,10 +8,12 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use clap::ValueEnum;
+use identity::ConfigChange;
 use serde::Deserialize;
 use serde::Serialize;
 
 use crate::config::Config;
+use crate::config::ResolvedIdentity;
 use crate::prompt::Prompt;
 use crate::repo_state::RepoState;
 use crate::repository::Workspace;
@@ -230,8 +233,12 @@ pub trait VcsRepository {
     /// Get the configured remotes of the repository.
     fn get_remotes(&self) -> Result<Vec<VcsRemote>, Box<dyn Error>>;
 
-    /// Clone a repository.
-    fn clone(&self, remote_url: &str) -> Result<(), Box<dyn Error>>;
+    /// Clone a repository, then set the identity in its configuration.
+    fn clone(
+        &self,
+        remote_url: &str,
+        identity: Option<&ResolvedIdentity>,
+    ) -> Result<(), Box<dyn Error>>;
 
     /// Fetch the repository.
     fn fetch(&self, quiet: bool) -> Result<(), Box<dyn Error>>;
@@ -264,6 +271,22 @@ pub trait VcsRepository {
     fn forget_missing_workspaces(
         &self,
     ) -> Result<Vec<VcsWorkspace>, Box<dyn Error>>;
+
+    /// Get the changes the repository configuration needs to use the
+    /// identity. Only the configuration of the repository itself is
+    /// considered, so that the identity does not depend on the user
+    /// configuration.
+    fn identity_changes(
+        &self,
+        identity: &ResolvedIdentity,
+    ) -> Result<Vec<ConfigChange>, Box<dyn Error>>;
+
+    /// Apply changes obtained from [`Self::identity_changes()`] to the
+    /// repository configuration.
+    fn apply_config(
+        &self,
+        changes: &[ConfigChange],
+    ) -> Result<(), Box<dyn Error>>;
 }
 
 #[cfg(test)]

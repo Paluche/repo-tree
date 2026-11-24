@@ -440,6 +440,120 @@ ignore = [  # List of repositories to ignore.
 default_vcs = 'jujutsu-git'
 ```
 
+### Configuring identities
+
+`rt` can manage the identity you use in each repository: the name and email
+authoring the commits and how the commits are signed. You define a `default`
+identity, used in all the repositories, and other identities overriding part
+of it in some repositories. When no identity is configured, `rt` leaves the
+identity of your repositories alone.
+
+```toml
+[identities.default] # Mandatory as soon as one identity is defined.
+name = 'Your Name'
+email = 'you@personal.org'
+signing = { backend = 'gpg', key = '26B104C8AD4182E5', on = 'push' }
+
+[identities.work] # Only the fields to override.
+email = 'you@company.com'
+scopes = [
+  { host = 'github.com', path = 'company/' }, # All the company repositories.
+  { host = 'gitlab.company.com' },            # The whole host.
+]
+
+[identities.legacy]
+signing = 'none'
+scopes = [{ host = 'github.com', path = 'company/legacy' }] # One repository.
+```
+
+- `scopes`: the repositories an identity applies to. `host` is the host of the
+  remote URL. `path` is optional: ending with `/` it matches all the
+  repositories whose name starts with it, otherwise only the repository with
+  exactly that name. The `default` identity has no scopes, and a scope can only
+  be used by one identity.
+- `name`, `email`: the author of the commits. The `default` identity must
+  define both.
+- `signing`: either `'none'` not to sign the commits, or the signing `backend`
+  (`'gpg'`, `'ssh'` or `'gpgsm'`), the `key` to sign with and when to sign:
+  `on = 'commit'` (default) or `on = 'push'`. Only Jujutsu can sign on push, Git
+  signs at commit time. Without `signing`, `rt` leaves the signing configuration
+  of the repositories alone.
+
+The identity of a repository starts from the `default` identity. The identities
+whose scopes match the repository are then applied from the least to the most
+specific scope: host, then directory (longest last), then repository. Here a
+repository in `github.com/company/legacy` is authored by
+`Your Name <you@company.com>` and its commits are not signed.
+
+`rt identity show` displays the identity of the current repository, the
+identities it is made of and how the repository configuration differs from it.
+`rt identity apply` writes the identity in the configuration of the repository
+(`--all` for all the repositories of the repo tree): `user.name`, `user.email`
+and the signing configuration of Jujutsu, and of Git for Git and colocated
+repositories. Only the configuration of the repository itself is written, so
+your user configuration stays the fallback for the repositories outside the repo
+tree.
+
+`rt clone` sets the identity of the repositories it clones, and refreshing the
+repositories cache (`rt refresh-cache`, `rt insert`, ...) sets it in the
+repositories whose configuration differs, with a hint listing the changes. When
+you edit the configuration file, the next `rt` command using the repositories
+cache (`rcd`, `rt list`, ...) sets the new identities.
+
+#### Tokens and secrets
+
+Identities also tell which tokens to use, per host: `git` to fetch and push over
+HTTPS, `api` to access the forge API. The configuration only holds identifiers;
+the tokens are in `secrets.toml`, next to `config.toml`, which should only be
+readable by you (`chmod 600`, `rt` warns otherwise). A token is only ever used
+for its host.
+
+```toml
+# config.toml
+[identities.default]
+tokens.'github.com' = { git = 'github-personal', api = 'github-personal' }
+
+[identities.work]
+tokens.'github.com' = { git = 'github-work' } # Still the personal API token.
+```
+
+```toml
+# secrets.toml
+[github-personal]
+token = 'github_pat_...'
+
+[github-work]
+username = 'you-at-company' # Optional for GitHub, GitLab and Bitbucket.
+token = 'github_pat_...'
+```
+
+`rt credential` is a Git credential helper giving Git these tokens. To have Git
+use it, run `rt identity setup-git` (`--dry-run` to only print what it does).
+For each host with a Git token, it writes in your global Git configuration:
+
+```gitconfig
+[credential "https://github.com"]
+	helper =
+	helper = !rt credential
+	useHttpPath = true
+```
+
+The empty `helper` drops the other credential helpers for that host, so that
+only `rt` answers. `useHttpPath` makes Git give the path of the repository to
+`rt`, which then knows the identity to use, clones included. This also applies
+to Jujutsu, which runs Git to fetch and push. `rt` must be in the `PATH` of the
+programs running Git.
+
+#### GitHub CLI
+
+`rt gh` runs [`gh`](https://cli.github.com/) with the `api` token of the
+identity of the repository it works on, given through `GH_TOKEN` (or
+`GH_ENTERPRISE_TOKEN` and `GH_HOST` for other hosts), so that you do not need
+`gh auth login`. The repository is the one given with `-R/--repo`, or the
+repository of the current directory, or the default identity for `github.com`.
+All the arguments go to `gh` as they are. Without any identity configured, `gh`
+runs as it is, and `command gh` always runs it with its own accounts.
+
 ## Completion and utils
 
 We are using [`clap_complete`](https://docs.rs/clap_complete/latest/clap_complete/index.html)
@@ -460,6 +574,8 @@ The completion will also generate some shell utils with their autocompletion:
   the current repository. If you are in a submodule, and already at the root
   it will jump to the root of the repository containing the submodule.
 - `repo-clone`: Clone a repository then `cd` to its root
+- `gh`: Run the [GitHub CLI](https://cli.github.com/) through `rt gh`, with the
+  API token of the identity of the repository. `command gh` runs it directly.
 
 To obtain the completion and utils, configure your shell based on the following
 command lines:

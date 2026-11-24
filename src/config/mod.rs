@@ -9,6 +9,7 @@ mod command;
 #[expect(clippy::module_inception)]
 mod config;
 mod host;
+mod identity;
 mod prompt;
 mod repository_location;
 #[cfg(test)]
@@ -25,6 +26,16 @@ use std::path::PathBuf;
 pub use command::GitStatusCommandConfig;
 pub use config::Config;
 pub use host::RemoteHost;
+#[cfg(test)]
+pub use identity::NoSigning;
+pub use identity::ResolvedIdentity;
+pub use identity::SignOn;
+pub use identity::Signing;
+pub use identity::SigningBackend;
+#[cfg(test)]
+pub use identity::SigningKey;
+#[cfg(test)]
+pub use identity::Tokens;
 pub use prompt::GitSummarizeStatusConfig;
 pub use prompt::GitSummarizeSubmoduleStatusConfig;
 pub use prompt::JujutsuBookmarkConfig;
@@ -65,4 +76,9 @@ fn config_dir_from(
     };
 
     Ok(base.join("repo-tree"))
+}
+
+/// Path to the repo-tree configuration file.
+pub fn config_file() -> Result<PathBuf, Box<dyn Error>> {
+    Ok(config_dir()?.join("config.toml"))
 }

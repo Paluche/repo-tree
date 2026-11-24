@@ -536,3 +536,20 @@ fn host_candidates_match_the_host_name() -> Result<(), Box<dyn Error>> {
     assert_eq!(host_candidates(&config, "").len(), 6);
     Ok(())
 }
+
+#[test]
+fn identities_are_checked() {
+    let result = load(
+        r#"
+        [identities.work]
+        email = "work@company.com"
+        scopes = [{ host = "github.com", path = "company/" }]
+        "#,
+    );
+
+    assert!(
+        result
+            .err()
+            .is_some_and(|err| err.to_string().contains("\"default\""))
+    );
+}

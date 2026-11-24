@@ -335,3 +335,8 @@ function _todo() {
 }
 
 compdef _todo todo
+
+function gh()
+{
+    rt gh "$@"
+}

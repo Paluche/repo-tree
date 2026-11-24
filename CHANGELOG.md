@@ -64,6 +64,31 @@ None
   tags, and locally deleted tags pending some action.
 - Add new command `rt workspace add` and `rt workspace rm` to manage our
   repositories workspace in the different workspace tree-space.
+- **identity**: Configure the identities to use in the repositories: a
+  `default` identity and identities overriding part of it for a host, a
+  directory of a host or a single repository.
+- **identity**: `rt identity show` displays the identity of a repository and
+  the identities it is made of.
+- **identity**: `rt identity apply` writes the identity in the Jujutsu and Git
+  configuration of a repository, or of all of them with `--all`, and
+  `rt identity show` lists the differences.
+- **clone**: `rt clone` sets the identity of the cloned repository. Jujutsu
+  repositories get it for the clone itself, so that the first working-copy
+  commit already has the right author.
+- **identity**: Refreshing the repositories cache, which `rt insert` also does,
+  sets the identity of the repositories whose configuration differs from it,
+  with a hint listing the changes.
+- **identity**: After a change of the configuration file, the next `rt`
+  command using the repositories cache sets the new identities in the
+  repositories.
+- **identity**: Identities select the tokens to use per host, kept apart in a
+  `secrets.toml` file. `rt credential` is a Git credential helper giving Git
+  the token of the identity of the repository.
+- **identity**: `rt identity setup-git` configures Git to use `rt credential`
+  for the hosts with Git tokens.
+- **gh**: `rt gh` runs the GitHub CLI with the API token of the identity of the
+  repository it works on.
+- **utils**: The generated shell utils run `gh` through `rt gh`.
 
 ### Fixed bugs
 
