@@ -5,7 +5,6 @@ use std::ffi::OsStr;
 use std::fmt::Display;
 use std::path::Path;
 use std::path::PathBuf;
-use std::str::Chars;
 
 use chrono::DateTime;
 use chrono::Utc;
@@ -17,6 +16,7 @@ use super::command::GitCommand;
 use crate::config::GitStatusCommandConfig;
 use crate::config::GitSummarizeStatusConfig;
 use crate::config::GitSummarizeSubmoduleStatusConfig;
+use crate::error::GitStatusParseError;
 use crate::utils::get_last_modified;
 
 #[derive(Hash, PartialEq, Eq, EnumIter)]
@@ -47,9 +47,9 @@ pub enum EntryStatus {
 
 impl EntryStatus {
     /// Associate a character from the porcelain v2 git status output,
-    /// representing an entry status to a value of the EntryStatus enum.
-    fn from_chars(chars: &mut Chars) -> Self {
-        match chars.next().unwrap() {
+    /// representing an entry status to a value of the `EntryStatus` enum.
+    fn from_char(character: char) -> Option<Self> {
+        Some(match character {
             '.' => Self::Unmodified,
             'M' => Self::Modified,
             'T' => Self::FileTypeChanged,
@@ -58,8 +58,8 @@ impl EntryStatus {
             'R' => Self::Renamed,
             'C' => Self::Copied,
             'U' => Self::Updated,
-            character => panic!("Unexpected character {character}"),
-        }
+            _ => return None,
+        })
     }
 
     /// Obtain a struct which implements the Display trait for EntryStatus.
@@ -147,29 +147,26 @@ pub enum SubmoduleStatus {
 }
 
 impl SubmoduleStatus {
-    /// Parse the 4 characters from the porcelain v2 git status output,
-    /// representing a submodule status to a value of the SubmoduleStatus enum.
-    fn from_chars(chars: &mut Chars) -> Self {
-        let is_submodule = chars.next().unwrap();
-        let commit_changed = chars.next().unwrap();
-        let tracked_changed = chars.next().unwrap();
-        let has_untracked = chars.next().unwrap();
+    /// Parse the 4 characters field from the porcelain v2 git status output,
+    /// representing a submodule status to a value of the `SubmoduleStatus`
+    /// enum.
+    fn from_field(field: &str) -> Option<Self> {
+        let flag = |character: char, set: char| match character {
+            '.' => Some(false),
+            c if c == set => Some(true),
+            _ => None,
+        };
 
-        assert!(matches!(is_submodule, 'N' | 'S'));
-        assert!(matches!(commit_changed, 'C' | '.'));
-        assert!(matches!(tracked_changed, 'M' | '.'));
-        assert!(matches!(has_untracked, 'U' | '.'));
-
-        if is_submodule == 'N' {
-            Self::NotASubmodule
-        } else if is_submodule == 'S' {
-            Self::Submodule {
-                commit_changed: commit_changed != '.',
-                tracked_changed: tracked_changed != '.',
-                has_untracked: has_untracked != '.',
+        match field.chars().collect::<Vec<char>>()[..] {
+            ['N', '.', '.', '.'] => Some(Self::NotASubmodule),
+            ['S', commit_changed, tracked_changed, has_untracked] => {
+                Some(Self::Submodule {
+                    commit_changed: flag(commit_changed, 'C')?,
+                    tracked_changed: flag(tracked_changed, 'M')?,
+                    has_untracked: flag(has_untracked, 'U')?,
+                })
             }
-        } else {
-            panic!("Unexpected format for submodule changed")
+            _ => None,
         }
     }
 
@@ -409,115 +406,102 @@ enum ParseOutput {
     StashInfo(u32),
     /// The parsed line is representing an item status.
     ItemStatus(ItemStatus),
+    /// The parsed line is a header this parser does not know about, it is
+    /// ignored so that new headers of future git versions do not break the
+    /// parsing.
+    OtherHeader,
+}
+
+/// Parse the XY field of a line from the porcelain v2 output of git status.
+fn parse_xy(
+    line: &str,
+    field: &str,
+) -> Result<(EntryStatus, EntryStatus), GitStatusParseError> {
+    let mut chars = field.chars();
+    match (
+        chars.next().and_then(EntryStatus::from_char),
+        chars.next().and_then(EntryStatus::from_char),
+        chars.next(),
+    ) {
+        (Some(staged), Some(unstaged), None) => Ok((staged, unstaged)),
+        _ => Err(GitStatusParseError::new(line, "invalid XY field")),
+    }
 }
 
 /// Parse a line from the porcelain v2 output of git status.
-fn parse_line(line: String) -> ParseOutput {
-    let mut chars = line.chars();
+fn parse_line(line: &str) -> Result<ParseOutput, GitStatusParseError> {
+    let Some((entry_type, rest)) = line.split_once(' ') else {
+        return Err(GitStatusParseError::new(line, "missing entry type"));
+    };
 
-    // Common part for all entries.
-    let entry_type = chars.next().unwrap();
-    assert!(matches!(chars.next(), Some(' ')));
-
-    if entry_type == '#' {
-        let key = chars.by_ref().take_while(|c| c != &' ').collect::<String>();
-        let value = chars.collect::<String>();
-
-        if key.starts_with("branch") {
-            ParseOutput::BranchInfo(key, value)
-        } else if key == "stash" {
-            ParseOutput::StashInfo(value.parse().unwrap())
-        } else {
-            panic!("")
+    match entry_type {
+        "#" => {
+            let (key, value) = rest.split_once(' ').unwrap_or((rest, ""));
+            if key.starts_with("branch.") {
+                Ok(ParseOutput::BranchInfo(key.to_string(), value.to_string()))
+            } else if key == "stash" {
+                value.parse().map(ParseOutput::StashInfo).map_err(|_| {
+                    GitStatusParseError::new(line, "invalid stash count")
+                })
+            } else {
+                Ok(ParseOutput::OtherHeader)
+            }
         }
-    } else if entry_type == '?' {
-        ParseOutput::ItemStatus(ItemStatus {
+        "?" => Ok(ParseOutput::ItemStatus(ItemStatus {
             staged: EntryStatus::Untracked,
             unstaged: EntryStatus::Untracked,
             submodule_status: SubmoduleStatus::Untracked,
-            path: chars.collect::<String>(),
+            path: rest.to_string(),
             orig_path: None,
-        })
-    } else if entry_type == '!' {
-        ParseOutput::ItemStatus(ItemStatus {
+        })),
+        "!" => Ok(ParseOutput::ItemStatus(ItemStatus {
             staged: EntryStatus::Ignored,
             unstaged: EntryStatus::Ignored,
             submodule_status: SubmoduleStatus::Ignored,
-            path: chars.collect::<String>(),
+            path: rest.to_string(),
             orig_path: None,
-        })
-    } else {
-        let staged = EntryStatus::from_chars(&mut chars);
-        let unstaged = EntryStatus::from_chars(&mut chars);
-        assert!(matches!(chars.next(), Some(' ')));
-        let submodule_status = SubmoduleStatus::from_chars(&mut chars);
-        // <mH>        The octal file mode in HEAD.
-        // or
-        // <m1>        The octal file mode in stage 1.
-        let mut i = 0;
-        // If entry_type is 'u', skip fields:
-        // <m1>        The octal file mode in stage 1.
-        // <m2>        The octal file mode in stage 2.
-        // <m3>        The octal file mode in stage 3.
-        // <mW>        The octal file mode in the worktree.
-        // <h1>        The object name in stage 1.
-        // <h2>        The object name in stage 2.
-        // <h3>        The object name in stage 3.
-        // Otherwise skip fields:
-        // <XY>        A 2 character field containing the staged and
-        //             unstaged XY values described in the short format,
-        //             with unchanged indicated by a "." rather than
-        //             a space.
-        // <sub>       A 4 character field describing the submodule state.
-        //             "N..." when the entry is not a submodule.
-        //             "S<c><m><u>" when the entry is a submodule.
-        //             <c> is "C" if the commit changed; otherwise ".".
-        //             <m> is "M" if it has tracked changes; otherwise ".".
-        //             <u> is "U" if there are untracked changes; otherwise ".".
-        // <mH>        The octal file mode in HEAD.
-        // <mI>        The octal file mode in the index.
-        // <mW>        The octal file mode in the worktree.
-        // <hH>        The object name in HEAD.
-        // <hI>        The object name in the index.
-        // and skip one more field if entry_type is '2'.
-        // <X><score>  The rename or copy score (denoting the percentage
-        //             of similarity between the source and target of the
-        //             move or copy). For example "R100" or "C75".
-        let skip = match entry_type {
-            'u' => 7,
-            '1' => 5,
-            '2' => 6,
-            _ => panic!("Unexpected entry type"),
-        };
-
-        let mut chars = chars.skip_while(|c| {
-            if c == &' ' {
-                i += 1;
-                true
+        })),
+        "1" | "2" | "u" => {
+            // Number of fields after the entry type, the last one being the
+            // path, which may contain spaces:
+            // 1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>
+            // 2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <X><score>
+            // <path><sep><origPath> u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2>
+            // <h3> <path>
+            let nb_fields = match entry_type {
+                "1" => 8,
+                "2" => 9,
+                _ => 10,
+            };
+            let fields: Vec<&str> = rest.splitn(nb_fields, ' ').collect();
+            if fields.len() != nb_fields || fields[nb_fields - 1].is_empty() {
+                return Err(GitStatusParseError::new(line, "missing fields"));
+            }
+            let (staged, unstaged) = parse_xy(line, fields[0])?;
+            let submodule_status = SubmoduleStatus::from_field(fields[1])
+                .ok_or_else(|| {
+                    GitStatusParseError::new(line, "invalid submodule field")
+                })?;
+            let (path, orig_path) = if entry_type == "2" {
+                let (path, orig_path) = fields[nb_fields - 1]
+                    .split_once('\t')
+                    .ok_or_else(|| {
+                        GitStatusParseError::new(line, "missing original path")
+                    })?;
+                (path.to_string(), Some(orig_path.to_string()))
             } else {
-                i <= skip
-            }
-        });
-        let (path, orig_path) = match entry_type {
-            '1' => (chars.collect::<String>(), None),
-            '2' => {
-                let path = chars
-                    .by_ref()
-                    .take_while(|c| c != &'\t')
-                    .collect::<String>();
-                let orig_path = chars.collect::<String>();
-                (path, Some(orig_path))
-            }
-            'u' => (chars.collect::<String>(), None),
-            _ => panic!("Unexpected entry type"),
-        };
-        ParseOutput::ItemStatus(ItemStatus {
-            staged,
-            unstaged,
-            submodule_status,
-            path,
-            orig_path,
-        })
+                (fields[nb_fields - 1].to_string(), None)
+            };
+
+            Ok(ParseOutput::ItemStatus(ItemStatus {
+                staged,
+                unstaged,
+                submodule_status,
+                orig_path,
+                path,
+            }))
+        }
+        _ => Err(GitStatusParseError::new(line, "unknown entry type")),
     }
 }
 
@@ -905,17 +889,15 @@ where
     let mut status = Vec::new();
 
     for line in lines {
-        match parse_line(line) {
+        match parse_line(&line)? {
             ParseOutput::BranchInfo(key, value) => {
                 branch_raw.insert(key, value);
             }
-            ParseOutput::StashInfo(n) => {
-                assert_eq!(nb_stash, 0, "Unexpected several stash info");
-                nb_stash = n
-            }
+            ParseOutput::StashInfo(n) => nb_stash = n,
             ParseOutput::ItemStatus(item_status) => {
                 status.push(item_status);
             }
+            ParseOutput::OtherHeader => (),
         }
     }
     let last_fetched = get_last_fetched(&git_dir);

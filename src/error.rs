@@ -40,6 +40,18 @@ impl CommandError {
 }
 
 #[derive(Debug, Error)]
+#[error("Unexpected git status output, {1}: {0:?}")]
+/// A line of the output of git status could not be parsed.
+pub struct GitStatusParseError(pub String, pub String);
+
+impl GitStatusParseError {
+    /// Create a new error for `line`, which could not be parsed for `reason`.
+    pub fn new(line: &str, reason: &str) -> Self {
+        Self(line.to_string(), reason.to_string())
+    }
+}
+
+#[derive(Debug, Error)]
 #[error("{0} not implemented yet")]
 /// A functionality is not implemented yet.
 pub struct NotImplementedError(pub String);

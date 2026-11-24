@@ -1,4 +1,5 @@
 //! Enhanced git status.
+use std::error::Error;
 use std::path::Path;
 
 use clap::ArgAction;
@@ -45,7 +46,7 @@ fn format_repo_status(
     rel_path: Option<&str>,
     status: GitStatus,
     level: usize,
-) -> String {
+) -> Result<String, Box<dyn Error>> {
     let mut ret = String::new();
     let prefix = (0..level).map(|_| "        ┊ ").collect::<String>();
 
@@ -118,8 +119,7 @@ fn format_repo_status(
             }
             let rel_path = item.path;
             repo_path.push(&rel_path);
-            let repo_path = repo_path.to_str().unwrap();
-            let status = git::status(&repo_path).unwrap();
+            let status = git::status(&repo_path)?;
 
             ret.push_str(&format_repo_status(
                 git_status_config,
@@ -128,11 +128,11 @@ fn format_repo_status(
                 Some(&rel_path),
                 status,
                 level + 1,
-            ));
+            )?);
         }
     }
 
-    ret
+    Ok(ret)
 }
 
 /// Execute the `rt git status` command.
@@ -163,8 +163,7 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: StatusArgs) -> i32 {
         return 1;
     }
 
-    println!(
-        "{}",
+    match git::status(root).and_then(|status| {
         format_repo_status(
             &config.command.git_status,
             if args.no_relative_path {
@@ -174,10 +173,21 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: StatusArgs) -> i32 {
             },
             root,
             None,
-            git::status(root).expect("Error obtaining git status"),
-            0
+            status,
+            0,
         )
-    );
-
-    0
+    }) {
+        Ok(status) => {
+            println!("{status}");
+            0
+        }
+        Err(err) => {
+            ui_error!(
+                ui,
+                "Unable to get the status of {}: {err}",
+                root.display()
+            );
+            1
+        }
+    }
 }
