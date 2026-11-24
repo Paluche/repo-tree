@@ -99,6 +99,9 @@ None
 - **clone**: Fail when the clone location exists and is not a repository,
   instead of succeeding without printing the location. The error about an
   invalid URL names the URL.
+- **insert**: Removing the directories left empty by the move of a repository
+  no longer goes up outside of the repo-tree, it could remove empty directories
+  of the user up to the root of the filesystem.
 - **clean**: `rt clean --dry-run` no longer loops forever when there are empty
   directories, it lists them as to be removed. `rt clean` stops with an error
   when an empty directory cannot be removed, instead of looping forever, and

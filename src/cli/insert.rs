@@ -1,6 +1,5 @@
 //! Insert a repository existing outside the repo tree, within it.
 use std::fs::create_dir_all;
-use std::fs::remove_dir;
 use std::fs::rename;
 use std::path::PathBuf;
 
@@ -11,7 +10,9 @@ use clap_complete::PathCompleter;
 use crate::config::Config;
 use crate::repo_tree::RepoTree;
 use crate::repository::Repository;
+use crate::repository::remove_empty_parents;
 use crate::tree_space::ForceTreeSpace;
+use crate::tree_space::TreeSpace;
 use crate::ui::Ui;
 use crate::ui_error;
 
@@ -95,29 +96,23 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: InsertArgs) -> i32 {
     }
     println!("{} moved to {}", root.display(), expected_root.display());
 
-    let mut current = root.as_path();
-    let mut removed = false;
-    while let Some(next) = current.parent() {
-        if next
-            .read_dir()
-            .expect("read dir call failed")
-            .flatten()
-            .count()
-            != 0
-        {
-            break;
+    // Directories outside the repo tree belong to the user, only clean up
+    // the ones of the repo tree, without removing its tree-spaces.
+    let stop = TreeSpace::from_path(config, root).map_or_else(
+        || config.root.clone(),
+        |tree_space| config.root.join(tree_space.category(config).dir_name()),
+    );
+    match remove_empty_parents(root, &stop) {
+        Ok(removed) => {
+            for dir in removed {
+                println!("\"{}\" removed", dir.display());
+            }
         }
-
-        if let Err(err) = remove_dir(next) {
-            ui_error!(ui, "Cannot remove {}: {err}", next.display());
-            break;
-        }
-        current = next;
-        removed = true;
-    }
-
-    if removed {
-        println!("\"{}\" removed", current.display());
+        Err(err) => ui_error!(
+            ui,
+            "Cannot remove the empty parents of {}: {err}",
+            root.display()
+        ),
     }
 
     // Repo tree changed, refresh the cache.
