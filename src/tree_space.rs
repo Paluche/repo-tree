@@ -505,8 +505,8 @@ mod tests {
 
             assert!(
                 kind.is_main(),
-                "{force_tree_space:?} convert into {tree_space:?} which is not
-                of kind 'main' but {kind:?}"
+                "{force_tree_space:?} convert into {tree_space:?} which is \
+                 not of kind 'main' but {kind:?}"
             );
         }
     }

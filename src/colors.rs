@@ -185,10 +185,10 @@ impl Hash for Color {
                 colored::Color::BrightWhite => 15,
                 colored::Color::AnsiColor(n) => 16 + u32::from(n),
                 colored::Color::TrueColor { r, g, b } => {
-                    17 + u32::from(u8::MAX)
-                        + u32::from(r)
-                        + u32::from(g)
-                        + u32::from(b)
+                    1 << 24
+                        | u32::from(r) << 16
+                        | u32::from(g) << 8
+                        | u32::from(b)
                 }
             },
             None => u32::MAX,
@@ -478,6 +478,28 @@ mod tests {
     #[test]
     fn color_from_other_type_fails() {
         assert!(parse("true").is_err());
+    }
+
+    /// Hash `color` with the default hasher.
+    fn hash_of(color: &Color) -> u64 {
+        let mut hasher = std::hash::DefaultHasher::new();
+        color.hash(&mut hasher);
+        hasher.finish()
+    }
+
+    #[test]
+    fn true_colors_with_the_same_sum_hash_differently() {
+        let colors = [
+            Color::from(colored::Color::TrueColor { r: 1, g: 0, b: 0 }),
+            Color::from(colored::Color::TrueColor { r: 0, g: 1, b: 0 }),
+            Color::from(colored::Color::TrueColor { r: 0, g: 0, b: 1 }),
+            Color::from(colored::Color::AnsiColor(17)),
+        ];
+        for (i, a) in colors.iter().enumerate() {
+            for b in &colors[i + 1..] {
+                assert_ne!(hash_of(a), hash_of(b), "{a:?} and {b:?}");
+            }
+        }
     }
 
     #[test]
