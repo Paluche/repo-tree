@@ -152,14 +152,15 @@ impl RepoId {
         {
             Self::from_remote_url(remote_url)
         } else {
+            let repo_path = repo_path.as_ref();
             Ok(Self {
                 remote: None,
                 name: repo_path
-                    .as_ref()
                     .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
+                    .and_then(|name| name.to_str())
+                    .ok_or_else(|| {
+                        ParseUrlError(repo_path.display().to_string())
+                    })?
                     .to_string(),
             })
         }
