@@ -75,7 +75,7 @@ impl<'repo_tree> Directory<'repo_tree> {
 
         root.iter()
             .skip(config.root.iter().count())
-            .map(|os_str| os_str.to_str().unwrap().to_owned())
+            .map(|os_str| os_str.to_string_lossy().into_owned())
             .collect()
     }
 
