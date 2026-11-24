@@ -96,6 +96,8 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **cache**: A missing or unreadable repo-tree root, or an unreadable directory
+  in it, is reported as an error instead of making `rt` crash.
 - **resolve**: Every repository can now be resolved by the shortest end of its
   name which identifies it. A local repository named as the last component of
   another repository could not be resolved at all, a third repository sharing a

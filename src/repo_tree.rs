@@ -36,9 +36,21 @@ fn search_dir(
         return;
     }
 
+    let entries = match dir.read_dir() {
+        Ok(entries) => entries,
+        Err(err) => {
+            ui_error!(
+                ui,
+                "Unable to read the directory {}: {err}",
+                dir.display()
+            );
+            return;
+        }
+    };
+
     let mut empty_dir = true;
 
-    for entry in dir.read_dir().expect("read dir call failed").flatten() {
+    for entry in entries.flatten() {
         empty_dir = false;
         let root = entry.path();
         let repo = Repository::try_new(config, &root);
@@ -83,12 +95,19 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
     let mut repositories = Vec::new();
     let mut empty_dirs = Vec::new();
 
-    for entry in config
-        .root
-        .read_dir()
-        .expect("read dir call failed")
-        .flatten()
-    {
+    let entries = match config.root.read_dir() {
+        Ok(entries) => entries,
+        Err(err) => {
+            ui_error!(
+                ui,
+                "Unable to read the repo tree root {}: {err}",
+                config.root.display()
+            );
+            return (repositories, empty_dirs);
+        }
+    };
+
+    for entry in entries.flatten() {
         let dir_path = entry.path();
         if let Some(tree_space) =
             TreeSpace::from_dir_name(config, &entry.file_name())
