@@ -85,14 +85,10 @@ pub async fn run(ui: &mut Ui<'_>, config: &Config, args: CleanArgs) -> i32 {
     loop {
         // Force the cache to be refreshed at the same time as loading the empty
         // directories.
-        let (_, Some(empty_dirs)) =
+        let empty_dirs =
             RepoTree::load_silent_with_empty_dirs(ui, config, true)
-        else {
-            panic!(
-                "Cache forced to be refreshed so empty_dirs should be \
-                 available"
-            );
-        };
+                .1
+                .unwrap_or_default();
 
         if empty_dirs.is_empty() {
             if first {
