@@ -39,7 +39,7 @@ static RE_SCHEME: LazyLock<Regex> = LazyLock::new(|| {
 /// Captures: user (optional), host, path.
 static RE_SCP: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
-        r"^(?:(?P<user>[^@:\s]+)@)?(?P<host>[^:\s]+):(?P<path>[^ \r\n]+?)(?:\.git)?/?$",
+        r"^(?:(?P<user>[^@:\s]+)@)?(?P<host>[^:/\s]+):(?P<path>[^ \r\n]+?)(?:\.git)?/?$",
     )
     .expect("hardcoded regular expression is valid")
 });
@@ -59,9 +59,13 @@ fn capture_url(url: &str) -> Result<regex::Captures<'_>, ParseUrlError> {
         return Err(ParseUrlError(url.to_string()));
     }
 
-    let captures = RE_SCHEME
+    let regex = if url.contains("://") {
+        &RE_SCHEME
+    } else {
+        &RE_SCP
+    };
+    let captures = regex
         .captures(url)
-        .or_else(|| RE_SCP.captures(url))
         .ok_or_else(|| ParseUrlError(url.to_string()))?;
 
     // The path is used to build the location of the repository in the tree,
