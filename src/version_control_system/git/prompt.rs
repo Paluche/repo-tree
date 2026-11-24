@@ -28,7 +28,15 @@ pub fn prompt(
     if !is_jj_colocated {
         {
             let mut field = PromptListField::new(" ");
-            field.push(config.branches.display(&git_status.head.branches));
+            // The current branch, followed by the other branches at HEAD.
+            let head = &git_status.head;
+            let branches: Vec<&String> = (head.branch != "(detached)"
+                && head.oid != "(initial)")
+                .then_some(&head.branch)
+                .into_iter()
+                .chain(head.branches.iter())
+                .collect();
+            field.push(config.branches.display(&branches));
             field.push(config.tags.display(&git_status.head.tags));
             field.push(
                 if let Some(upstream_info) = &git_status.head.upstream {

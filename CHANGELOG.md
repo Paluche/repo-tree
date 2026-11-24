@@ -96,6 +96,8 @@ None
 - **workspace**: When refreshing the repositories cache, forget, with a
   warning, the Jujutsu workspaces which directory has been deleted, so that
   `rt` and `jj` agree on the list of workspaces.
+- **git prompt**: Display the current branch, only the other branches pointing
+  at the same commit were displayed.
 - **fetch**: Report why a repository could not be fetched. The error of a
   Jujutsu fetch was silently ignored.
 - **tree**: The short option to refresh the cache is `-R`, as for the other
