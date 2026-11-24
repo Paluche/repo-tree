@@ -100,7 +100,9 @@ None
   locally is displayed as local, instead of as tracked by the `git` pseudo
   remote.
 - **jj**: An unexpected output of `jj git remote list` or `jj workspace list`
-  is reported as an error instead of making `rt` crash.
+  is reported as an error instead of making `rt` crash. `rt workspace add` to a
+  destination which already exists, or whose parent is a file, reports an
+  error instead of crashing.
 - **repository**: Looking for the repository of a relative path, as done by
   `rt insert`, no longer ends up with the repository of the current directory
   when the path is not inside a repository.

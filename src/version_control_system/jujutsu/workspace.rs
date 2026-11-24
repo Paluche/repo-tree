@@ -40,25 +40,24 @@ pub fn add_workspace(
     name: &str,
     destination: &Path,
 ) -> Result<(), Box<dyn Error>> {
-    if destination.is_dir() {
-        panic!(
-            "Destination directory {} already exists",
+    if destination.exists() {
+        return Err(format!(
+            "Destination {} of the workspace already exists",
             destination.display()
-        ); // XXX Use of panic -> Return Err
+        )
+        .into());
     }
 
     // Create the parent directory where to put the workspace.
     if let Some(parent) = destination.parent() {
-        if parent.exists() {
-            if parent.is_file() {
-                panic!(
-                    "Destination parent directory {} is actually a file",
-                    parent.display()
-                ); // XXX Use of panic -> Return Err
-            }
-        } else {
-            create_dir_all(parent)?;
+        if parent.exists() && !parent.is_dir() {
+            return Err(format!(
+                "Destination parent directory {} is not a directory",
+                parent.display()
+            )
+            .into());
         }
+        create_dir_all(parent)?;
     }
 
     JujutsuCommand::repo_with_snapshot(repo_path)?
