@@ -264,7 +264,7 @@ impl Repository {
 
     /// Find out if the repository has the specified workspace.
     fn has_workspace(&self, workspace: &Workspace) -> bool {
-        self.workspaces.iter().find(|w| w == &workspace).is_some()
+        self.workspaces.iter().any(|w| w == workspace)
     }
 
     /// Try to get the workspace located in the specified tree-space.
