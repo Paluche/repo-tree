@@ -269,7 +269,7 @@ fn generate_todo(
         }
     "#};
     writeln!(buf, "{script}\n")?;
-    generate_sub_completer("todo", var, completer, &["git", "status"], buf)
+    generate_sub_completer("todo", var, completer, &["todo"], buf)
 }
 
 /// Generate utils for ZSH syntax.

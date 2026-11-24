@@ -302,11 +302,11 @@ function _todo() {
     local _CLAP_COMPLETE_INDEX=$(expr $CURRENT - 1)
     local _CLAP_IFS=$'\n'
 
-    local words=("${words[0]}"  "git" "status" "${words[@]:1}")
+    local words=("${words[0]}"  "todo" "${words[@]:1}")
 
     local completions=("${(@f)$( \
         _CLAP_IFS="$_CLAP_IFS" \
-        _CLAP_COMPLETE_INDEX="$((_CLAP_COMPLETE_INDEX + 2))" \
+        _CLAP_COMPLETE_INDEX="$((_CLAP_COMPLETE_INDEX + 1))" \
         COMPLETE="zsh" \
         rt -- "${words[@]}" 2>/dev/null \
     )}")
