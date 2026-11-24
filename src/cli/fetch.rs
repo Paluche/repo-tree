@@ -81,7 +81,16 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: FetchArgs) -> i32 {
     let (ok, total) = repo_tree
         .repo_iter()
         .map(|repo| {
-            fetch_repo(ui, config, args.quiet, repo, false).unwrap_or((0, 1))
+            fetch_repo(ui, config, args.quiet, repo, false).unwrap_or_else(
+                |err| {
+                    ui_error!(
+                        ui,
+                        "Unable to fetch {}: {err}",
+                        repo.id.display(config)
+                    );
+                    (0, 1)
+                },
+            )
         })
         .reduce(|acc, res| (acc.0 + res.0, acc.1 + res.1))
         .unwrap_or((0, 0));
