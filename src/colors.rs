@@ -273,15 +273,19 @@ impl Color {
 }
 
 impl Color {
-    /// Colorize the provided text.
+    /// Colorize the provided text. An empty text stays empty, without color
+    /// escape sequences, so that it can be detected as empty.
     pub fn colorize<T>(&self, text: T) -> String
     where
         T: ToString,
     {
-        if let Some(color) = self.color {
-            text.to_string().color(color).to_string()
+        let text = text.to_string();
+        if let Some(color) = self.color
+            && !text.is_empty()
+        {
+            text.color(color).to_string()
         } else {
-            text.to_string()
+            text
         }
     }
 }
