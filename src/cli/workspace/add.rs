@@ -46,7 +46,7 @@ pub fn run(ui: &Ui<'_>, config: &Config, args: WorkspaceAddArgs) -> i32 {
                 return 2;
             }
             Err(err) => {
-                eprintln!("{err}");
+                ui.error(err);
                 return 1;
             }
         };
