@@ -119,20 +119,34 @@ impl Workspace {
             Self::Other(_) => config.root.clone(),
         };
 
-        let mut dir = root.parent();
-        while let Some(current) = dir
-            && current.starts_with(&stop)
-            && current != stop
-        {
-            if current.read_dir()?.next().is_some() {
-                break;
-            }
-            remove_dir(current)?;
-            dir = current.parent();
-        }
+        remove_empty_parents(root, &stop)?;
 
         Ok(())
     }
+}
+
+/// Remove the parent directories of `path` left empty, up to `stop`, which is
+/// kept. Nothing is removed if `path` is not within `stop`. Returns the
+/// removed directories.
+pub fn remove_empty_parents(
+    path: &Path,
+    stop: &Path,
+) -> io::Result<Vec<PathBuf>> {
+    let mut removed = Vec::new();
+    let mut dir = path.parent();
+    while let Some(current) = dir
+        && current.starts_with(stop)
+        && current != stop
+    {
+        if current.read_dir()?.next().is_some() {
+            break;
+        }
+        remove_dir(current)?;
+        removed.push(current.to_path_buf());
+        dir = current.parent();
+    }
+
+    Ok(removed)
 }
 
 /// Representation of a repository.
