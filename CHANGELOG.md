@@ -99,7 +99,9 @@ None
 - **clean**: `rt clean --dry-run` no longer loops forever when there are empty
   directories, it lists them as to be removed. `rt clean` stops with an error
   when an empty directory cannot be removed, instead of looping forever, and
-  names the paths when a repository cannot be moved.
+  names the paths when a repository cannot be moved. Agent workspaces are no
+  longer reported as misplaced, `rt clean` was trying to move them onto their
+  main repository.
 - **cache**: The cache is now located in `XDG_CACHE_HOME` when it is set, and
   is written atomically so that a concurrent `rt` never reads a partial cache.
   The first run no longer reports an error about the missing cache.

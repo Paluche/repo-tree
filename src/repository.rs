@@ -339,6 +339,11 @@ impl Repository {
         assert!(self.has_workspace(workspace));
         Ok(if self.is_submodule {
             None
+        } else if let Some(tree_space) = workspace.tree_space()
+            && tree_space.kind().is_workspace()
+        {
+            // Additional workspaces belong to their own tree-space.
+            Some(tree_space.repo_location(config, &self.id)?)
         } else {
             Some(
                 self.id
