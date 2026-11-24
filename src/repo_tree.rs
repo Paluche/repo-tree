@@ -25,6 +25,7 @@ use crate::ui_warning;
 
 /// Search recursively repositories in a directory.
 fn search_dir(
+    ui: &Ui<'_>,
     config: &Config,
     tree_space_kind: &TreeSpaceKind,
     repositories: &mut Vec<Repository>,
@@ -49,7 +50,8 @@ fn search_dir(
                 {
                     main_repo.add_workspace(repo);
                 } else {
-                    eprintln!(
+                    ui_warning!(
+                        ui,
                         "Unexpected workspace repository without a known \
                          default associated in {}",
                         root.display()
@@ -61,6 +63,7 @@ fn search_dir(
             }
         } else {
             search_dir(
+                ui,
                 config,
                 tree_space_kind,
                 repositories,
@@ -94,6 +97,7 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
                 continue;
             }
             search_dir(
+                ui,
                 config,
                 &tree_space.kind(),
                 &mut repositories,
@@ -114,6 +118,7 @@ fn search(ui: &Ui<'_>, config: &Config) -> (Vec<Repository>, Vec<PathBuf>) {
     {
         let dir_path = config.root.join(tree_space.category(config).dir_name());
         search_dir(
+            ui,
             config,
             &tree_space.kind(),
             &mut repositories,
