@@ -21,7 +21,7 @@ pub struct TreeArgs {
     #[arg(short, long, add=TreeSpace::completer())]
     tree: Option<TreeSpace>,
     /// Force recreating the cache.
-    #[arg(short, long, global = true)]
+    #[arg(short = 'R', long, global = true)]
     refresh_cache: bool,
 }
 
