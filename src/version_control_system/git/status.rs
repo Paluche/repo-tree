@@ -374,7 +374,7 @@ impl<'item_status, 'config, 'cwd, 'repo_root, 'rel_path> Display
             }
             ret.push(path);
 
-            diff_paths(ret, cwd).unwrap().display().to_string()
+            diff_paths(&ret, cwd).unwrap_or(ret).display().to_string()
         }
 
         if let Some(orig_path) = &self.item_status.orig_path {
@@ -654,10 +654,13 @@ where
         .output_lines_fallible()?
         .iter()
         .filter_map(|line| {
-            if line[2..].starts_with("(HEAD detached ") {
+            // Each line is prefixed by 2 characters: "* " for the current
+            // branch, "+ " for a branch checked out in another worktree.
+            let name = line.get(2..)?;
+            if name.starts_with("(HEAD detached ") {
                 None
             } else {
-                Some(line[2..].to_string())
+                Some(name.to_string())
             }
         })
         .collect())
@@ -887,16 +890,16 @@ pub fn status<S>(repo_path: &S) -> Result<GitStatus, Box<dyn Error>>
 where
     S: AsRef<OsStr> + Sized,
 {
-    let git_dir = {
-        PathBuf::from(
-            GitCommand::repo(repo_path)?
-                .arg("rev-parse")
-                .arg("--absolute-git-dir")
-                .output_lines()?
-                .pop()
-                .unwrap(),
-        )
-    };
+    let git_dir = PathBuf::from(
+        GitCommand::repo(repo_path)?
+            .arg("rev-parse")
+            .arg("--absolute-git-dir")
+            .output_lines()?
+            .pop()
+            .ok_or_else(|| {
+                GitStatusParseError::new("", "git rev-parse printed nothing")
+            })?,
+    );
 
     let lines = GitCommand::repo(repo_path)?
         .arg("status")
